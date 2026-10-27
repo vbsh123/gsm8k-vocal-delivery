@@ -1,4 +1,6 @@
 .venv/
+.venv-diffa/
+external/
 __pycache__/
 *.pyc
 outputs/

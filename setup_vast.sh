@@ -2,6 +2,13 @@
 set -euo pipefail
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
 
+if [[ "${1:-}" == "--diffa" ]]; then
+  exec bash setup_diffa.sh
+elif [[ $# -gt 0 ]]; then
+  printf 'Usage: bash setup_vast.sh [--diffa]\n' >&2
+  exit 2
+fi
+
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 "$PYTHON_BIN" -c 'import sys; assert (3, 10) <= sys.version_info < (3, 14), "Use Python 3.10–3.13 (3.12 recommended)"'
 nvidia-smi

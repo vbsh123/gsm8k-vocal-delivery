@@ -39,6 +39,37 @@ then `pip install -r requirements.txt` instead of running the setup script.
 Run in `tmux` if your SSH session might disconnect. Store outputs and the Hugging
 Face cache on persistent storage if you plan to destroy/recreate the instance.
 
+## DIFFA-2 setup for evaluation
+
+When the recordings are ready, install the same DIFFA-2 source revision and
+dependency versions as the caching experiments:
+
+```bash
+bash setup_vast.sh --diffa
+source .venv-diffa/bin/activate
+```
+
+`bash setup_diffa.sh` is equivalent. This requires **Python 3.10–3.12** and an
+NVIDIA driver compatible with CUDA 12.4. If `python3` is a different version:
+
+```bash
+PYTHON_BIN=python3.12 bash setup_vast.sh --diffa
+```
+
+The script automatically clones the official implementation into `external/DIFFA`
+at commit `0a87594e110984fbaf00ebf5bfe5840c212e4438`. It creates `.venv-diffa`,
+installs PyTorch/torchaudio 2.6.0 and Transformers 4.49.0, and registers the
+`DIFFA-2` source directory inside that environment. You can then import
+`src.modeling_DIFFA` and `src.configuration_DIFFA` from your evaluation script
+without another clone or a manual `PYTHONPATH` setting.
+
+The TTS environment uses a different Transformers version, so use `.venv` for
+generation and `.venv-diffa` for evaluation. Setup checks source imports and CUDA;
+it does not load model weights or run an evaluation. Model weights download when
+your loader requests them. The previous experiments used
+`zhoujiaming777/DIFFA-2`, `GSAI-ML/LLaDA-8B-Instruct`, and `openai/whisper-large-v3`.
+The DIFFA-1 / Whisper-small loading example is a different model configuration.
+
 ## Generate a pilot
 
 Start with one question to check the model and listen to all seven styles:
@@ -180,6 +211,7 @@ No GPU, model download, or third-party packages required:
 python -m unittest discover -s tests -v
 python -m py_compile generate.py
 bash -n setup_vast.sh
+bash -n setup_diffa.sh
 ```
 
 These validate planning, paired seeds, sampling, resume/failure behavior, and
