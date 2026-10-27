@@ -83,6 +83,10 @@ def load_questions(args):
         rows = [dict(row, id=f"gsm8k_{args.split}_{i:05d}") for i, row in enumerate(dataset)]
         source = {"dataset": "openai/gsm8k", "config": "main", "split": args.split,
                   "revision": args.dataset_revision, "fingerprint": dataset._fingerprint}
+    excluded = set()
+    if args.exclude_questions:
+        excluded = {row["question_id"] for row in read_jsonl(args.exclude_questions)}
+        source["excluded_question_ids"] = sorted(excluded)
     clean = []
     seen = set()
     for index, row in enumerate(rows):
@@ -94,6 +98,8 @@ def load_questions(args):
         if question_id in seen:
             raise ValueError(f"Duplicate question ID: {question_id}")
         seen.add(question_id)
+        if question_id in excluded:
+            continue
         if args.max_words and len(question.split()) > args.max_words:
             continue
         clean.append({"question_id": question_id, "text": question,
@@ -261,6 +267,7 @@ def parser():
     p.add_argument("--styles-file", type=Path, default=ROOT / "configs/styles.json")
     p.add_argument("--output", type=Path, default=ROOT / "outputs/pilot")
     p.add_argument("--input-jsonl", type=Path, help="Local rows with question, answer, optional id; bypasses GSM8K download")
+    p.add_argument("--exclude-questions", type=Path, help="Exclude question IDs in a previous questions.jsonl")
     p.add_argument("--max-words", type=int, default=0, help="Filter long questions before sampling; 0 disables")
     p.add_argument("--temperature", type=float, default=0.9)
     p.add_argument("--max-new-tokens", type=int, default=2048, help="Speech-code token cap; inspect clips for truncation")

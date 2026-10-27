@@ -70,6 +70,13 @@ class GeneratorTests(unittest.TestCase):
         smaller, _ = generate.load_questions(args)
         self.assertEqual(smaller, all_questions[:1])
 
+    def test_previous_question_ids_are_excluded(self):
+        excluded = Path(self.temp.name) / "previous.jsonl"
+        excluded.write_text(json.dumps({"question_id": "demo_apples"}) + "\n")
+        self.assertEqual(self.quiet_main(["--exclude-questions", str(excluded), "--num-examples", "1"]), 0)
+        questions = generate.read_jsonl(self.output / "questions.jsonl")
+        self.assertEqual([q["question_id"] for q in questions], ["demo_books"])
+
     def test_failed_clip_is_retried_and_missing_audio_regenerated(self):
         self.assertEqual(self.quiet_main(["--styles", "neutral", "happy"]), 0)
         tasks = generate.read_jsonl(self.output / "plan.jsonl")

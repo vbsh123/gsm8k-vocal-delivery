@@ -20,6 +20,7 @@ from huggingface_hub import hf_hub_download
 from transformers import AutoTokenizer, WhisperFeatureExtractor, WhisperModel
 from peft import LoraConfig, get_peft_model
 from summarize import print_summary
+from scoring import score_response
 
 from src.configuration_DIFFA import DIFFAConfig
 from src.modeling_DIFFA import DIFFAModel
@@ -62,10 +63,15 @@ def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     p.add_argument('--path', type=Path)
     p.add_argument('--results-file', default='results.jsonl')
+    p.add_argument('--max-new-tokens', type=int, default=512)
     args = p.parse_args(argv)
-    prompt = ("Solve the math problem in the audio. Give brief step-by-step reasoning "
-              "and show the calculations. Then finish with a separate line: "
-              "Final answer: <number>")
+    if args.max_new_tokens < 32 or args.max_new_tokens % 32 or 128 % (args.max_new_tokens // 32):
+        p.error('--max-new-tokens must be a multiple of 32 whose block count divides 128.')
+    prompt = ("Solve the math problem in the audio. Give concise step-by-step reasoning "
+              "with only the necessary calculations. If the question asks for a total, "
+              "compute that total. End with one plain-text line in exactly this format: "
+              "Final answer: <number>. Put a single numeric answer on that line, "
+              "without Markdown, units, or separate component counts.")
     recordings = load_recordings(args.path)
     recordings, skipped = filter_recordings(args.path, recordings)
     with (args.path / (args.results_file + ".skipped.jsonl")).open("w") as f:
@@ -164,25 +170,14 @@ def main(argv=None):
                 input_texts=[prompt],
                 steps=128,
                 block_length=32,
-                max_new_tokens=256,
+                max_new_tokens=args.max_new_tokens,
                 temperature=0.0,
                 accelerate="fast_dllm",
             )
         print(recording["clip_id"], response, flush=True)
 
-        match = re.search(
-            r"Final answer:\s*\$?(-?\d[\d,]*(?:\.\d+)?)",
-            response,
-            flags=re.IGNORECASE,
-        )
-        predicted = match.group(1).replace(",", "") if match else None
-        expected = recording["answer"].replace(",", "")
-        from decimal import Decimal
-
-        correct = (
-        predicted is not None
-        and Decimal(predicted) == Decimal(expected)
-        )
+        score = score_response(response, recording["answer"])
+        response_tokens = len(tokenizer.encode(response, add_special_tokens=False))
 
         result = {
             "clip_id": recording["clip_id"],
@@ -193,15 +188,15 @@ def main(argv=None):
             "response": response,
             "prompt": prompt,
             "system_prompt": "",
-            "max_new_tokens": 256,
+            "max_new_tokens": args.max_new_tokens,
             "decoder": "fast_dllm",
-            "predicted_answer": predicted,
-            "reference_answer": expected,
-            "parse_failed": predicted is None,
-            "correct": correct,
+            "response_tokens_reencoded": response_tokens,
+            "near_token_limit": response_tokens >= args.max_new_tokens - 2,
+            **score,
         }
 
         with (args.path / args.results_file).open("a") as f:
             f.write(json.dumps(result) + "\n")
     print_summary(args.path / args.results_file)
-main()
+if __name__ == "__main__":
+    main()

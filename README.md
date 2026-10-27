@@ -102,6 +102,42 @@ prompt configurations in separate results files.
 
 ## Generate a pilot
 
+### Generate 50 questions per style, then immediately evaluate
+
+On an instance where both environments have already been set up:
+
+```bash
+bash run_experiment.sh 50 outputs/pilot50-v2
+```
+
+This generates **350 recordings** (50 questions × seven styles, Ryan, one render),
+then runs DIFFA-2 and prints per-style accuracy. The TTS process exits before
+DIFFA loads, releasing its GPU memory. Sampling uses seed 123. If
+`outputs/pilot10/questions.jsonl` exists, the original ten question IDs are
+excluded automatically. Keep this file present when resuming generation.
+You can supply another seed as the third argument. Direct generation also accepts
+`--exclude-questions path/to/previous/questions.jsonl`.
+
+Run inside `tmux` for a long SSH session. If generation fails, the pipeline stops
+before evaluation; rerunning resumes generation. If evaluation is interrupted,
+rerunning currently reevaluates the clips and appends results; the summary counts
+the latest entry per clip. Generation logs are saved beside the output directory
+as `outputs/pilot50-v2.generation.log`; evaluation logs are inside it.
+
+Evaluation uses a concise-reasoning prompt, a **512-token** response budget, and
+the `scalar-final-v2` scorer. It tolerates Markdown around the explicit final
+answer, numeric units, thousands separators, fractions, and simple boxed answers.
+Multiple component counts are flagged for review instead of adding them or
+choosing a number based on the reference. Numbers in the reasoning are never
+used as a fallback. Responses also record re-encoded token counts and a
+`near_token_limit` heuristic; this is not a definitive EOS/truncation signal.
+All styles use the same extraction rule and generation settings.
+
+Results go to `outputs/pilot50-v2/results-reasoning-v2.jsonl`. **Fifty questions
+are generated; fewer may qualify for evaluation** because a question is excluded
+if any of its recordings exceeds 30 seconds. The summary displays the actual
+denominator. Original pilot recordings and results are left intact.
+
 Start with one question to check the model and listen to all seven styles:
 
 ```bash
