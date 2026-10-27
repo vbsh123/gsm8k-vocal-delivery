@@ -32,12 +32,49 @@ def load_recordings(path):
     with (path / "manifest.jsonl").open() as f:
         return [json.loads(line) for line in f if line.strip()]
 
+
+def filter_recordings(path, recordings):
+    # Read actual WAV headers, rather than trusting saved duration metadata.
+    durations = {}
+    long_questions = set()
+    for recording in recordings:
+        info = sf.info(path / recording["audio_path"])
+        durations[recording["clip_id"]] = info.frames / info.samplerate
+        if info.frames > 30 * info.samplerate:
+            long_questions.add(recording["question_id"])
+    kept, skipped = [], []
+    for recording in recordings:
+        if recording["question_id"] in long_questions:
+            skipped.append({
+                "clip_id": recording["clip_id"],
+                "question_id": recording["question_id"],
+                "style": recording["style"],
+                "audio_seconds": durations[recording["clip_id"]],
+                "reason": "question_has_recording_over_30_seconds",
+            })
+        else:
+            kept.append(recording)
+    return kept, skipped
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     p.add_argument('--path', type=Path)
+    p.add_argument('--results-file', default='results.jsonl')
     args = p.parse_args(argv)
-    prompt = "Solve the question, Make sure after you are done to finish with text - 'Final answer: <number>'"
+    prompt = ("Solve the math problem in the audio. Give brief step-by-step reasoning "
+              "and show the calculations. Then finish with a separate line: "
+              "Final answer: <number>")
     recordings = load_recordings(args.path)
+    recordings, skipped = filter_recordings(args.path, recordings)
+    with (args.path / (args.results_file + ".skipped.jsonl")).open("w") as f:
+        for item in skipped:
+            f.write(json.dumps(item) + "\n")
+    print(f"Evaluating {len(recordings)} clips; skipped {len(skipped)} clips from "
+          f"{len({r['question_id'] for r in skipped})} questions with long audio.", flush=True)
+    if not recordings:
+        print("No questions fit the 30-second limit in every recording; model was not loaded.")
+        return
     tokenizer = AutoTokenizer.from_pretrained(llm_id)
     feature_extractor = WhisperFeatureExtractor.from_pretrained(whisper_id)
     config_path = hf_hub_download(diffa_id, "config.json")
@@ -57,7 +94,7 @@ def main(argv=None):
     model.load_state_dict(audio_weights, strict=False)
     whisper = WhisperModel.from_pretrained(whisper_id, torch_dtype= torch.float32)
     model.whisper_model.load_state_dict(whisper.encoder.state_dict())
- 
+
     del whisper, audio_weights
     llm = LLaDAModelLM.from_pretrained(llm_id, torch_dtype=torch.bfloat16)
     llm_weights = {
@@ -103,7 +140,7 @@ def main(argv=None):
     model.llm_model = llm.merge_and_unload()
     model = model.cuda().eval()
     model.requires_grad_(False)
-    
+
     for recording in recordings:
         audio_path = args.path / recording['audio_path']
         audio, sample_rate = sf.read(audio_path, dtype="float32")
@@ -113,7 +150,10 @@ def main(argv=None):
         if sample_rate != 16000:
             audio = librosa.resample(audio, orig_sr = sample_rate, target_sr=16000)
 
-        inputs = feature_extractor(audio,sampling_rate=16000,truncation=False, return_tensors="pt", return_attention_mask=True).to('cuda')
+        inputs = feature_extractor(
+            audio, sampling_rate=16000, truncation=False,
+            return_tensors="pt", return_attention_mask=True,
+        ).to("cuda")
         with torch.inference_mode():
             response = model.generate(
                 tokenizer,
@@ -127,6 +167,7 @@ def main(argv=None):
                 temperature=0.0,
                 accelerate="fast_dllm",
             )
+        print(recording["clip_id"], response, flush=True)
 
         match = re.search(
             r"Final answer:\s*\$?(-?\d[\d,]*(?:\.\d+)?)",
@@ -149,12 +190,16 @@ def main(argv=None):
             "speaker": recording["speaker"],
             "repeat": recording["repeat"],
             "response": response,
+            "prompt": prompt,
+            "system_prompt": "",
+            "max_new_tokens": 256,
+            "decoder": "fast_dllm",
             "predicted_answer": predicted,
             "reference_answer": expected,
             "parse_failed": predicted is None,
             "correct": correct,
         }
 
-        with (args.path / "results.jsonl").open("a") as f:
+        with (args.path / args.results_file).open("a") as f:
             f.write(json.dumps(result) + "\n")
 main()

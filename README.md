@@ -70,6 +70,22 @@ your loader requests them. The previous experiments used
 `zhoujiaming777/DIFFA-2`, `GSAI-ML/LLaDA-8B-Instruct`, and `openai/whisper-large-v3`.
 The DIFFA-1 / Whisper-small loading example is a different model configuration.
 
+Run the evaluator with the prompt that requests brief reasoning:
+
+```bash
+python evaluate.py --path outputs/pilot10 --results-file results-reasoning.jsonl
+```
+
+The evaluator reads WAV headers before loading weights. If **any recording of a
+question exceeds 30 seconds**, all recordings of that question are skipped, so
+styles are compared on the same questions. Audio is neither chunked nor cropped.
+Exactly 30 seconds is accepted. Skipped clip IDs and durations are written to
+`results-reasoning.jsonl.skipped.jsonl`. If no questions qualify, the script exits
+before downloading/loading model weights. Results include the exact prompt and
+the raw response; the prompt requests reasoning but does not guarantee it.
+Use a new results filename when changing the prompt: existing files are appended
+to, and reruns do not automatically skip completed evaluations.
+
 ## Generate a pilot
 
 Start with one question to check the model and listen to all seven styles:
