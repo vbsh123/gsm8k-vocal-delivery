@@ -1,0 +1,9 @@
+{
+  "neutral": "Read in a natural, emotionally neutral conversational voice, with ordinary pacing and expression.",
+  "confident": "Read with calm confidence and assurance: a steady, firm voice, deliberate pacing, and decisive phrasing. Do not sound angry or shout.",
+  "hesitant": "Read with an uncertain, tentative, hesitant delivery, using subtle pauses and wavering intonation. Do not add filler words, repeat words, or change the text.",
+  "happy": "Read in a clearly happy, cheerful, upbeat voice with lively, warm expression. Keep every word intelligible.",
+  "angry": "Read in a clearly angry, irritated voice with firm, tense expression. Do not scream or sacrifice intelligibility.",
+  "sad": "Read in a clearly sad, subdued, sorrowful voice with restrained energy. Keep every word intelligible.",
+  "stressed": "Read as someone feeling anxious, pressured, and psychologically stressed: tense, worried, and slightly urgent. This means emotional stress, not emphasizing particular words. Do not add words or rush so much that words become unclear."
+}
