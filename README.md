@@ -86,6 +86,20 @@ the raw response; the prompt requests reasoning but does not guarantee it.
 Use a new results filename when changing the prompt: existing files are appended
 to, and reruns do not automatically skip completed evaluations.
 
+At the end, evaluation prints correct/total, accuracy percentage, and parse
+failures for each style. You can also summarize completed results during or after
+a run, without loading a model:
+
+```bash
+python summarize.py outputs/pilot10/results-reasoning.jsonl
+```
+
+The summary counts the latest saved result per clip ID, so appended reruns are
+not counted twice. Parse failures count as incorrect; skipped questions are not
+in the denominator. While evaluation is incomplete, styles may have different
+counts; use the finished run for a matched comparison. Keep different model or
+prompt configurations in separate results files.
+
 ## Generate a pilot
 
 Start with one question to check the model and listen to all seven styles:

@@ -19,6 +19,7 @@ from transformers import AutoTokenizer, AutoModel, WhisperFeatureExtractor
 from huggingface_hub import hf_hub_download
 from transformers import AutoTokenizer, WhisperFeatureExtractor, WhisperModel
 from peft import LoraConfig, get_peft_model
+from summarize import print_summary
 
 from src.configuration_DIFFA import DIFFAConfig
 from src.modeling_DIFFA import DIFFAModel
@@ -202,4 +203,5 @@ def main(argv=None):
 
         with (args.path / args.results_file).open("a") as f:
             f.write(json.dumps(result) + "\n")
+    print_summary(args.path / args.results_file)
 main()
