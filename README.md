@@ -148,6 +148,29 @@ Do not run multiple processes against the same output directory.
 
 ## Output and listening
 
+### Replace a delivery after improving its prompt
+
+For a ten-question default run in `outputs/pilot10`, generate angry replacements
+and then install them into that dataset:
+
+```bash
+python generate.py --num-examples 10 --styles angry --output outputs/angry-v2
+python replace_style.py --target outputs/pilot10 --source outputs/angry-v2 --style angry
+```
+
+The replacement command requires matching questions, voices, repeats, seeds, and
+generation settings. It backs up the old WAVs and metadata under
+`outputs/pilot10/backups/`, replaces only angry clips, updates the manifest and
+plans, and refreshes the listening page. If `results.jsonl` already exists, it is
+archived in the backup and removed from the active dataset because the recordings
+have changed. Rerun evaluation afterward. Run replacement only after generation
+has finished and while no evaluation is running. This utility needs only Python's
+standard library. The other styles, including stressed, retain their recordings.
+
+The resulting dataset combines style prompts from different runs. Use a new
+output directory for any future generation; running the original full-generation
+command against the merged directory will reject its mixed plan.
+
 ```text
 outputs/pilot10/
   audio/                  # Native-rate float WAV files, no loudness normalization
