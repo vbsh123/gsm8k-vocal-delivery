@@ -77,6 +77,24 @@ class GeneratorTests(unittest.TestCase):
         questions = generate.read_jsonl(self.output / "questions.jsonl")
         self.assertEqual([q["question_id"] for q in questions], ["demo_books"])
 
+    def test_multiple_previous_batches_are_excluded(self):
+        local = Path(self.temp.name) / "questions.jsonl"
+        local.write_text(''.join(json.dumps(dict(id=f"q{i}", question=f"Question {i}?", answer="1")) + '\n'
+                                 for i in range(4)))
+        previous = []
+        for index in range(2):
+            path = Path(self.temp.name) / f"previous{index}.jsonl"
+            path.write_text(json.dumps({"question_id": f"q{index}"}) + '\n')
+            previous.append(str(path))
+        self.assertEqual(self.quiet_main(["--input-jsonl", str(local), "--num-examples", "2",
+                                         "--exclude-questions", *previous]), 0)
+        questions = generate.read_jsonl(self.output / "questions.jsonl")
+        self.assertEqual({q["question_id"] for q in questions}, {"q2", "q3"})
+
+    def test_missing_exclusion_file_does_not_silently_allow_overlap(self):
+        self.assertEqual(self.quiet_main(["--exclude-questions", str(Path(self.temp.name) / "missing.jsonl")]), 1)
+        self.assertFalse(self.output.exists())
+
     def test_failed_clip_is_retried_and_missing_audio_regenerated(self):
         self.assertEqual(self.quiet_main(["--styles", "neutral", "happy"]), 0)
         tasks = generate.read_jsonl(self.output / "plan.jsonl")

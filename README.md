@@ -138,6 +138,33 @@ are generated; fewer may qualify for evaluation** because a question is excluded
 if any of its recordings exceeds 30 seconds. The summary displays the actual
 denominator. Original pilot recordings and results are left intact.
 
+### Add 150 new questions, excluding the previous 50
+
+```bash
+bash run_experiment.sh 150 outputs/extra150-v2 456 \
+  outputs/pilot50-v2/questions.jsonl
+```
+
+The fourth and subsequent arguments are previous `questions.jsonl` files whose
+IDs must be excluded. The original `outputs/pilot10/questions.jsonl` is also
+excluded automatically if present. Missing explicitly supplied files cause an
+error before generation; no overlap is silently permitted. This adds **1,050
+recordings**, bringing the two larger batches to 200 generated questions per
+style before duration filtering. Keep these prior manifests available when
+resuming. The evaluation prompt, scorer, voice and 512-token budget are unchanged.
+
+Combine the two larger batches' results after evaluation:
+
+```bash
+python summarize.py \
+  outputs/pilot50-v2/results-reasoning-v2.jsonl \
+  outputs/extra150-v2/results-reasoning-v2.jsonl
+```
+
+The initial pilot10 used a different protocol and should not be pooled into this
+summary. Direct generation accepts multiple exclusions in one option:
+`--exclude-questions previous1/questions.jsonl previous2/questions.jsonl`.
+
 Start with one question to check the model and listen to all seven styles:
 
 ```bash

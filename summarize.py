@@ -7,14 +7,15 @@ import json
 from pathlib import Path
 
 
-def print_summary(path):
+def print_summary(path, *additional_paths):
     # Evaluation appends on reruns; count the latest result for each clip once.
     latest = {}
-    with Path(path).open(encoding="utf-8") as stream:
-        for line in stream:
-            if line.strip():
-                row = json.loads(line)
-                latest[row["clip_id"]] = row
+    for results_path in (path, *additional_paths):
+        with Path(results_path).open(encoding="utf-8") as stream:
+            for line in stream:
+                if line.strip():
+                    row = json.loads(line)
+                    latest[row["clip_id"]] = row
 
     groups = defaultdict(list)
     for row in latest.values():
@@ -34,8 +35,8 @@ def print_summary(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("results", type=Path, help="Path to a results JSONL file")
-    print_summary(parser.parse_args().results)
+    parser.add_argument("results", type=Path, nargs="+", help="Results JSONL files to summarize together")
+    print_summary(*parser.parse_args().results)
 
 
 if __name__ == "__main__":

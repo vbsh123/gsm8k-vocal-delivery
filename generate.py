@@ -85,7 +85,10 @@ def load_questions(args):
                   "revision": args.dataset_revision, "fingerprint": dataset._fingerprint}
     excluded = set()
     if args.exclude_questions:
-        excluded = {row["question_id"] for row in read_jsonl(args.exclude_questions)}
+        for previous in args.exclude_questions:
+            if not previous.is_file():
+                raise FileNotFoundError(f"Previous questions file does not exist: {previous}")
+            excluded.update(row["question_id"] for row in read_jsonl(previous))
         source["excluded_question_ids"] = sorted(excluded)
     clean = []
     seen = set()
@@ -267,7 +270,7 @@ def parser():
     p.add_argument("--styles-file", type=Path, default=ROOT / "configs/styles.json")
     p.add_argument("--output", type=Path, default=ROOT / "outputs/pilot")
     p.add_argument("--input-jsonl", type=Path, help="Local rows with question, answer, optional id; bypasses GSM8K download")
-    p.add_argument("--exclude-questions", type=Path, help="Exclude question IDs in a previous questions.jsonl")
+    p.add_argument("--exclude-questions", type=Path, nargs="+", help="Exclude question IDs from previous questions.jsonl files")
     p.add_argument("--max-words", type=int, default=0, help="Filter long questions before sampling; 0 disables")
     p.add_argument("--temperature", type=float, default=0.9)
     p.add_argument("--max-new-tokens", type=int, default=2048, help="Speech-code token cap; inspect clips for truncation")

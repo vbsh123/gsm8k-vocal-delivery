@@ -11,9 +11,21 @@ if [[ ! -x .venv/bin/python || ! -x .venv-diffa/bin/python ]]; then
   exit 1
 fi
 mkdir -p "$(dirname -- "$experiment_dir")"
-exclude_args=()
+exclude_files=()
 if [[ -f outputs/pilot10/questions.jsonl ]]; then
-  exclude_args=(--exclude-questions outputs/pilot10/questions.jsonl)
+  exclude_files+=(outputs/pilot10/questions.jsonl)
+fi
+# Arguments after the seed are previous question manifests to exclude.
+for previous in "${@:4}"; do
+  if [[ ! -f "$previous" ]]; then
+    printf 'Previous questions file does not exist: %s\n' "$previous" >&2
+    exit 1
+  fi
+  exclude_files+=("$previous")
+done
+exclude_args=()
+if [[ ${#exclude_files[@]} -gt 0 ]]; then
+  exclude_args=(--exclude-questions "${exclude_files[@]}")
 fi
 export PYTHONUNBUFFERED=1
 .venv/bin/python generate.py \
