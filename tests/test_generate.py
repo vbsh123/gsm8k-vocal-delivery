@@ -56,6 +56,31 @@ class GeneratorTests(unittest.TestCase):
         self.assertEqual(len({row["clip_id"] for row in plan}), 56)
         self.assertEqual(len({row["seed"] for row in plan}), 8)
 
+    def test_prepared_styles_use_the_right_words_on_matched_questions(self):
+        import subprocess
+        import sys
+
+        prepared = Path(self.temp.name) / "prepared"
+        subprocess.run([sys.executable, str(generate.ROOT / "prepare_text.py"),
+                        "--style", "all", "--num-examples", "2", "--output", str(prepared)],
+                       check=True, capture_output=True)
+        rows = generate.read_jsonl(prepared / "tts-input.jsonl")
+        self.assertEqual(self.quiet_main(["--input-jsonl", str(prepared / "tts-input.jsonl")]), 0)
+        plan = generate.read_jsonl(self.output / "plan.jsonl")
+        self.assertEqual(len(plan), 14)
+        originals = {row["id"]: row for row in rows}
+        templates = json.loads((generate.ROOT / "configs/remarks.json").read_text())
+        for index, row in enumerate(rows):
+            for style, variants in templates.items():
+                self.assertEqual(row["style_texts"][style],
+                                 variants[index % len(variants)].format(question=row["question"]))
+        for task in plan:
+            row = originals[task["question_id"]]
+            self.assertEqual(task["original_question"], row["question"])
+            self.assertEqual(task["text"], row["style_texts"][task["style"]])
+            self.assertEqual(task["answer"], row["answer"])
+            self.assertNotIn("style_texts", task)
+
     def test_identical_plan_resumes_but_changed_settings_are_rejected(self):
         self.assertEqual(self.quiet_main(), 0)
         config = (self.output / "run_config.json").read_bytes()

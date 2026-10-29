@@ -232,11 +232,37 @@ Change it with `--input-jsonl your-questions.jsonl`; rows need `question` (or
 Use `--num-examples N` to prepare more questions. Templates alternate across
 questions; `--remark-index 1` starts with the second template for a smoke test.
 Change the style in both commands to try another delivery.
-The single `outputs/manual-angry/tts-input.jsonl` file saves the prepared text,
-original question, style, and template. Listen to the WAV under `audio-run/audio/`.
+The single `outputs/manual-angry/tts-input.jsonl` file saves the original question
+and prepared wording under `style_texts`. The generator selects the matching
+style's text. Listen to the WAV under `audio-run/audio/`.
 Text preparation remains separate from `run_experiment.sh` and `evaluate.py`.
 Use new output directories when trying another wording. Comparisons now test
 wording plus delivery, rather than vocal delivery alone.
+
+For all seven styles, prepare with `--style all` and omit `--styles` when running
+`generate.py`. They share one output folder, so evaluation can exclude long
+questions consistently across every style.
+
+To repeat the original 200-question experiment with the new wording:
+
+```bash
+mkdir -p outputs/manual200
+cat outputs/pilot50-v2/questions.jsonl outputs/extra150-v2/questions.jsonl > outputs/manual200/source.jsonl
+python prepare_text.py --input-jsonl outputs/manual200/source.jsonl \
+  --style all --num-examples 200 --output outputs/manual200/text
+.venv/bin/python generate.py \
+  --input-jsonl outputs/manual200/text/tts-input.jsonl \
+  --num-examples 200 --output outputs/manual200/recordings
+```
+
+This prepares 200 original questions, alternates the two templates within each
+emotional style, and generates 1,400 recordings. Neutral has no added words.
+Run evaluation separately when generation finishes:
+
+```bash
+.venv-diffa/bin/python evaluate.py --path outputs/manual200/recordings \
+  --max-new-tokens 512 --results-file results-reasoning-v2.jsonl
+```
 
 ### Plan without loading the model
 

@@ -107,6 +107,8 @@ def load_questions(args):
             continue
         clean.append({"question_id": question_id, "text": question,
                       "answer": final_answer(answer), "source_answer": str(answer)})
+        if "style_texts" in row:
+            clean[-1]["style_texts"] = row["style_texts"]
     # Shuffling the complete index list makes a larger requested sample extend
     # the same prefix, unlike random.sample(..., k) with changing k.
     random.Random(args.seed).shuffle(clean)
@@ -133,6 +135,9 @@ def make_plan(args, questions, styles):
                                       style=style, repeat=repeat, seed=generation_seed,
                                       instruction=styles[style] + READ_ONLY,
                                       audio_path=f"audio/{clip_id}.wav"))
+                    if "style_texts" in question:
+                        tasks[-1]["original_question"] = question["text"]
+                        tasks[-1]["text"] = tasks[-1].pop("style_texts")[style]
     return tasks
 
 
@@ -159,7 +164,7 @@ Style labels indicate requested delivery; they are not verified annotations.</p>
         if task["question_id"] != previous:
             if previous is not None:
                 chunks.append("</section></article>")
-            chunks.append(f"<article><h2>{esc(task['question_id'])}</h2><p>{esc(task['text'])}</p>"
+            chunks.append(f"<article><h2>{esc(task['question_id'])}</h2><p>{esc(task.get('original_question', task['text']))}</p>"
                           f"<details><summary>Reference answer (never sent to TTS)</summary>"
                           f"{esc(task['answer'])}</details><section>")
             previous = task["question_id"]
@@ -168,7 +173,9 @@ Style labels indicate requested delivery; they are not verified annotations.</p>
         player = (f'<audio controls preload="none" src="{esc(task["audio_path"])}"></audio>'
                   if ready else "<p>Not generated yet</p>")
         chunks.append(f'<div class="clip"><b>{esc(task["style"])}</b>'
-                      f'<small>{esc(task["speaker"])} · repeat {task["repeat"]}</small>{player}</div>')
+                      f'<small>{esc(task["speaker"])} · repeat {task["repeat"]}</small>'
+                      + (f'<p>{esc(task["text"])}</p>' if "original_question" in task else "")
+                      + f'{player}</div>')
     if previous is not None:
         chunks.append("</section></article>")
     chunks.append("</html>")
