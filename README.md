@@ -210,42 +210,29 @@ gets the same suffix asking TTS to preserve the supplied words and numbers.
 "Stressed" means anxious/pressured delivery, not answer-informed word emphasis.
 The spelling `hesistant` is accepted as an alias for `hesitant`.
 
-### Add spoken words that convey each style
+### Smoke test: let LLaDA add style-appropriate remarks
 
-For a separate wording-plus-delivery experiment, `--free-style-wording` asks TTS
-to invent a short remark conveying the requested style toward the listener before
-or after the supplied question. No fixed remark or example wording is provided.
-The instruction asks it to preserve every word and number in the math question,
-without solving it or suggesting an answer.
-
-```bash
-.venv/bin/python generate.py --num-examples 10 --seed 123 \
-  --free-style-wording --output outputs/free-wording10
-.venv-diffa/bin/python evaluate.py --path outputs/free-wording10 \
-  --max-new-tokens 512 --results-file results-reasoning-v2.jsonl
-```
-
-Use a fresh output directory. The plan and manifest retain `text` as the supplied
-question, save the requested instruction, and mark `wording_mode` as
-`model_chosen_remark`. They do not contain a transcript of the generated audio.
-TTS may ignore the request or alter the question: listen to a small pilot before
-scaling up. Omitting `--free-style-wording` keeps the delivery-only condition.
-To test whether `instruct` can add explicitly requested words, use a fixed phrase
-instead. This phrase goes only into `instruct`; `text` remains the original question:
+`rewrite_smoke.py` takes the first question from a local JSONL file and gives
+LLaDA the full question and requested style. It asks for the complete question
+with added remarks, preserving the original words and numbers without solving it.
+It uses the base LLaDA-Instruct checkpoint and DIFFA's existing text decoder,
+without loading Whisper or DIFFA's audio adapters.
 
 ```bash
-.venv/bin/python generate.py --num-examples 1 --styles angry \
-  --instruction-test-phrase "Listen carefully." --output outputs/instruct-phrase-smoke
+.venv-diffa/bin/python rewrite_smoke.py --style angry
+.venv/bin/python generate.py \
+  --input-jsonl outputs/wording-smoke/tts-input.jsonl \
+  --num-examples 1 --styles angry --output outputs/wording-smoke/audio-run
 ```
 
-This option and `--free-style-wording` are mutually exclusive. Listen for the
-phrase to check whether the model obeys; neither option guarantees added words.
-
-The same seed and sampling options select the same questions for a paired
-delivery-only comparison. If the earlier run used exclusions, repeat those too.
-This exploratory condition changes both wording and delivery, so an accuracy
-change cannot be attributed to prosody alone. Added words also lengthen clips;
-evaluation still excludes an entire question if any style exceeds 30 seconds.
+The default input is the short apples question in `examples/tiny.jsonl`.
+Change it with `--input-jsonl your-questions.jsonl` (rows need `question` and
+`answer`). Change the style in both commands to try another delivery.
+The first process exits before TTS loads. No accuracy evaluation runs.
+Inspect `outputs/wording-smoke/rewrite.json` for the original question, prompt,
+and LLaDA response, then listen to the WAV under `audio-run/audio/`.
+There are no automatic checks or retries for the rewritten wording; review it
+in this smoke test. Use new output directories when trying another rewrite.
 
 ### Plan without loading the model
 

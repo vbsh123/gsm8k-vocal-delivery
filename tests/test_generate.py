@@ -56,34 +56,12 @@ class GeneratorTests(unittest.TestCase):
         self.assertEqual(len({row["clip_id"] for row in plan}), 56)
         self.assertEqual(len({row["seed"] for row in plan}), 8)
 
-    def test_free_wording_preserves_supplied_question_and_cannot_resume_as_delivery_only(self):
-        self.assertEqual(self.quiet_main(["--free-style-wording"]), 0)
-        questions = {q["question_id"]: q for q in generate.read_jsonl(self.output / "questions.jsonl")}
-        for task in generate.read_jsonl(self.output / "plan.jsonl"):
-            self.assertEqual(task["text"], questions[task["question_id"]]["text"])
-            self.assertEqual(task["wording_mode"], "model_chosen_remark")
-            self.assertIn(generate.FREE_STYLE_WORDING, task["instruction"])
-            self.assertNotIn(generate.READ_ONLY, task["instruction"])
-        self.assertIn("Model-chosen wording", (self.output / "listen.html").read_text())
-        self.assertEqual(self.quiet_main(["--free-style-wording"]), 0)
-        self.assertEqual(self.quiet_main(), 1)
-
     def test_identical_plan_resumes_but_changed_settings_are_rejected(self):
         self.assertEqual(self.quiet_main(), 0)
         config = (self.output / "run_config.json").read_bytes()
         self.assertEqual(self.quiet_main(), 0)
         self.assertEqual(self.quiet_main(["--temperature", "0.8"]), 1)
         self.assertEqual((self.output / "run_config.json").read_bytes(), config)
-
-    def test_fixed_phrase_is_only_in_instruction_not_supplied_text(self):
-        phrase = "Listen carefully."
-        self.assertEqual(self.quiet_main(["--instruction-test-phrase", phrase]), 0)
-        for task in generate.read_jsonl(self.output / "plan.jsonl"):
-            self.assertIn(phrase, task["instruction"])
-            self.assertNotIn(phrase, task["text"])
-            self.assertNotIn(generate.READ_ONLY, task["instruction"])
-            self.assertEqual(task["wording_mode"], "fixed_phrase_in_instruction")
-        self.assertEqual(self.quiet_main(["--instruction-test-phrase", "Another phrase."]), 1)
 
     def test_sample_prefix_is_stable_when_increasing_question_count(self):
         args = generate.parser().parse_args(self.argv)
