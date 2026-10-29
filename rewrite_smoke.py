@@ -25,12 +25,16 @@ def main():
     question = json.loads(args.input_jsonl.read_text().splitlines()[0])
     styles = json.loads((ROOT / "configs/styles.json").read_text())
     prompt = (
-        f"Add brief remarks to the following math question so the speaker's words "
-        f"express this style toward the listener: {args.style}. {styles[args.style]} "
-        "Keep the original question intact, including every word and number. "
-        "Choose the remarks yourself. Do not solve the problem, suggest an answer, "
-        "or add mathematical facts. Output only the complete text to be spoken, "
-        "without explanations or quotation marks.\n\n"
+        f"Write a spoken script expressing this style toward the listener: {args.style}. "
+        f"Style description: {styles[args.style]}\n"
+        f"You MUST add at least one new remark that expresses {args.style} "
+        "directly toward the listener, using emotionally expressive words. "
+        "Returning the original question unchanged is not acceptable. "
+        "Choose the remark yourself and put it before the math question. "
+        "Then include the entire original question, preserving every word and number. "
+        "Do not solve the problem, suggest an answer, or add mathematical facts. "
+        "Output only the complete script, without explanations or quotation marks.\n\n"
+        "Original question:\n"
         + question["question"]
     )
 
