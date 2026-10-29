@@ -243,23 +243,26 @@ For all seven styles, prepare with `--style all` and omit `--styles` when runnin
 `generate.py`. They share one output folder, so evaluation can exclude long
 questions consistently across every style.
 
-To reuse the duration-eligible questions from the original 200-question experiment:
+To combine the 130 previously eligible questions with 70 new questions:
 
 ```bash
-bash run_manual_experiment.sh 200 outputs/manual130
+bash run_manual_experiment.sh 200 outputs/manual200-mixed
 ```
 
 This first reads previous WAV headers and excludes any question with a recording
-over 30 seconds. The original two batches retain 130 questions, so the run generates
-910 clips. The requested count is an upper limit; the runner uses the actual
-retained count. Added remarks may still cause new recordings to exceed 30 seconds,
-so evaluation also checks the new audio.
+over 30 seconds. The original two batches retain 130 questions. It then samples
+70 new GSM8K test questions, excluding all 200 original IDs, to reach the requested
+total of 200 questions / 1,400 clips. New-question sampling uses seed 789.
+Neither new questions nor the added remarks are guaranteed to fit 30 seconds;
+evaluation checks all new recordings and excludes whole questions as before.
+The selected old and new questions are saved together in `source.jsonl`.
 
 It runs text preparation, speech generation, and evaluation sequentially,
 stopping if a step fails, and saves a log for each stage. It uses the question
 files and recordings from `pilot50-v2` and `extra150-v2`. To supply other previous
 question files, put their paths after the output directory; their folders must
 also contain the old manifest and audio. All stages remain separate commands.
+For a retained-only run, omit `--add-new` when invoking `filter_questions.py`.
 For example, to prepare and generate without automatic evaluation:
 
 ```bash
