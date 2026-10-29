@@ -95,6 +95,40 @@ class GeneratorTests(unittest.TestCase):
         smaller, _ = generate.load_questions(args)
         self.assertEqual(smaller, all_questions[:1])
 
+    def test_extend_adds_tasks_without_changing_completed_clips(self):
+        self.assertEqual(self.quiet_main(["--num-examples", "1"]), 0)
+        old_tasks = generate.read_jsonl(self.output / "plan.jsonl")
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(generate.run_tasks(self.output, old_tasks, FakeBackend()), 0)
+        original_bytes = {task["clip_id"]: (self.output / task["audio_path"]).read_bytes() for task in old_tasks}
+        self.assertEqual(self.quiet_main(), 1)
+        self.assertEqual(self.quiet_main(["--extend"]), 0)
+        tasks = generate.read_jsonl(self.output / "plan.jsonl")
+        self.assertEqual(len(tasks), 14)
+        by_id = {task["clip_id"]: task for task in tasks}
+        for task in old_tasks:
+            self.assertEqual(by_id[task["clip_id"]], task)
+            self.assertEqual((self.output / task["audio_path"]).read_bytes(), original_bytes[task["clip_id"]])
+        backend = FakeBackend()
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(generate.run_tasks(self.output, tasks, backend), 0)
+        self.assertEqual(len(backend.calls), 7)
+        self.assertTrue(set(backend.calls).isdisjoint(original_bytes))
+
+    def test_extend_rejects_changed_settings_and_changed_existing_words(self):
+        self.assertEqual(self.quiet_main(["--num-examples", "1"]), 0)
+        before = (self.output / "run_config.json").read_bytes()
+        self.assertEqual(self.quiet_main(["--extend", "--temperature", "0.8"]), 1)
+        local = Path(self.temp.name) / "changing.jsonl"
+        local.write_text((generate.ROOT / "examples/tiny.jsonl").read_text())
+        other = Path(self.temp.name) / "changed-output"
+        argv = ["--input-jsonl", str(local), "--num-examples", "1", "--output", str(other), "--prepare-only"]
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(generate.main(argv), 0)
+            local.write_text(local.read_text().replace("How many", "Tell me how many"))
+            self.assertEqual(generate.main(argv + ["--num-examples", "2", "--extend"]), 1)
+        self.assertEqual((self.output / "run_config.json").read_bytes(), before)
+
     def test_previous_question_ids_are_excluded(self):
         excluded = Path(self.temp.name) / "previous.jsonl"
         excluded.write_text(json.dumps({"question_id": "demo_apples"}) + "\n")

@@ -305,6 +305,19 @@ saved question selection and skips completed recordings and crops. It uses the q
 files and recordings from `pilot50-v2` and `extra150-v2`. To supply other previous
 question files, put their paths after the output directory; their folders must
 also contain the old manifest and audio. All stages remain separate commands.
+To extend the current 200-question run to 300, stop the active runner with Ctrl-C,
+then rerun in the same folder with the larger count:
+
+```bash
+bash run_manual_experiment.sh 300 outputs/manual200-mixed
+```
+
+This appends 100 unseen questions to `source.jsonl`, preserving the previous 200
+and their template assignments. The generation plan extends to 2,100 clips;
+completed clips are skipped. The `--extend` option used by the runner rejects
+changes to existing task text, seeds, or model settings. Cropping runs after all
+speech generation completes, then the runner stops for your filtering step.
+
 For a retained-only run, omit `--add-new` when invoking `filter_questions.py`.
 For example, to run the retained-only stages separately:
 

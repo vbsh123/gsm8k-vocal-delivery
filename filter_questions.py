@@ -7,6 +7,7 @@ import random
 import sys
 
 import soundfile as sf
+from generate import read_jsonl, write_jsonl
 
 
 def main():
@@ -16,25 +17,29 @@ def main():
     parser.add_argument("--max-seconds", type=float, default=30)
     parser.add_argument("--add-new", action="store_true", help="Fill the requested count with unseen GSM8K test questions")
     parser.add_argument("--seed", type=int, default=789)
+    parser.add_argument("--existing", type=Path, help="Keep an existing selection in order and append new questions")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
     questions = []
     excluded = set()
     for source in args.sources:
+        previous_questions = read_jsonl(source)
+        excluded.update(q["question_id"] for q in previous_questions)
+        if args.existing:
+            continue
         recordings = [json.loads(line) for line in (source.parent / "manifest.jsonl").read_text().splitlines() if line.strip()]
         long_questions = set()
         for recording in recordings:
             info = sf.info(source.parent / recording["audio_path"])
             if info.frames > args.max_seconds * info.samplerate:
                 long_questions.add(recording["question_id"])
-        for line in source.read_text().splitlines():
-            question = json.loads(line)
-            excluded.add(question["question_id"])
+        for question in previous_questions:
             if question["question_id"] not in long_questions:
                 questions.append(question)
 
-    selected = questions[:args.num_examples]
+    selected = read_jsonl(args.existing) if args.existing else questions[:args.num_examples]
+    excluded.update(q["question_id"] for q in selected)
     retained = len(selected)
     if args.add_new and retained < args.num_examples:
         from datasets import load_dataset
@@ -48,7 +53,7 @@ def main():
         ]
         random.Random(args.seed).shuffle(new)
         selected.extend(new[:args.num_examples - retained])
-    args.output.write_text("".join(json.dumps(q) + "\n" for q in selected))
+    write_jsonl(args.output, selected)
     print(f"Retained {retained} previous questions; added {len(selected) - retained} new questions.", file=sys.stderr)
     print(len(selected))
 

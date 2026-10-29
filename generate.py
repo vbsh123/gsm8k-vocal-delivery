@@ -285,6 +285,7 @@ def parser():
     p.add_argument("--model-revision", default="main", help="HF revision; pin a commit for reproducibility")
     p.add_argument("--dataset-revision", default="main", help="HF revision; pin a commit for reproducibility")
     p.add_argument("--prepare-only", "--dry-run", action="store_true", help="Save plan and listening page without loading TTS")
+    p.add_argument("--extend", action="store_true", help="Allow adding tasks while preserving every existing task and generation setting")
     return p
 
 
@@ -317,8 +318,17 @@ def main(argv=None):
         output.mkdir(parents=True, exist_ok=True)
         config_path = output / "run_config.json"
         if config_path.exists():
-            if json.loads(config_path.read_text(encoding="utf-8")) != config:
-                raise ValueError("Output directory contains a different experiment. Use a new --output directory.")
+            previous = json.loads(config_path.read_text(encoding="utf-8"))
+            if previous != config:
+                previous_settings = {k: v for k, v in previous.items() if k != "tasks"}
+                settings = {k: v for k, v in config.items() if k != "tasks"}
+                new_tasks = {task["clip_id"]: task for task in tasks}
+                can_extend = (args.extend and previous_settings == settings
+                              and len(tasks) > len(previous["tasks"])
+                              and all(new_tasks.get(task["clip_id"]) == task for task in previous["tasks"]))
+                if not can_extend:
+                    raise ValueError("Output directory contains a different experiment. Use a new --output directory, or --extend to add unchanged tasks.")
+                write_json(config_path, config)
         elif any(output.iterdir()):
             raise ValueError("Output directory is not empty and has no run_config.json; use a fresh --output.")
         else:

@@ -18,6 +18,14 @@ if [[ ! -f "$experiment_dir/source.jsonl" ]]; then
     --sources "${source_files[@]}" --num-examples "$example_count" --add-new \
     --output "$experiment_dir/source.jsonl"
 fi
+saved_count="$(.venv/bin/python -c \
+  'import sys; print(sum(bool(line.strip()) for line in open(sys.argv[1])))' \
+  "$experiment_dir/source.jsonl")"
+if (( example_count > saved_count )); then
+  .venv/bin/python filter_questions.py \
+    --sources "${source_files[@]}" --existing "$experiment_dir/source.jsonl" \
+    --num-examples "$example_count" --add-new --output "$experiment_dir/source.jsonl"
+fi
 example_count="$(.venv/bin/python -c \
   'import sys; print(sum(bool(line.strip()) for line in open(sys.argv[1])))' \
   "$experiment_dir/source.jsonl")"
@@ -30,7 +38,7 @@ printf 'Selected %s questions total.\n' "$example_count"
 
 .venv/bin/python generate.py \
   --input-jsonl "$experiment_dir/text/tts-input.jsonl" \
-  --num-examples "$example_count" --output "$experiment_dir/recordings" \
+  --num-examples "$example_count" --output "$experiment_dir/recordings" --extend \
   | tee -a "$experiment_dir/generation.log"
 
 .venv-diffa/bin/python crop_questions.py \
