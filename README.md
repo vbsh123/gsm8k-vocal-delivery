@@ -243,34 +243,42 @@ For all seven styles, prepare with `--style all` and omit `--styles` when runnin
 `generate.py`. They share one output folder, so evaluation can exclude long
 questions consistently across every style.
 
-To repeat the original 200-question experiment with the new wording:
+To reuse the duration-eligible questions from the original 200-question experiment:
 
 ```bash
-bash run_manual_experiment.sh 200 outputs/manual200
+bash run_manual_experiment.sh 200 outputs/manual130
 ```
 
-This runs text preparation, speech generation, and evaluation sequentially,
-stopping if a step fails. It saves a log for each stage and reuses the question
-files from `pilot50-v2` and `extra150-v2`. To supply other question files, put
-their paths after the output directory. All three stages also remain available
-as separate commands:
+This first reads previous WAV headers and excludes any question with a recording
+over 30 seconds. The original two batches retain 130 questions, so the run generates
+910 clips. The requested count is an upper limit; the runner uses the actual
+retained count. Added remarks may still cause new recordings to exceed 30 seconds,
+so evaluation also checks the new audio.
+
+It runs text preparation, speech generation, and evaluation sequentially,
+stopping if a step fails, and saves a log for each stage. It uses the question
+files and recordings from `pilot50-v2` and `extra150-v2`. To supply other previous
+question files, put their paths after the output directory; their folders must
+also contain the old manifest and audio. All stages remain separate commands.
+For example, to prepare and generate without automatic evaluation:
 
 ```bash
-mkdir -p outputs/manual200
-cat outputs/pilot50-v2/questions.jsonl outputs/extra150-v2/questions.jsonl > outputs/manual200/source.jsonl
-python prepare_text.py --input-jsonl outputs/manual200/source.jsonl \
-  --style all --num-examples 200 --output outputs/manual200/text
+mkdir -p outputs/manual130
+.venv/bin/python filter_questions.py \
+  --sources outputs/pilot50-v2/questions.jsonl outputs/extra150-v2/questions.jsonl \
+  --output outputs/manual130/source.jsonl
+python prepare_text.py --input-jsonl outputs/manual130/source.jsonl \
+  --style all --num-examples 130 --output outputs/manual130/text
 .venv/bin/python generate.py \
-  --input-jsonl outputs/manual200/text/tts-input.jsonl \
-  --num-examples 200 --output outputs/manual200/recordings
+  --input-jsonl outputs/manual130/text/tts-input.jsonl \
+  --num-examples 130 --output outputs/manual130/recordings
 ```
 
-This prepares 200 original questions, alternates the two templates within each
-emotional style, and generates 1,400 recordings. Neutral has no added words.
+This alternates the two templates within each emotional style. Neutral has no added words.
 Run evaluation separately when generation finishes:
 
 ```bash
-.venv-diffa/bin/python evaluate.py --path outputs/manual200/recordings \
+.venv-diffa/bin/python evaluate.py --path outputs/manual130/recordings \
   --max-new-tokens 512 --results-file results-reasoning-v2.jsonl
 ```
 
