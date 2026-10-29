@@ -298,13 +298,15 @@ Neither new questions nor the added remarks are guaranteed to fit 30 seconds;
 evaluation checks all new recordings and excludes whole questions as before.
 The selected old and new questions are saved together in `source.jsonl`.
 
-It runs text preparation, speech generation, and evaluation sequentially,
-stopping if a step fails, and saves a log for each stage. It uses the question
+It runs text preparation, speech generation, and GPU cropping sequentially,
+then stops before emotion filtering or accuracy evaluation. It stops if a step
+fails and saves a log for each stage. Rerunning the same command preserves the
+saved question selection and skips completed recordings and crops. It uses the question
 files and recordings from `pilot50-v2` and `extra150-v2`. To supply other previous
 question files, put their paths after the output directory; their folders must
 also contain the old manifest and audio. All stages remain separate commands.
 For a retained-only run, omit `--add-new` when invoking `filter_questions.py`.
-For example, to prepare and generate without automatic evaluation:
+For example, to run the retained-only stages separately:
 
 ```bash
 mkdir -p outputs/manual130
@@ -316,13 +318,15 @@ python prepare_text.py --input-jsonl outputs/manual130/source.jsonl \
 .venv/bin/python generate.py \
   --input-jsonl outputs/manual130/text/tts-input.jsonl \
   --num-examples 130 --output outputs/manual130/recordings
+.venv-diffa/bin/python crop_questions.py \
+  --path outputs/manual130/recordings --output outputs/manual130/cropped --device cuda
 ```
 
 This alternates the two templates within each emotional style. Neutral has no added words.
-Run evaluation separately when generation finishes:
+After inspecting/filtering the cropped recordings, run evaluation separately:
 
 ```bash
-.venv-diffa/bin/python evaluate.py --path outputs/manual130/recordings \
+.venv-diffa/bin/python evaluate.py --path outputs/manual130/cropped \
   --max-new-tokens 512 --results-file results-reasoning-v2.jsonl
 ```
 
