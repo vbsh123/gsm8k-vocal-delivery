@@ -246,6 +246,16 @@ questions consistently across every style.
 To repeat the original 200-question experiment with the new wording:
 
 ```bash
+bash run_manual_experiment.sh 200 outputs/manual200
+```
+
+This runs text preparation, speech generation, and evaluation sequentially,
+stopping if a step fails. It saves a log for each stage and reuses the question
+files from `pilot50-v2` and `extra150-v2`. To supply other question files, put
+their paths after the output directory. All three stages also remain available
+as separate commands:
+
+```bash
 mkdir -p outputs/manual200
 cat outputs/pilot50-v2/questions.jsonl outputs/extra150-v2/questions.jsonl > outputs/manual200/source.jsonl
 python prepare_text.py --input-jsonl outputs/manual200/source.jsonl \
