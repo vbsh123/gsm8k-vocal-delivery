@@ -21,9 +21,12 @@ def main():
     prompt = (
         "Write a natural spoken request for help with the math question below. "
         f"The speaker's attitude toward the listener is {args.style}. "
-        "Start with exactly one short remark, at most twelve words, that subtly "
+        "Start with exactly one short remark, at most twelve words, that clearly "
         "conveys that attitude through everyday wording. Make the remark relevant "
         "to asking the listener for help with this problem. "
+        "For angry, sound clearly irritated and impatient with the listener, "
+        "as if they have repeatedly failed to help. Keep it conversational. "
+        "Mere surprise, disbelief, or a sarcastic question is not enough. "
         "Avoid explicitly naming the emotion, theatrical language, shouting, "
         "and threats. Choose the wording yourself. "
         "After the remark, copy the entire original question exactly, "
