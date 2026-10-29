@@ -136,14 +136,24 @@ def make_plan(args, questions, styles):
                     safe_name(style)
                     if style not in styles or not isinstance(styles[style], str) or not styles[style].strip():
                         raise ValueError(f"Missing or invalid style prompt: {style}")
+                    wording_instruction = FREE_STYLE_WORDING if args.free_style_wording else READ_ONLY
+                    if args.instruction_test_phrase is not None:
+                        wording_instruction = (
+                            " Before reading the supplied question, say exactly "
+                            + json.dumps(args.instruction_test_phrase)
+                            + ". Then read the supplied question exactly, preserving every word and number. "
+                            "Do not answer the question or speak these instructions."
+                        )
                     clip_id = f"{question['question_id']}__{speaker}__{style}__r{repeat:02d}"
                     tasks.append(dict(question, clip_id=clip_id, speaker=speaker,
                                       style=style, repeat=repeat, seed=generation_seed,
-                                      instruction=styles[style] + (
-                                          FREE_STYLE_WORDING if args.free_style_wording else READ_ONLY),
+                                      instruction=styles[style] + wording_instruction,
                                       audio_path=f"audio/{clip_id}.wav"))
                     if args.free_style_wording:
                         tasks[-1]["wording_mode"] = "model_chosen_remark"
+                    elif args.instruction_test_phrase is not None:
+                        tasks[-1]["wording_mode"] = "fixed_phrase_in_instruction"
+                        tasks[-1]["instruction_test_phrase"] = args.instruction_test_phrase
     return tasks
 
 
@@ -282,8 +292,11 @@ def parser():
     p.add_argument("--styles", nargs="+", default=["neutral", "confident", "hesitant", "happy", "angry", "sad", "stressed"])
     p.add_argument("--repeats", type=int, default=1, help="Independent renders per question/voice/style")
     p.add_argument("--styles-file", type=Path, default=ROOT / "configs/styles.json")
-    p.add_argument("--free-style-wording", action="store_true",
+    wording = p.add_mutually_exclusive_group()
+    wording.add_argument("--free-style-wording", action="store_true",
                    help="Ask TTS to choose a short style-appropriate remark around the unchanged question")
+    wording.add_argument("--instruction-test-phrase",
+                         help="Ask TTS through instruct alone to say this fixed phrase before the question")
     p.add_argument("--output", type=Path, default=ROOT / "outputs/pilot")
     p.add_argument("--input-jsonl", type=Path, help="Local rows with question, answer, optional id; bypasses GSM8K download")
     p.add_argument("--exclude-questions", type=Path, nargs="+", help="Exclude question IDs from previous questions.jsonl files")
@@ -304,6 +317,8 @@ def main(argv=None):
         p.error("Example/repeat/token counts must be positive; max-words must be nonnegative.")
     if not math.isfinite(args.temperature) or args.temperature <= 0:
         p.error("temperature must be finite and positive")
+    if args.instruction_test_phrase is not None and not args.instruction_test_phrase.strip():
+        p.error("instruction-test-phrase must not be blank")
     for name in ("speakers", "styles"):
         values = getattr(args, name)
         if len(values) != len(set(v.lower() for v in values)):

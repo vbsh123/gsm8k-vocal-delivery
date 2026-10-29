@@ -230,6 +230,17 @@ question, save the requested instruction, and mark `wording_mode` as
 `model_chosen_remark`. They do not contain a transcript of the generated audio.
 TTS may ignore the request or alter the question: listen to a small pilot before
 scaling up. Omitting `--free-style-wording` keeps the delivery-only condition.
+To test whether `instruct` can add explicitly requested words, use a fixed phrase
+instead. This phrase goes only into `instruct`; `text` remains the original question:
+
+```bash
+.venv/bin/python generate.py --num-examples 1 --styles angry \
+  --instruction-test-phrase "Listen carefully." --output outputs/instruct-phrase-smoke
+```
+
+This option and `--free-style-wording` are mutually exclusive. Listen for the
+phrase to check whether the model obeys; neither option guarantees added words.
+
 The same seed and sampling options select the same questions for a paired
 delivery-only comparison. If the earlier run used exclusions, repeat those too.
 This exploratory condition changes both wording and delivery, so an accuracy

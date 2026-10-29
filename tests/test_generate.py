@@ -75,6 +75,16 @@ class GeneratorTests(unittest.TestCase):
         self.assertEqual(self.quiet_main(["--temperature", "0.8"]), 1)
         self.assertEqual((self.output / "run_config.json").read_bytes(), config)
 
+    def test_fixed_phrase_is_only_in_instruction_not_supplied_text(self):
+        phrase = "Listen carefully."
+        self.assertEqual(self.quiet_main(["--instruction-test-phrase", phrase]), 0)
+        for task in generate.read_jsonl(self.output / "plan.jsonl"):
+            self.assertIn(phrase, task["instruction"])
+            self.assertNotIn(phrase, task["text"])
+            self.assertNotIn(generate.READ_ONLY, task["instruction"])
+            self.assertEqual(task["wording_mode"], "fixed_phrase_in_instruction")
+        self.assertEqual(self.quiet_main(["--instruction-test-phrase", "Another phrase."]), 1)
+
     def test_sample_prefix_is_stable_when_increasing_question_count(self):
         args = generate.parser().parse_args(self.argv)
         all_questions, _ = generate.load_questions(args)
