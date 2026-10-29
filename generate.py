@@ -25,6 +25,14 @@ READ_ONLY = (
     " Speak only the supplied text, exactly as written. Do not answer the question, "
     "explain it, add an introduction, or say these instructions. Preserve all numbers and words."
 )
+FREE_STYLE_WORDING = (
+    " Speak the supplied math question, preserving every word and number in the question. "
+    "Choose your own brief, natural remark before or after it that conveys the requested "
+    "speaking style toward the listener through your words as well as your voice. But more emphasis should be on the voice and tone. "
+    "For neutral delivery, keep the remark emotionally neutral. "
+    "Do not solve the problem, suggest an answer, add mathematical facts, "
+    "or speak these instructions."
+)
 
 
 def write_json(path, value):
@@ -131,8 +139,11 @@ def make_plan(args, questions, styles):
                     clip_id = f"{question['question_id']}__{speaker}__{style}__r{repeat:02d}"
                     tasks.append(dict(question, clip_id=clip_id, speaker=speaker,
                                       style=style, repeat=repeat, seed=generation_seed,
-                                      instruction=styles[style] + READ_ONLY,
+                                      instruction=styles[style] + (
+                                          FREE_STYLE_WORDING if args.free_style_wording else READ_ONLY),
                                       audio_path=f"audio/{clip_id}.wav"))
+                    if args.free_style_wording:
+                        tasks[-1]["wording_mode"] = "model_chosen_remark"
     return tasks
 
 
@@ -168,7 +179,10 @@ Style labels indicate requested delivery; they are not verified annotations.</p>
         player = (f'<audio controls preload="none" src="{esc(task["audio_path"])}"></audio>'
                   if ready else "<p>Not generated yet</p>")
         chunks.append(f'<div class="clip"><b>{esc(task["style"])}</b>'
-                      f'<small>{esc(task["speaker"])} · repeat {task["repeat"]}</small>{player}</div>')
+                      f'<small>{esc(task["speaker"])} · repeat {task["repeat"]}</small>'
+                      + ('<p>Model-chosen wording: listen to verify the actual words.</p>'
+                         if task.get("wording_mode") == "model_chosen_remark" else "")
+                      + f'{player}</div>')
     if previous is not None:
         chunks.append("</section></article>")
     chunks.append("</html>")
@@ -268,6 +282,8 @@ def parser():
     p.add_argument("--styles", nargs="+", default=["neutral", "confident", "hesitant", "happy", "angry", "sad", "stressed"])
     p.add_argument("--repeats", type=int, default=1, help="Independent renders per question/voice/style")
     p.add_argument("--styles-file", type=Path, default=ROOT / "configs/styles.json")
+    p.add_argument("--free-style-wording", action="store_true",
+                   help="Ask TTS to choose a short style-appropriate remark around the unchanged question")
     p.add_argument("--output", type=Path, default=ROOT / "outputs/pilot")
     p.add_argument("--input-jsonl", type=Path, help="Local rows with question, answer, optional id; bypasses GSM8K download")
     p.add_argument("--exclude-questions", type=Path, nargs="+", help="Exclude question IDs from previous questions.jsonl files")

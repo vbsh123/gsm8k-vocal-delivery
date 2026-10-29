@@ -210,6 +210,32 @@ gets the same suffix asking TTS to preserve the supplied words and numbers.
 "Stressed" means anxious/pressured delivery, not answer-informed word emphasis.
 The spelling `hesistant` is accepted as an alias for `hesitant`.
 
+### Add spoken words that convey each style
+
+For a separate wording-plus-delivery experiment, `--free-style-wording` asks TTS
+to invent a short remark conveying the requested style toward the listener before
+or after the supplied question. No fixed remark or example wording is provided.
+The instruction asks it to preserve every word and number in the math question,
+without solving it or suggesting an answer.
+
+```bash
+.venv/bin/python generate.py --num-examples 10 --seed 123 \
+  --free-style-wording --output outputs/free-wording10
+.venv-diffa/bin/python evaluate.py --path outputs/free-wording10 \
+  --max-new-tokens 512 --results-file results-reasoning-v2.jsonl
+```
+
+Use a fresh output directory. The plan and manifest retain `text` as the supplied
+question, save the requested instruction, and mark `wording_mode` as
+`model_chosen_remark`. They do not contain a transcript of the generated audio.
+TTS may ignore the request or alter the question: listen to a small pilot before
+scaling up. Omitting `--free-style-wording` keeps the delivery-only condition.
+The same seed and sampling options select the same questions for a paired
+delivery-only comparison. If the earlier run used exclusions, repeat those too.
+This exploratory condition changes both wording and delivery, so an accuracy
+change cannot be attributed to prosody alone. Added words also lengthen clips;
+evaluation still excludes an entire question if any style exceeds 30 seconds.
+
 ### Plan without loading the model
 
 ```bash
