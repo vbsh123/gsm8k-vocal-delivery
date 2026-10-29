@@ -243,6 +243,47 @@ For all seven styles, prepare with `--style all` and omit `--styles` when runnin
 `generate.py`. They share one output folder, so evaluation can exclude long
 questions consistently across every style.
 
+### Crop off the added remarks
+
+`crop_questions.py` uses the full known spoken text and Torchaudio's
+[MMS forced aligner](https://docs.pytorch.org/audio/2.6.0/generated/torchaudio.pipelines.Wav2Vec2FABundle.html)
+to locate the original question. It saves separate WAVs and a manifest; source
+audio and results stay untouched. It requires recordings from the prepared-text
+workflow, with `original_question` in their manifest.
+
+Start with a listening smoke test on the recordings already completed:
+
+```bash
+.venv-diffa/bin/python crop_questions.py \
+  --path outputs/manual200-mixed/recordings \
+  --output outputs/manual200-mixed/cropped \
+  --limit 14
+```
+
+No new packages are required in the existing DIFFA environment. The aligner
+downloads about 1.2 GB of weights on first use. CPU is the default; add
+`--device cuda` to use the GPU when available. This is separate from TTS and
+does not run evaluation or emotion classification.
+
+Listen through `outputs/manual200-mixed/cropped/listen.html`. Once the cuts
+sound good, repeat the command without `--limit` to process all recordings
+currently in the source manifest. Existing crops are skipped, and later runs
+pick up newly generated clips.
+
+Only alignment audio is resampled/downmixed. Saved crops retain original sample
+rate, channels, and samples, without normalization or fades. Neutral WAVs are
+copied unchanged. Cuts allow up to 40 ms of padding into the gap between remark
+and question (`--padding-ms`), and preserve outer silence where no remark exists.
+Numbers use the aligner's wildcard token rather than guessing their spoken form.
+The output manifest keeps the uncropped text, source hash, crop boundaries, and
+alignment boundary scores. Alignment failures go to `crop_errors.jsonl` and are
+not silently replaced with guessed cuts.
+
+Forced alignment assumes the supplied words were spoken; it does not verify
+that TTS read the full question correctly. Review the first crops for remaining
+remark sounds or clipped question words. The cropped manifest contains the
+original question as `text`, ready for later classification/evaluation.
+
 To combine the 130 previously eligible questions with 70 new questions:
 
 ```bash
