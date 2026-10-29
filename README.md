@@ -210,13 +210,14 @@ gets the same suffix asking TTS to preserve the supplied words and numbers.
 "Stressed" means anxious/pressured delivery, not answer-informed word emphasis.
 The spelling `hesistant` is accepted as an alias for `hesitant`.
 
-### Smoke test: let LLaDA add style-appropriate remarks
+### Smoke test: generate style-appropriate wording separately
 
 `rewrite_smoke.py` takes the first question from a local JSONL file and gives
-LLaDA the full question and requested style. It asks for the complete question
+Qwen2.5-7B-Instruct the full question and requested style. It asks for the complete question
 with added remarks, preserving the original words and numbers without solving it.
-It uses the base LLaDA-Instruct checkpoint and DIFFA's existing text decoder,
-without loading Whisper or DIFFA's audio adapters.
+It uses standard autoregressive text generation in the existing `.venv-diffa`
+environment. It does not load DIFFA, synthesize audio, or evaluate accuracy.
+The weights download on first use.
 
 ```bash
 .venv-diffa/bin/python rewrite_smoke.py --style angry
@@ -230,7 +231,8 @@ Change it with `--input-jsonl your-questions.jsonl` (rows need `question` and
 `answer`). Change the style in both commands to try another delivery.
 The first process exits before TTS loads. No accuracy evaluation runs.
 Inspect `outputs/wording-smoke/rewrite.json` for the original question, prompt,
-and LLaDA response, then listen to the WAV under `audio-run/audio/`.
+and Qwen response, then listen to the WAV under `audio-run/audio/`.
+Text rewriting remains separate from `run_experiment.sh` and `evaluate.py`.
 There are no automatic checks or retries for the rewritten wording; review it
 in this smoke test. Use new output directories when trying another rewrite.
 

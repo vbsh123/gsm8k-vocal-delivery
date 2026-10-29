@@ -1,18 +1,13 @@
-"""Ask LLaDA to add style-appropriate remarks to one question, then save TTS input."""
+"""Ask Qwen to add style-appropriate remarks to one question, then save TTS input."""
 
 import argparse
 import json
 from pathlib import Path
-import sys
 
 import torch
-from transformers import AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# The upstream text decoder imports `model` relative to its own directory.
 ROOT = Path(__file__).resolve().parent
-sys.path.insert(0, str(ROOT / "external/DIFFA/DIFFA-2/src/fast_dllm"))
-from model.modeling_llada import LLaDAModelLM
-from origin_generate import generate
 
 
 def main():
@@ -39,26 +34,27 @@ def main():
         + question["question"]
     )
 
-    model_id = "GSAI-ML/LLaDA-8B-Instruct"
+    model_id = "Qwen/Qwen2.5-7B-Instruct"
     tokenizer = AutoTokenizer.from_pretrained(model_id)
-    model = LLaDAModelLM.from_pretrained(model_id, torch_dtype=torch.bfloat16).cuda().eval()
+    model = AutoModelForCausalLM.from_pretrained(
+        model_id, torch_dtype=torch.bfloat16,
+    ).cuda().eval()
     chat = tokenizer.apply_chat_template(
         [{"role": "user", "content": prompt}], tokenize=False, add_generation_prompt=True,
     )
-    inputs = tokenizer(chat, return_tensors="pt").input_ids.cuda()
+    inputs = tokenizer(chat, return_tensors="pt").to("cuda")
     with torch.inference_mode():
-        tokens, _ = generate(
-            model, inputs, steps=128, gen_length=256, block_length=32,
-            temperature=0.0,
+        tokens = model.generate(
+            **inputs, max_new_tokens=256, do_sample=False,
+            pad_token_id=tokenizer.eos_token_id,
         )
-    answer_tokens = tokens[0, inputs.shape[1]:].tolist()
-    # Decode only through the first end-of-turn token, not the unused canvas.
-    end = (answer_tokens + [tokenizer.eos_token_id]).index(tokenizer.eos_token_id)
-    rewritten = tokenizer.decode(answer_tokens[:end], skip_special_tokens=True).strip()
+    rewritten = tokenizer.decode(
+        tokens[0, inputs.input_ids.shape[1]:], skip_special_tokens=True,
+    ).strip()
 
     args.output.mkdir(parents=True, exist_ok=True)
     (args.output / "rewrite.json").write_text(json.dumps({
-        "original": question["question"], "style": args.style,
+        "model": model_id, "original": question["question"], "style": args.style,
         "prompt": prompt, "rewritten": rewritten,
     }, indent=2) + "\n")
     (args.output / "tts-input.jsonl").write_text(
