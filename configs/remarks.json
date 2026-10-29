@@ -1,0 +1,37 @@
+{
+  "neutral": [
+    "Please help me solve the following problem.",
+    "Here is a math question for you to work through.",
+    "I'd like your help with this question."
+  ],
+  "confident": [
+    "I know you can solve this. I trust your reasoning.",
+    "You've got this. I'm sure you can work it out.",
+    "I have every confidence you'll get this right."
+  ],
+  "hesitant": [
+    "Um, could you maybe help me with this?",
+    "I'm not really sure how to ask, but could you try?",
+    "I don't know if this makes sense, but here goes."
+  ],
+  "happy": [
+    "I'm so glad you're here! Let's work on this together!",
+    "Oh, this should be fun! I'd love your help!",
+    "It's great to have your help! Let's give this a go!"
+  ],
+  "angry": [
+    "Could you actually help me with this for once?",
+    "I'm tired of asking. Get this right this time.",
+    "Stop wasting my time and actually help me."
+  ],
+  "sad": [
+    "It's been a really rough day. Could you help me?",
+    "I'm feeling pretty down. I could really use your help.",
+    "I just don't have much left in me today. Please help."
+  ],
+  "stressed": [
+    "I'm running out of time. Please help me, quickly!",
+    "I can't handle this right now. I really need your help!",
+    "There's so much pressure. Please, I need to get this done!"
+  ]
+}

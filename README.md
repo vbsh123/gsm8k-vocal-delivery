@@ -210,31 +210,31 @@ gets the same suffix asking TTS to preserve the supplied words and numbers.
 "Stressed" means anxious/pressured delivery, not answer-informed word emphasis.
 The spelling `hesistant` is accepted as an alias for `hesitant`.
 
-### Smoke test: generate style-appropriate wording separately
+### Prepare handwritten style remarks separately
 
-`rewrite_smoke.py` takes the first question from a local JSONL file and gives
-Qwen2.5-7B-Instruct the full question and requested style. It asks for the complete question
-with added remarks, preserving the original words and numbers without solving it.
-It uses standard autoregressive text generation in the existing `.venv-diffa`
-environment. It does not load DIFFA, synthesize audio, or evaluate accuracy.
-The weights download on first use.
+[configs/remarks.json](configs/remarks.json) contains three alternative remarks
+per style. `rewrite_smoke.py` adds one before each question, preserving the entire
+original question and answer. It uses only Python's standard library: no model,
+GPU, TTS, or accuracy evaluation runs during text preparation.
 
 ```bash
-.venv-diffa/bin/python rewrite_smoke.py --style angry
+python rewrite_smoke.py --style angry --output outputs/manual-angry
 .venv/bin/python generate.py \
-  --input-jsonl outputs/wording-smoke/tts-input.jsonl \
-  --num-examples 1 --styles angry --output outputs/wording-smoke/audio-run
+  --input-jsonl outputs/manual-angry/tts-input.jsonl \
+  --num-examples 1 --styles angry --output outputs/manual-angry/audio-run
 ```
 
 The default input is the short apples question in `examples/tiny.jsonl`.
-Change it with `--input-jsonl your-questions.jsonl` (rows need `question` and
-`answer`). Change the style in both commands to try another delivery.
-The first process exits before TTS loads. No accuracy evaluation runs.
-Inspect `outputs/wording-smoke/rewrite.json` for the original question, prompt,
-and Qwen response, then listen to the WAV under `audio-run/audio/`.
-Text rewriting remains separate from `run_experiment.sh` and `evaluate.py`.
-There are no automatic checks or retries for the rewritten wording; review it
-in this smoke test. Use new output directories when trying another rewrite.
+Change it with `--input-jsonl your-questions.jsonl`; rows need `question` (or
+`text`) and `answer`. Existing `questions.jsonl` files are supported.
+Use `--num-examples N` to prepare more questions. Remarks cycle through the three
+alternatives; `--remark-index 1` or `2` starts with another remark for a smoke test.
+Change the style in both commands to try another delivery.
+Inspect `outputs/manual-angry/rewrites.jsonl` for the original question and added
+remark, then listen to the WAV under `audio-run/audio/`.
+Text preparation remains separate from `run_experiment.sh` and `evaluate.py`.
+Use new output directories when trying another wording. Comparisons now test
+wording plus delivery, rather than vocal delivery alone.
 
 ### Plan without loading the model
 
