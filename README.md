@@ -212,9 +212,11 @@ The spelling `hesistant` is accepted as an alias for `hesitant`.
 
 ### Prepare handwritten style remarks separately
 
-[configs/remarks.json](configs/remarks.json) contains three alternative remarks
-per style. `rewrite_smoke.py` adds one before each question, preserving the entire
-original question and answer. It uses only Python's standard library: no model,
+[configs/remarks.json](configs/remarks.json) contains two templates per emotional
+style, with `{question}` marking where the complete original question is inserted.
+Neutral uses only `{question}`. Each recording uses one template; remarks can
+come before or after the question. The answer is preserved.
+`rewrite_smoke.py` uses only Python's standard library: no model,
 GPU, TTS, or accuracy evaluation runs during text preparation.
 
 ```bash
@@ -227,8 +229,8 @@ python rewrite_smoke.py --style angry --output outputs/manual-angry
 The default input is the short apples question in `examples/tiny.jsonl`.
 Change it with `--input-jsonl your-questions.jsonl`; rows need `question` (or
 `text`) and `answer`. Existing `questions.jsonl` files are supported.
-Use `--num-examples N` to prepare more questions. Remarks cycle through the three
-alternatives; `--remark-index 1` or `2` starts with another remark for a smoke test.
+Use `--num-examples N` to prepare more questions. Templates alternate across
+questions; `--remark-index 1` starts with the second template for a smoke test.
 Change the style in both commands to try another delivery.
 Inspect `outputs/manual-angry/rewrites.jsonl` for the original question and added
 remark, then listen to the WAV under `audio-run/audio/`.

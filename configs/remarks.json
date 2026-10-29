@@ -1,37 +1,29 @@
 {
   "neutral": [
-    "Please help me solve the following problem.",
-    "Here is a math question for you to work through.",
-    "I'd like your help with this question."
+    "{question}"
   ],
   "confident": [
-    "I know you can solve this. I trust your reasoning.",
-    "You've got this. I'm sure you can work it out.",
-    "I have every confidence you'll get this right."
+    "I trust you to solve this correctly. {question}",
+    "{question} I believe in you."
   ],
   "hesitant": [
-    "Um, could you maybe help me with this?",
-    "I'm not really sure how to ask, but could you try?",
-    "I don't know if this makes sense, but here goes."
+    "{question} I'm not sure you can solve it...",
+    "I don't know if you'd be able to solve it, but... {question}"
   ],
   "happy": [
-    "I'm so glad you're here! Let's work on this together!",
-    "Oh, this should be fun! I'd love your help!",
-    "It's great to have your help! Let's give this a go!"
+    "I'm so glad I get to work on this with you! {question}",
+    "{question} I'm excited to hear what you come up with!"
   ],
   "angry": [
-    "Could you actually help me with this for once?",
-    "I'm tired of asking. Get this right this time.",
-    "Stop wasting my time and actually help me."
+    "Don't make me angry like the last times! {question}",
+    "{question} Answer and don't make me mad!"
   ],
   "sad": [
-    "It's been a really rough day. Could you help me?",
-    "I'm feeling pretty down. I could really use your help.",
-    "I just don't have much left in me today. Please help."
+    "Nothing seems to be going right today. {question}",
+    "{question} This is getting me down."
   ],
   "stressed": [
-    "I'm running out of time. Please help me, quickly!",
-    "I can't handle this right now. I really need your help!",
-    "There's so much pressure. Please, I need to get this done!"
+    "I'm running out of time and starting to panic. {question}",
+    "{question} Please hurry, I really need to get this done!"
   ]
 }
