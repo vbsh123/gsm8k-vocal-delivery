@@ -9,8 +9,8 @@ new recordings. The TTS reads supplied questions; it does **not** invent problem
 solve them. Neutral audio is generated with the same model and speaker as every
 other style. The answer and solution are saved for scoring but never passed to TTS.
 
-This repo generates stimuli for a later DIFFA/audio-model experiment. It does not
-run DIFFA, extract steering vectors, or claim that requested emotions were realized.
+This repo generates stimuli and evaluates them with DIFFA-2. It does not extract
+steering vectors or claim that requested emotions were realized.
 
 ## Vast setup
 
@@ -216,11 +216,11 @@ The spelling `hesistant` is accepted as an alias for `hesitant`.
 style, with `{question}` marking where the complete original question is inserted.
 Neutral uses only `{question}`. Each recording uses one template; remarks can
 come before or after the question. The answer is preserved.
-`rewrite_smoke.py` uses only Python's standard library: no model,
+`prepare_text.py` uses only Python's standard library: no model,
 GPU, TTS, or accuracy evaluation runs during text preparation.
 
 ```bash
-python rewrite_smoke.py --style angry --output outputs/manual-angry
+python prepare_text.py --style angry --output outputs/manual-angry
 .venv/bin/python generate.py \
   --input-jsonl outputs/manual-angry/tts-input.jsonl \
   --num-examples 1 --styles angry --output outputs/manual-angry/audio-run
@@ -232,8 +232,8 @@ Change it with `--input-jsonl your-questions.jsonl`; rows need `question` (or
 Use `--num-examples N` to prepare more questions. Templates alternate across
 questions; `--remark-index 1` starts with the second template for a smoke test.
 Change the style in both commands to try another delivery.
-Inspect `outputs/manual-angry/rewrites.jsonl` for the original question and added
-remark, then listen to the WAV under `audio-run/audio/`.
+The single `outputs/manual-angry/tts-input.jsonl` file saves the prepared text,
+original question, style, and template. Listen to the WAV under `audio-run/audio/`.
 Text preparation remains separate from `run_experiment.sh` and `evaluate.py`.
 Use new output directories when trying another wording. Comparisons now test
 wording plus delivery, rather than vocal delivery alone.
@@ -328,7 +328,7 @@ Paths are relative to the output directory, so recordings remain portable to DIF
 - `possible_token_limit` flags clips near the speech-token cap as a heuristic.
   Inspect these for truncation. Increase `--max-new-tokens` in a new output directory
   if needed; normal completion also does not guarantee correct pronunciation.
-- Speech wording is identical across styles in the plan; TTS may still omit,
+- In the delivery-only condition, speech wording is identical across styles; TTS may still omit,
   repeat, or mispronounce words. Reject entire paired sets or regenerate using a
   predeclared rule independent of the target model's accuracy.
 - Save and inspect duration/loudness differences instead of silently normalizing
