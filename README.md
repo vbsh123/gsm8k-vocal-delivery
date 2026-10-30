@@ -130,10 +130,25 @@ hesitant, and stressed are deliberately omitted: they are not native emotion
 dimensions of this model. The baseline inherits the reference's delivery;
 its perceived neutrality still needs listening.
 
-`--input-jsonl` changes the question (first row only); `--reference-path` changes
+`--input-jsonl` selects the question file; `--num-examples` defaults to one.
+`--styles` selects the native controls to generate. `--reference-path` changes
 the reference folder. `--intensity` changes the nonzero vector component; use a
 fresh `--output` folder for another strength. `--prepare-only` saves the plan
 without importing model/GPU dependencies.
+
+To generate angry and disgusted versions of the same saved 300-question selection
+in a separate folder (600 clips):
+
+```bash
+.venv-index/bin/python index_smoke.py \
+  --input-jsonl outputs/manual200-mixed/source.jsonl --num-examples 300 \
+  --styles angry disgusted --output outputs/index300-angry-disgusted
+```
+
+Add `--prepare-only` to inspect the plan without loading the model. Question IDs,
+original wording, and reference answers are preserved. Use the same command to
+resume completed clips. For an Index-specific baseline comparison, explicitly
+include `neutral` in `--styles` too; it is not added automatically.
 
 ### Alternative TTS smoke: Fish Audio S2-Pro
 

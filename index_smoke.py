@@ -1,4 +1,4 @@
-"""Test IndexTTS-2.5's native emotion controls against a baseline."""
+"""Generate selected questions with IndexTTS-2.5's native emotion controls."""
 
 import argparse
 import hashlib
@@ -18,6 +18,9 @@ def main():
     parser.add_argument("--reference-path", type=Path, default=ROOT / "outputs/manual200-mixed/recordings")
     parser.add_argument("--output", type=Path, default=ROOT / "outputs/index-smoke")
     parser.add_argument("--intensity", type=float, default=0.8)
+    parser.add_argument("--num-examples", type=int, default=1)
+    parser.add_argument("--styles", nargs="+", choices=["neutral", "happy", "angry", "sad", "afraid", "disgusted"],
+                        default=["neutral", "happy", "angry", "sad", "afraid", "disgusted"])
     parser.add_argument("--prepare-only", action="store_true")
     args = parser.parse_args()
 
@@ -26,9 +29,7 @@ def main():
     reference = next(r for r in completed_records(reference_path).values() if r["style"] == "neutral")
     reference_audio = reference_path / reference["audio_path"]
     reference_hash = hashlib.sha256(reference_audio.read_bytes()).hexdigest()
-    question = read_jsonl(args.input_jsonl)[0]
-    text = question.get("question", question.get("text"))
-    question_id = question.get("id", question.get("question_id", "smoke"))
+    questions = read_jsonl(args.input_jsonl)[:args.num_examples]
     strength = args.intensity
     # Official order: happy, angry, sad, afraid, disgusted, melancholic, surprised, calm.
     vectors = {
@@ -40,16 +41,19 @@ def main():
         "disgusted": [0, 0, 0, 0, strength, 0, 0, 0],
     }
     tasks = []
-    for style, vector in vectors.items():
-        clip_id = f"{question_id}__Ryan-reference__{style}__r00"
-        tasks.append({
-            "question_id": question_id, "clip_id": clip_id, "text": text,
-            "answer": final_answer(question["answer"]), "style": style,
-            "speaker": "Ryan-reference", "repeat": 0, "seed": 42,
-            "model": "IndexTeam/IndexTTS-2.5", "emotion_vector": vector,
-            "reference_audio": str(reference_audio), "reference_sha256": reference_hash,
-            "audio_path": f"audio/{clip_id}.wav",
-        })
+    for question_index, question in enumerate(questions):
+        text = question.get("question", question.get("text"))
+        question_id = question.get("id", question.get("question_id", f"local_{question_index:05d}"))
+        for style in args.styles:
+            clip_id = f"{question_id}__Ryan-reference__{style}__r00"
+            tasks.append({
+                "question_id": question_id, "clip_id": clip_id, "text": text,
+                "answer": final_answer(question["answer"]), "style": style,
+                "speaker": "Ryan-reference", "repeat": 0, "seed": 42,
+                "model": "IndexTeam/IndexTTS-2.5", "emotion_vector": vectors[style],
+                "reference_audio": str(reference_audio), "reference_sha256": reference_hash,
+                "audio_path": f"audio/{clip_id}.wav",
+            })
     output.mkdir(parents=True, exist_ok=True)
     write_jsonl(output / "plan.jsonl", tasks)
     records = completed_records(output)
@@ -84,7 +88,7 @@ def main():
         target.parent.mkdir(parents=True, exist_ok=True)
         started = time.monotonic()
         tts.infer(
-            spk_audio_prompt=str(reference_audio), text=text, lang="EN",
+            spk_audio_prompt=str(reference_audio), text=task["text"], lang="EN",
             output_path=str(target), emo_vector=task["emotion_vector"],
             use_random=False,
         )
