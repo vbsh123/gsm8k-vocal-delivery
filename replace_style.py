@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 import shutil
 
-from generate import completed_records, read_jsonl, render_preview, write_json, write_jsonl
+from generate import completed_records, render_preview, write_json, write_jsonl
 
 
 def replace_style(target, source, style):

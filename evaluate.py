@@ -1,21 +1,10 @@
 
 import argparse
-import hashlib
-import html
-import importlib.metadata
 import json
-import math
-import os
 from pathlib import Path
-import random
-import re
-import sys
-import time
 import soundfile as sf
 import torch
 import librosa
-from huggingface_hub import snapshot_download
-from transformers import AutoTokenizer, AutoModel, WhisperFeatureExtractor
 from huggingface_hub import hf_hub_download
 from transformers import AutoTokenizer, WhisperFeatureExtractor, WhisperModel
 from peft import LoraConfig, get_peft_model

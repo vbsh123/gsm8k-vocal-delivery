@@ -102,6 +102,35 @@ prompt configurations in separate results files.
 
 ## Generate a pilot
 
+### Classify cropped styles and keep passing clips
+
+Run this separately from generation/cropping, using the DIFFA environment:
+
+```bash
+.venv-diffa/bin/python filter.py \
+  --path outputs/manual200-mixed/cropped
+```
+
+It classifies all seven requested styles, saves every prediction in
+`cropped/emotion-results.jsonl`, and copies accepted audio plus its manifest to
+`outputs/manual200-mixed/filtered/`. All neutral baselines are kept, even if the
+classifier predicts another label; emotional clips are kept only when the label
+matches the requested style. Source cropped WAVs remain intact.
+
+The filter waits for all seven cropped styles of a question. If any exceeds
+30 seconds, the whole question is excluded. Reasons are saved in
+`emotion-results.jsonl.skipped.jsonl`. This allows filtering completed question
+sets between crop batches without committing partial questions too early.
+Reruns skip classifications already recorded in the results file. The model is
+not loaded when there is nothing new to classify. Use the same results filename
+to resume, or `--results-file results.jsonl` if you already used that filename.
+Changing classifier prompts/models requires a separate results file and output
+dataset; existing decisions are reused by clip ID.
+
+The default generation cap is 32 tokens for a one-word label. This command loads
+DIFFA on the GPU, so inspect VRAM availability before running alongside TTS.
+Classifier agreement is a selection rule, not independent confirmation of emotion.
+
 ### Generate 50 questions per style, then immediately evaluate
 
 On an instance where both environments have already been set up:
