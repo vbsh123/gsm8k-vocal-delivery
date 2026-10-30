@@ -112,22 +112,21 @@ Run this separately from generation/cropping, using the DIFFA environment:
 ```
 
 It classifies all seven requested styles, saves every prediction in
-`cropped/emotion-results.jsonl`, and copies accepted audio plus its manifest to
+`cropped/results.jsonl`, and copies accepted audio plus its manifest to
 `outputs/manual200-mixed/filtered/`. All neutral baselines are kept, even if the
 classifier predicts another label; emotional clips are kept only when the label
 matches the requested style. Source cropped WAVs remain intact.
 
-The filter waits for all seven cropped styles of a question. If any exceeds
-30 seconds, the whole question is excluded. Reasons are saved in
-`emotion-results.jsonl.skipped.jsonl`. This allows filtering completed question
-sets between crop batches without committing partial questions too early.
-Reruns skip classifications already recorded in the results file. The model is
-not loaded when there is nothing new to classify. Use the same results filename
-to resume, or `--results-file results.jsonl` if you already used that filename.
+Available clips are processed without waiting for all seven styles. Compare each
+retained emotional style with its matching neutral baseline by question ID.
+Your existing duration rule excludes a question if any available recording exceeds
+30 seconds. Reruns skip classifications already recorded in the results file.
+Use the same results filename to resume. If you used `emotion-results.jsonl`
+with the previous version, pass `--results-file emotion-results.jsonl` to reuse it.
 Changing classifier prompts/models requires a separate results file and output
 dataset; existing decisions are reused by clip ID.
 
-The default generation cap is 32 tokens for a one-word label. This command loads
+The original default generation cap is 512 tokens. This command loads
 DIFFA on the GPU, so inspect VRAM availability before running alongside TTS.
 Classifier agreement is a selection rule, not independent confirmation of emotion.
 

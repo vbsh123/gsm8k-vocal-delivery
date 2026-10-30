@@ -23,29 +23,23 @@ def filter_recordings(path, recordings):
     # Read actual WAV headers, rather than trusting saved duration metadata.
     durations = {}
     long_questions = set()
-    styles_by_question = {}
     for recording in recordings:
         info = sf.info(path / recording["audio_path"])
         durations[recording["clip_id"]] = info.frames / info.samplerate
-        styles_by_question.setdefault(recording["question_id"], set()).add(recording["style"])
         if info.frames > 30 * info.samplerate:
             long_questions.add(recording["question_id"])
     kept, skipped = [], []
     for recording in recordings:
         if recording["question_id"] in long_questions:
-            reason = "question_has_recording_over_30_seconds"
-        elif len(styles_by_question[recording["question_id"]]) != 7:
-            reason = "question_waiting_for_all_seven_cropped_styles"
+            skipped.append({
+                "clip_id": recording["clip_id"],
+                "question_id": recording["question_id"],
+                "style": recording["style"],
+                "audio_seconds": durations[recording["clip_id"]],
+                "reason": "question_has_recording_over_30_seconds",
+            })
         else:
             kept.append(recording)
-            continue
-        skipped.append({
-            "clip_id": recording["clip_id"],
-            "question_id": recording["question_id"],
-            "style": recording["style"],
-            "audio_seconds": durations[recording["clip_id"]],
-            "reason": reason,
-        })
     return kept, skipped
 
 def load_recordings(path):
@@ -55,29 +49,14 @@ def load_recordings(path):
 
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    p.add_argument('--path', type=Path, required=True)
-    p.add_argument('--results-file', default='emotion-results.jsonl')
-    p.add_argument('--max-new-tokens', type=int, default=32)
+    p.add_argument('--path', type=Path)
+    p.add_argument('--results-file', default='results.jsonl')
+    p.add_argument('--max-new-tokens', type=int, default=512)
     args = p.parse_args(argv)
     recordings = load_recordings(args.path)
 
     prompt = ("I want you to describe me which emotion the speaker conveys, from the list of these emotions: neutral,happy,angry,confident,hesitant,stressed,sad. ONLY REPLY 1 WORD FROM THE LIST THAT MATCHES MOST")
     recordings, skipped = filter_recordings(args.path, recordings)
-    results_path = args.path / args.results_file
-    with (args.path / (args.results_file + ".skipped.jsonl")).open("w") as f:
-        for item in skipped:
-            f.write(json.dumps(item) + "\n")
-    processed_ids = set()
-    if results_path.exists():
-        with results_path.open() as f:
-            processed_ids = {json.loads(line)["clip_id"] for line in f if line.strip()}
-    recordings = [r for r in recordings if r["clip_id"] not in processed_ids]
-    print(f"Classifying {len(recordings)} new clips; {len(skipped)} clips excluded or waiting for complete questions.", flush=True)
-    if not recordings:
-        print("Nothing new to classify; model was not loaded.")
-        return
-    filtered = args.path.parent / "filtered"
-    filtered.mkdir(parents=True, exist_ok=True)
     tokenizer = AutoTokenizer.from_pretrained(llm_id)
     feature_extractor = WhisperFeatureExtractor.from_pretrained(whisper_id)
     config_path = hf_hub_download(diffa_id, "config.json")
@@ -143,6 +122,13 @@ def main(argv=None):
     model.llm_model = llm.merge_and_unload()
     model = model.cuda().eval()
     model.requires_grad_(False)
+    filtered = args.path.parent / "filtered"
+    filtered.mkdir(parents=True, exist_ok=True)
+    processed_ids = set()
+    results_path = args.path / args.results_file
+    if results_path.exists():
+        with results_path.open() as f:
+            processed_ids = {json.loads(line)["clip_id"] for line in f if line.strip()}
 
     for recording in recordings:
         if recording["clip_id"] in processed_ids:
@@ -204,11 +190,10 @@ def main(argv=None):
             "predicted_style": predicted_style,
             "matches_requested": matches_requested,
         }
-        with results_path.open("a") as f:
-            f.write(json.dumps(result) + "\n")
         processed_ids.add(recording["clip_id"])
+        with (args.path / args.results_file).open("a") as f:
+            f.write(json.dumps(result) + "\n")
     print("done")
 
 
-if __name__ == "__main__":
-    main()
+main()
