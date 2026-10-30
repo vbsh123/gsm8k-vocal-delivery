@@ -1,6 +1,7 @@
 .venv/
 .venv-diffa/
 .venv-fish/
+.venv-index/
 external/
 __pycache__/
 *.pyc

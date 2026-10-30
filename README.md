@@ -102,6 +102,37 @@ prompt configurations in separate results files.
 
 ## Generate a pilot
 
+### Native emotion-control smoke: IndexTTS-2.5
+
+This separate smoke test uses the model's documented eight-dimensional emotion
+vector, without inline tags or added remarks. It generates four recordings of
+the same question: a baseline with no explicit emotion vector, then happy,
+angry, and sad at requested strength 0.8. All four use one neutral Ryan recording
+as their speaker reference and seed 42. The vector strength is a conditioning
+weight, not a calibrated emotion score.
+
+```bash
+bash setup_index.sh
+.venv-index/bin/python index_smoke.py
+```
+
+Setup provisions Python 3.11 and IndexTTS in `.venv-index`, separate from the
+Qwen, Fish, and DIFFA environments. It downloads `IndexTeam/IndexTTS-2.5` and
+skips the optional text-to-emotion Qwen model. Auxiliary encoder/vocoder weights
+download on first inference. Optional acceleration/CUDA-kernel builds are disabled
+for this smoke test.
+
+Listen at `outputs/index-smoke/listen.html`; WAVs and the plan/manifest are in
+that folder. No cropping, filtering, or accuracy evaluation runs. Confident,
+hesitant, and stressed are deliberately omitted: they are not native emotion
+dimensions of this model. The baseline inherits the reference's delivery;
+its perceived neutrality still needs listening.
+
+`--input-jsonl` changes the question (first row only); `--reference-path` changes
+the reference folder. `--intensity` changes the nonzero vector component; use a
+fresh `--output` folder for another strength. `--prepare-only` saves the plan
+without importing model/GPU dependencies.
+
 ### Alternative TTS smoke: Fish Audio S2-Pro
 
 This separate smoke test speaks the first question from `examples/tiny.jsonl`
