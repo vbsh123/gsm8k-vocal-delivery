@@ -71,6 +71,16 @@ def main(argv=None):
     if not recordings:
         print("No questions fit the 30-second limit in every recording; model was not loaded.")
         return
+    results_path = args.path / args.results_file
+    processed_ids = set()
+    if results_path.exists():
+        with results_path.open() as f:
+            processed_ids = {json.loads(line)["clip_id"] for line in f if line.strip()}
+    pending = sum(r["clip_id"] not in processed_ids for r in recordings)
+    print(f"{pending} clips remain; completed results will be skipped.", flush=True)
+    if not pending:
+        print_summary(results_path)
+        return
     tokenizer = AutoTokenizer.from_pretrained(llm_id)
     feature_extractor = WhisperFeatureExtractor.from_pretrained(whisper_id)
     config_path = hf_hub_download(diffa_id, "config.json")
@@ -138,6 +148,8 @@ def main(argv=None):
     model.requires_grad_(False)
 
     for recording in recordings:
+        if recording["clip_id"] in processed_ids:
+            continue
         audio_path = args.path / recording['audio_path']
         audio, sample_rate = sf.read(audio_path, dtype="float32")
         if audio.ndim == 2:
@@ -184,8 +196,9 @@ def main(argv=None):
             **score,
         }
 
-        with (args.path / args.results_file).open("a") as f:
+        with results_path.open("a") as f:
             f.write(json.dumps(result) + "\n")
+        processed_ids.add(recording["clip_id"])
     print_summary(args.path / args.results_file)
 if __name__ == "__main__":
     main()

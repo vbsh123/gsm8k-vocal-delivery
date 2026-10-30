@@ -83,8 +83,10 @@ Exactly 30 seconds is accepted. Skipped clip IDs and durations are written to
 `results-reasoning.jsonl.skipped.jsonl`. If no questions qualify, the script exits
 before downloading/loading model weights. Results include the exact prompt and
 the raw response; the prompt requests reasoning but does not guarantee it.
-Use a new results filename when changing the prompt: existing files are appended
-to, and reruns do not automatically skip completed evaluations.
+Use a new results filename when changing the prompt or generation settings.
+Reruns skip clip IDs already saved in that results file and append new answers.
+Use a separate filename from emotion classification results, for example
+`--results-file results-reasoning-v2.jsonl`.
 
 At the end, evaluation prints correct/total, accuracy percentage, and parse
 failures for each style. You can also summarize completed results during or after
