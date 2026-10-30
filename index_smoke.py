@@ -1,4 +1,4 @@
-"""Test IndexTTS-2.5's native happy, angry, and sad controls against a baseline."""
+"""Test IndexTTS-2.5's native emotion controls against a baseline."""
 
 import argparse
 import hashlib
@@ -36,6 +36,8 @@ def main():
         "happy": [strength, 0, 0, 0, 0, 0, 0, 0],
         "angry": [0, strength, 0, 0, 0, 0, 0, 0],
         "sad": [0, 0, strength, 0, 0, 0, 0, 0],
+        "afraid": [0, 0, 0, strength, 0, 0, 0, 0],
+        "disgusted": [0, 0, 0, 0, strength, 0, 0, 0],
     }
     tasks = []
     for style, vector in vectors.items():
@@ -53,7 +55,7 @@ def main():
     records = completed_records(output)
     render_preview(output, tasks, records)
     if args.prepare_only:
-        print(f"Four-condition plan saved: {output / 'plan.jsonl'}")
+        print(f"{len(tasks)}-condition plan saved: {output / 'plan.jsonl'}")
         return
 
     import numpy as np
@@ -72,9 +74,9 @@ def main():
     for index, task in enumerate(tasks, 1):
         target = output / task["audio_path"]
         if task["clip_id"] in records and target.is_file():
-            print(f"[{index}/4] skip {task['style']}", flush=True)
+            print(f"[{index}/{len(tasks)}] skip {task['style']}", flush=True)
             continue
-        print(f"[{index}/4] generate {task['style']}: {task['emotion_vector']}", flush=True)
+        print(f"[{index}/{len(tasks)}] generate {task['style']}: {task['emotion_vector']}", flush=True)
         random.seed(task["seed"])
         np.random.seed(task["seed"])
         torch.manual_seed(task["seed"])

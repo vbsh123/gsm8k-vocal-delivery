@@ -105,9 +105,9 @@ prompt configurations in separate results files.
 ### Native emotion-control smoke: IndexTTS-2.5
 
 This separate smoke test uses the model's documented eight-dimensional emotion
-vector, without inline tags or added remarks. It generates four recordings of
+vector, without inline tags or added remarks. It generates six recordings of
 the same question: a baseline with no explicit emotion vector, then happy,
-angry, and sad at requested strength 0.8. All four use one neutral Ryan recording
+angry, sad, afraid, and disgusted at requested strength 0.8. All six use one neutral Ryan recording
 as their speaker reference and seed 42. The vector strength is a conditioning
 weight, not a calibrated emotion score.
 
