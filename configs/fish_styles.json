@@ -1,9 +1,9 @@
 {
-  "neutral": "[neutral][conversational tone]",
-  "confident": "[confident][assured tone]",
-  "hesitant": "[hesitant][uncertain][wavering voice]",
-  "happy": "[happy][cheerful]",
-  "angry": "[angry][irritated][tense voice]",
-  "sad": "[sad][subdued][sorrowful]",
-  "stressed": "[stressed][anxious][tense voice]"
+  "neutral": "",
+  "confident": "[confident]",
+  "hesitant": "[hesitant]",
+  "happy": "[happy]",
+  "angry": "[angry]",
+  "sad": "[sad]",
+  "stressed": "[stressed]"
 }

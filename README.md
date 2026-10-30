@@ -124,8 +124,16 @@ The setup uses Python 3.12, installs audio system dependencies, and downloads
 
 Outputs: `outputs/fish-smoke/audio/`, `manifest.jsonl`, `plan.jsonl`, and
 `listen.html`. No cropping, classification, or accuracy evaluation runs.
-Tags are editable in `configs/fish_styles.json`; use a new `--output` folder
-when changing them. Change the question with `--input-jsonl` (first row only)
+One style tag is repeated before each sentence; neutral uses no style tags.
+Fish's [tag guide](https://fish.audio/blog/fish-audio-s2-fine-grained-ai-voice-control-at-the-word-level/)
+describes tags as applying until the next tag or sentence end. Tags are editable
+in `configs/fish_styles.json`; use a new `--output` folder when changing them:
+
+```bash
+.venv-fish/bin/python fish_smoke.py --output outputs/fish-smoke-single-tags
+```
+
+Change the question with `--input-jsonl` (first row only)
 or the voice reference folder with `--reference-path`. The default reference is
 the first completed neutral clip under `outputs/manual200-mixed/recordings`.
 

@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import time
 
 from generate import append_jsonl, completed_records, final_answer, read_jsonl, render_preview, write_jsonl
@@ -32,12 +33,14 @@ def main():
     styles = json.loads((ROOT / "configs/fish_styles.json").read_text())
     tasks = []
     for style, tags in styles.items():
+        sentences = re.split(r"(?<=[.!?])\s+", text)
+        tagged_text = " ".join(f"{tags} {sentence}".strip() for sentence in sentences)
         clip_id = f"{question_id}__Ryan-reference__{style}__r00"
         tasks.append({
             "question_id": question_id, "clip_id": clip_id, "text": text,
             "answer": final_answer(question["answer"]), "style": style,
             "speaker": "Ryan-reference", "repeat": 0, "seed": 42,
-            "model": "fishaudio/s2-pro", "tts_text": f"<|speaker:0|>{tags} {text}",
+            "model": "fishaudio/s2-pro", "tts_text": f"<|speaker:0|>{tagged_text}",
             "reference_audio": str(reference_audio), "reference_text": reference_text,
             "reference_sha256": hashlib.sha256(reference_bytes).hexdigest(),
             "audio_path": f"audio/{clip_id}.wav",
