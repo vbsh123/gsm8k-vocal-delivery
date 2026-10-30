@@ -102,6 +102,35 @@ prompt configurations in separate results files.
 
 ## Generate a pilot
 
+### Alternative TTS smoke: Fish Audio S2-Pro
+
+This separate smoke test speaks the first question from `examples/tiny.jsonl`
+in the seven requested styles, using Fish's inline emotion tags. The question
+wording is identical, without added remarks. All styles share the same neutral
+Ryan recording as a voice-cloning reference and seed 42. Voice cloning may still
+vary across styles; listen to check both delivery and speaker consistency.
+
+On the Vast instance, set up Fish in its own `.venv-fish` environment:
+
+```bash
+bash setup_fish.sh
+.venv-fish/bin/python fish_smoke.py
+```
+
+The setup uses Python 3.12, installs audio system dependencies, and downloads
+`fishaudio/s2-pro`. It does not modify `.venv` or `.venv-diffa`. Fish's
+[documented GPU requirement](https://speech.fish.audio/install/) is at least
+24 GB; check free VRAM before running beside the ongoing TTS job.
+
+Outputs: `outputs/fish-smoke/audio/`, `manifest.jsonl`, `plan.jsonl`, and
+`listen.html`. No cropping, classification, or accuracy evaluation runs.
+Tags are editable in `configs/fish_styles.json`; use a new `--output` folder
+when changing them. Change the question with `--input-jsonl` (first row only)
+or the voice reference folder with `--reference-path`. The default reference is
+the first completed neutral clip under `outputs/manual200-mixed/recordings`.
+
+`--prepare-only` saves the plan without loading Fish or GPU dependencies.
+
 ### Classify cropped styles and keep passing clips
 
 Run this separately from generation/cropping, using the DIFFA environment:
