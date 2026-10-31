@@ -153,8 +153,8 @@ include `neutral` in `--styles` too; it is not added automatically.
 
 ### Extract delivery directions
 
-`extract_vectors.py` reuses the evaluator's DIFFA-2 loader and exact solving
-prompt. It hooks each LLaDA decoder block on the first denoising pass, averages
+`extract_vectors.py` is standalone, with its own DIFFA-2 loader and the same solving
+prompt as evaluation. It hooks each LLaDA decoder block on the first denoising pass, averages
 the 512 masked answer positions, and stops before logits or further decoding.
 Measurements are block outputs before the model's final layer norm, with
 zero-based layer indices. It does not measure the unfused connector output.
