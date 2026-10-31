@@ -19,6 +19,13 @@ llm_id = "GSAI-ML/LLaDA-8B-Instruct"
 whisper_id = "openai/whisper-large-v3"
 diffa_id = "zhoujiaming777/DIFFA-2"
 
+SOLVE_PROMPT = ("Solve the math problem in the audio. Give concise step-by-step reasoning "
+              "with only the necessary calculations. If the question asks for a total, "
+              "compute that total. End with one plain-text line in exactly this format: "
+              "Final answer: <number>. Put a single numeric answer on that line, "
+              "without Markdown, units, or separate component counts.")
+
+
 def load_recordings(path):
     with (path / "manifest.jsonl").open() as f:
         return [json.loads(line) for line in f if line.strip()]
@@ -56,39 +63,7 @@ def filter_recordings(path, recordings):
     return kept, skipped
 
 
-def main(argv=None):
-    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    p.add_argument('--path', type=Path)
-    p.add_argument('--results-file', default='results.jsonl')
-    p.add_argument('--max-new-tokens', type=int, default=512)
-    args = p.parse_args(argv)
-    if args.max_new_tokens < 32 or args.max_new_tokens % 32 or 128 % (args.max_new_tokens // 32):
-        p.error('--max-new-tokens must be a multiple of 32 whose block count divides 128.')
-    prompt = ("Solve the math problem in the audio. Give concise step-by-step reasoning "
-              "with only the necessary calculations. If the question asks for a total, "
-              "compute that total. End with one plain-text line in exactly this format: "
-              "Final answer: <number>. Put a single numeric answer on that line, "
-              "without Markdown, units, or separate component counts.")
-    recordings = load_recordings(args.path)
-    recordings, skipped = filter_recordings(args.path, recordings)
-    with (args.path / (args.results_file + ".skipped.jsonl")).open("w") as f:
-        for item in skipped:
-            f.write(json.dumps(item) + "\n")
-    print(f"Evaluating {len(recordings)} clips; skipped {len(skipped)} clips. "
-          "Each kept clip and its neutral baseline fit within 30 seconds.", flush=True)
-    if not recordings:
-        print("No clips with an eligible neutral baseline; model was not loaded.")
-        return
-    results_path = args.path / args.results_file
-    processed_ids = set()
-    if results_path.exists():
-        with results_path.open() as f:
-            processed_ids = {json.loads(line)["clip_id"] for line in f if line.strip()}
-    pending = sum(r["clip_id"] not in processed_ids for r in recordings)
-    print(f"{pending} clips remain; completed results will be skipped.", flush=True)
-    if not pending:
-        print_summary(results_path)
-        return
+def load_model():
     tokenizer = AutoTokenizer.from_pretrained(llm_id)
     feature_extractor = WhisperFeatureExtractor.from_pretrained(whisper_id)
     config_path = hf_hub_download(diffa_id, "config.json")
@@ -154,6 +129,40 @@ def main(argv=None):
     model.llm_model = llm.merge_and_unload()
     model = model.cuda().eval()
     model.requires_grad_(False)
+
+    return model, tokenizer, feature_extractor
+
+
+def main(argv=None):
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    p.add_argument('--path', type=Path)
+    p.add_argument('--results-file', default='results.jsonl')
+    p.add_argument('--max-new-tokens', type=int, default=512)
+    args = p.parse_args(argv)
+    if args.max_new_tokens < 32 or args.max_new_tokens % 32 or 128 % (args.max_new_tokens // 32):
+        p.error('--max-new-tokens must be a multiple of 32 whose block count divides 128.')
+    prompt = SOLVE_PROMPT
+    recordings = load_recordings(args.path)
+    recordings, skipped = filter_recordings(args.path, recordings)
+    with (args.path / (args.results_file + ".skipped.jsonl")).open("w") as f:
+        for item in skipped:
+            f.write(json.dumps(item) + "\n")
+    print(f"Evaluating {len(recordings)} clips; skipped {len(skipped)} clips. "
+          "Each kept clip and its neutral baseline fit within 30 seconds.", flush=True)
+    if not recordings:
+        print("No clips with an eligible neutral baseline; model was not loaded.")
+        return
+    results_path = args.path / args.results_file
+    processed_ids = set()
+    if results_path.exists():
+        with results_path.open() as f:
+            processed_ids = {json.loads(line)["clip_id"] for line in f if line.strip()}
+    pending = sum(r["clip_id"] not in processed_ids for r in recordings)
+    print(f"{pending} clips remain; completed results will be skipped.", flush=True)
+    if not pending:
+        print_summary(results_path)
+        return
+    model, tokenizer, feature_extractor = load_model()
 
     for recording in recordings:
         if recording["clip_id"] in processed_ids:

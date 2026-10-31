@@ -9,8 +9,9 @@ new recordings. The TTS reads supplied questions; it does **not** invent problem
 solve them. Neutral audio is generated with the same model and speaker as every
 other style. The answer and solution are saved for scoring but never passed to TTS.
 
-This repo generates stimuli and evaluates them with DIFFA-2. It does not extract
-steering vectors or claim that requested emotions were realized.
+This repo generates stimuli, evaluates them with DIFFA-2, and extracts candidate
+delivery directions. It does not claim that requested emotions were realized or
+that the extracted directions improve reasoning.
 
 ## Vast setup
 
@@ -149,6 +150,62 @@ Add `--prepare-only` to inspect the plan without loading the model. Question IDs
 original wording, and reference answers are preserved. Use the same command to
 resume completed clips. For an Index-specific baseline comparison, explicitly
 include `neutral` in `--styles` too; it is not added automatically.
+
+### Extract delivery directions
+
+`extract_vectors.py` reuses the evaluator's DIFFA-2 loader and exact solving
+prompt. It hooks each LLaDA decoder block on the first denoising pass, averages
+the 512 masked answer positions, and stops before logits or further decoding.
+Measurements are block outputs before the model's final layer norm, with
+zero-based layer indices. It does not measure the unfused connector output.
+
+Start with a two-question smoke in the DIFFA environment:
+
+```bash
+.venv-diffa/bin/python extract_vectors.py \
+  --path outputs/manual200-mixed/cropped \
+  --output outputs/vectors-smoke --num-questions 2
+```
+
+Then extract angry, happy and confident directions on the training split:
+
+```bash
+.venv-diffa/bin/python extract_vectors.py \
+  --path outputs/manual200-mixed/cropped \
+  --output outputs/vectors-train
+```
+
+Each direction is the mean of **style minus neutral** over matched question,
+speaker and repetition pairs. Each clip and its neutral must fit within 30
+seconds; other long styles do not exclude the pair. Questions are assigned to
+train/validation/test by a stable hash (approximately 70/15/15%, seed 42), so
+adding recordings does not move an existing question between splits. No answer
+correctness is used to select pairs. Results already inspected are exploratory;
+keep unseen questions for the final intervention evaluation.
+
+`activations/<clip_id>.pt` saves one float32 `[layers, hidden_size]` tensor per
+clip. `vectors.pt` contains raw directions, unit directions, per-layer norms and
+the exact pairs used. Extraction skips cached activations when restarted. The
+configuration freezes the selected recordings and code; use a new output folder
+for a different dataset snapshot. `--prepare-only` writes the extraction plan
+without loading GPU dependencies.
+
+After extracting once, recompute directions on CPU using only style clips that
+passed the binary emotion filter:
+
+```bash
+.venv-diffa/bin/python extract_vectors.py \
+  --path outputs/manual200-mixed/cropped \
+  --output outputs/vectors-train --aggregate-only \
+  --filter-results outputs/manual200-mixed/cropped/results-neutral-binary.jsonl \
+  --vectors-file vectors-emotional.pt
+```
+
+Add `--require-neutral --vectors-file vectors-both-pass.pt` to require the
+neutral baseline to pass too. Filtering changes the averaging, not the saved
+per-clip activations. `--split validation` or `--split test` requires a separate
+output folder. This script extracts candidate directions; applying and tuning
+them during inference is a separate experiment.
 
 ### Alternative TTS smoke: Fish Audio S2-Pro
 
