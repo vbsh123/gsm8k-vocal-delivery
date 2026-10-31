@@ -27,21 +27,29 @@ def load_recordings(path):
 def filter_recordings(path, recordings):
     # Read actual WAV headers, rather than trusting saved duration metadata.
     durations = {}
-    long_questions = set()
+    neutral_durations = {}
     for recording in recordings:
         info = sf.info(path / recording["audio_path"])
         durations[recording["clip_id"]] = info.frames / info.samplerate
-        if info.frames > 30 * info.samplerate:
-            long_questions.add(recording["question_id"])
+        if recording["style"] == "neutral":
+            neutral_durations[recording["question_id"]] = durations[recording["clip_id"]]
     kept, skipped = [], []
     for recording in recordings:
-        if recording["question_id"] in long_questions:
+        neutral_seconds = neutral_durations.get(recording["question_id"])
+        reason = None
+        if neutral_seconds is None:
+            reason = "missing_neutral_recording"
+        elif neutral_seconds > 30:
+            reason = "neutral_recording_over_30_seconds"
+        elif durations[recording["clip_id"]] > 30:
+            reason = "recording_over_30_seconds"
+        if reason:
             skipped.append({
                 "clip_id": recording["clip_id"],
                 "question_id": recording["question_id"],
                 "style": recording["style"],
                 "audio_seconds": durations[recording["clip_id"]],
-                "reason": "question_has_recording_over_30_seconds",
+                "reason": reason,
             })
         else:
             kept.append(recording)
@@ -66,10 +74,10 @@ def main(argv=None):
     with (args.path / (args.results_file + ".skipped.jsonl")).open("w") as f:
         for item in skipped:
             f.write(json.dumps(item) + "\n")
-    print(f"Evaluating {len(recordings)} clips; skipped {len(skipped)} clips from "
-          f"{len({r['question_id'] for r in skipped})} questions with long audio.", flush=True)
+    print(f"Evaluating {len(recordings)} clips; skipped {len(skipped)} clips. "
+          "Each kept clip and its neutral baseline fit within 30 seconds.", flush=True)
     if not recordings:
-        print("No questions fit the 30-second limit in every recording; model was not loaded.")
+        print("No clips with an eligible neutral baseline; model was not loaded.")
         return
     results_path = args.path / args.results_file
     processed_ids = set()
