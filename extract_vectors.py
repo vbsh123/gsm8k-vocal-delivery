@@ -138,6 +138,9 @@ def main(argv=None):
 
     with path.open() as f:
         results = [json.loads(line) for line in f if line.strip()]
+    classifications = {
+        r["clip_id"]: r["predicted_style"] for r in results
+    }
 
     passed = [result for result in results if result["style"] in ["angry","confident", "happy"] and result["predicted_style"]== "no"]
     prompt = ("Solve the math problem in the audio. Give concise step-by-step reasoning "
@@ -227,7 +230,8 @@ def main(argv=None):
             recording["repeat"],
         )
         neutral = neutrals[key]
-
+        if classifications.get(neutral["clip_id"]) != "yes":
+            continue
         audio_path = args.path / recording['audio_path']
         audio, sample_rate = sf.read(audio_path, dtype="float32")
    
