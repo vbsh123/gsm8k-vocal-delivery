@@ -55,7 +55,7 @@ def main(argv=None):
     args = p.parse_args(argv)
     recordings = load_recordings(args.path)
 
-    prompt = ("I want you to describe me which emotion the speaker conveys, from the list of these emotions: neutral,happy,angry,confident,hesitant,stressed,sad. ONLY REPLY 1 WORD FROM THE LIST THAT MATCHES MOST")
+    prompt = ("I want you to describe me whether the emotion the speaker conveys is neutral or not, if he has an emotion in the voice, say no, if it sounds like no emotion is being shown from the speaker say yes. ONLY REPLY 1 WORD 'YES' for neutral and 'NO' for not neutral")
     recordings, skipped = filter_recordings(args.path, recordings)
     tokenizer = AutoTokenizer.from_pretrained(llm_id)
     feature_extractor = WhisperFeatureExtractor.from_pretrained(whisper_id)
@@ -160,7 +160,7 @@ def main(argv=None):
             )
         expected_style = recording["style"]
         predicted_style = response.strip().lower().strip(".!?")
-        matches_requested = predicted_style == expected_style
+        matches_requested = (predicted_style == "no" and expected_style != "neutral") or (predicted_style == "yes" and expected_style == "neutral")
         print(recording["clip_id"], response, flush=True)
         if expected_style == "neutral" or matches_requested:
             source = args.path / recording["audio_path"]
