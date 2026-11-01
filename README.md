@@ -237,6 +237,30 @@ choice on different questions. Pass both `extraction-labels.jsonl` and the dev
 A 50-question sweep is exploratory, not proof of an accuracy improvement. This
 script currently tests audio inputs; text-only transfer is a separate experiment.
 
+For a larger sweep, `prepare_steering_exclusions.py` reconstructs the exact
+questions that contributed to both-pass extraction, using the unchanged
+`extraction-labels.jsonl` snapshot and the cropped manifest. Classification-only
+questions did not train the vectors and need not all be excluded. For our
+current vectors, expect 55 angry, 42 happy and 35 confident pairs spanning 71
+distinct questions. Keep any questions used for layer selection excluded too:
+
+```bash
+.venv-diffa/bin/python prepare_steering_exclusions.py
+.venv-diffa/bin/python steer.py \
+  --path outputs/manual200-mixed/cropped \
+  --vectors outputs/manual200-mixed/style_vectors.pt \
+  --exclude-results outputs/manual200-mixed/vector-extraction-questions.jsonl \
+    outputs/steer-angry-all32-dev/results.jsonl \
+  --num-examples 200 --style angry --layers {15..25} \
+  --groups acoustic answer --strengths 0 0.5 \
+  --output outputs/steer-angry-L15-25-dev200
+```
+
+This is 200 x (1 baseline + 11 layers x 2 groups) = 4,600 generations.
+Use `--prepare-only` first to verify availability and freeze the sample without
+loading the model. These questions are separate from extraction and the prior
+10-question layer sweep; some may have appeared in earlier delivery evaluations.
+
 ### Alternative TTS smoke: Fish Audio S2-Pro
 
 This separate smoke test speaks the first question from `examples/tiny.jsonl`

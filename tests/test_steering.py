@@ -5,6 +5,7 @@ import io
 import unittest
 
 from steer import make_conditions, make_steering_hook, select_neutrals, summarize
+from prepare_steering_exclusions import extraction_questions
 
 
 class Vector(list):
@@ -92,6 +93,25 @@ class SteeringTests(unittest.TestCase):
         conditions = make_conditions([10, 15], ["acoustic", "answer"], [0, -0.5, 0.5])
         self.assertEqual(len(conditions), 9)
         self.assertEqual(sum(c["name"] == "baseline" for c in conditions), 1)
+
+    def test_exact_exclusions_match_both_pass_rule_and_neutral_partner(self):
+        records, labels = [], []
+        for q, neutral_label, angry_label in [("used", "yes", "no"),
+                                               ("neutral-failed", "no", "no"),
+                                               ("style-failed", "yes", "yes")]:
+            for style, label in [("neutral", neutral_label), ("angry", angry_label)]:
+                clip = f"{q}-{style}"
+                records.append(dict(clip_id=clip, question_id=q, style=style, speaker="Ryan", repeat=0))
+                labels.append(dict(clip_id=clip, style=style, predicted_style=label))
+        questions, pairs = extraction_questions(records, labels)
+        self.assertEqual(questions, {"used"})
+        self.assertEqual(pairs, {"angry": 1})
+
+    def test_requested_200_question_sweep_has_23_conditions(self):
+        conditions = make_conditions(list(range(15, 26)), ["acoustic", "answer"], [0, 0.5])
+        self.assertEqual(len(conditions), 23)
+        self.assertEqual({c["layer"] for c in conditions[1:]}, set(range(15, 26)))
+        self.assertEqual(len(conditions) * 200, 4600)
 
     def test_summary_matches_questions_and_uses_latest_result(self):
         conditions = make_conditions([15], ["answer"], [0, 1])
