@@ -153,59 +153,89 @@ include `neutral` in `--styles` too; it is not added automatically.
 
 ### Extract delivery directions
 
-`extract_vectors.py` is standalone, with its own DIFFA-2 loader and the same solving
-prompt as evaluation. It hooks each LLaDA decoder block on the first denoising pass, averages
-the 512 masked answer positions, and stops before logits or further decoding.
-Measurements are block outputs before the model's final layer norm, with
-zero-based layer indices. It does not measure the unfused connector output.
+`extract_vectors.py` is separate from evaluation. It uses the same DIFFA-2
+loading and solving prompt, and records decoder block outputs for up to 512
+actual forwards. At every layer/pass it averages four position groups:
+acoustic, semantic, combined audio, and answer. Layer indices are zero-based;
+measurements are before the model's final layer norm.
 
-Start with a two-question smoke in the DIFFA environment:
-
-```bash
-.venv-diffa/bin/python extract_vectors.py \
-  --path outputs/manual200-mixed/cropped \
-  --output outputs/vectors-smoke --num-questions 2
-```
-
-Then extract angry, happy and confident directions on the training split:
+It selects angry/happy/confident clips classified NO (emotional) and requires
+the matching neutral recording to be classified YES (neutral). The binary
+classifier does not verify the specific emotion. Matching uses question ID,
+speaker and repetition. Both recordings run independently; only forward indices
+reached by both contribute. A forward index is not a shared noise level or
+necessarily the same answer-completion stage under dynamic decoding.
 
 ```bash
-.venv-diffa/bin/python extract_vectors.py \
-  --path outputs/manual200-mixed/cropped \
-  --output outputs/vectors-train
+.venv-diffa/bin/python prepare_vector_smoke.py
+.venv-diffa/bin/python extract_vectors.py --path outputs/vector-smoke/cropped
+
+# Full both-pass extraction:
+.venv-diffa/bin/python extract_vectors.py --path outputs/manual200-mixed/cropped
 ```
 
-Each direction is the mean of **style minus neutral** over matched question,
-speaker and repetition pairs. Each clip and its neutral must fit within 30
-seconds; other long styles do not exclude the pair. Questions are assigned to
-train/validation/test by a stable hash (approximately 70/15/15%, seed 42), so
-adding recordings does not move an existing question between splits. No answer
-correctness is used to select pairs. Results already inspected are exploratory;
-keep unseen questions for the final intervention evaluation.
+The output is `style_vectors.pt` in the input folder's parent. It saves float32
+`sums` and `counts` per style/layer/pass/group, plus `pair_mean_sums` and
+`pair_counts` that average passes within each question before averaging questions.
+Directions have the sign **style minus neutral**. It stores aggregates, not
+individual clip activations, and saves only after completion. There is no resume
+or automatic train/test split in extraction. Inputs must be cropped clips with
+eligible <=30-second baselines, as selected by the classification pipeline.
 
-`activations/<clip_id>.pt` saves one float32 `[layers, hidden_size]` tensor per
-clip. `vectors.pt` contains raw directions, unit directions, per-layer norms and
-the exact pairs used. Extraction skips cached activations when restarted. The
-configuration freezes the selected recordings and code; use a new output folder
-for a different dataset snapshot. `--prepare-only` writes the extraction plan
-without loading GPU dependencies.
+### Test steering on new neutral questions
 
-After extracting once, recompute directions on CPU using only style clips that
-passed the binary emotion filter:
+`steer.py` reuses the extractor's loader, leaving extraction/evaluation unchanged.
+It adds a raw mean-difference vector after one selected decoder block, at the
+chosen positions. `--groups` and `--layers` are separate experimental conditions,
+not simultaneous interventions. The baseline is run once per clip. A strength
+of 1 adds one raw mean shift; 0.5 adds half, and negative strengths subtract it.
+Vectors are not normalized automatically.
+
+Before classifying newly generated questions, preserve the classification file
+used during extraction (do this once, and keep this snapshot unchanged):
 
 ```bash
-.venv-diffa/bin/python extract_vectors.py \
-  --path outputs/manual200-mixed/cropped \
-  --output outputs/vectors-train --aggregate-only \
-  --filter-results outputs/manual200-mixed/cropped/results-neutral-binary.jsonl \
-  --vectors-file vectors-emotional.pt
+cp outputs/manual200-mixed/cropped/results-neutral-binary.jsonl \
+  outputs/manual200-mixed/extraction-labels.jsonl
 ```
 
-Add `--require-neutral --vectors-file vectors-both-pass.pt` to require the
-neutral baseline to pass too. Filtering changes the averaging, not the saved
-per-clip activations. `--split validation` or `--split test` requires a separate
-output folder. This script extracts candidate directions; applying and tuning
-them during inference is a separate experiment.
+The script excludes every question in this file, samples unseen Ryan neutrals
+with cropped duration <=30 seconds, and never selects questions by correctness.
+Crop the new recordings first. Start with two questions to check the real GPU
+hook; layer 15 is an initial choice, not a validated best layer:
+
+```bash
+.venv-diffa/bin/python steer.py \
+  --path outputs/manual200-mixed/cropped \
+  --vectors outputs/manual200-mixed/style_vectors.pt \
+  --exclude-results outputs/manual200-mixed/extraction-labels.jsonl \
+  --num-examples 2 --style angry --layers 15 \
+  --groups acoustic answer --strengths 0 0.5 -0.5 \
+  --output outputs/steer-angry-smoke
+```
+
+This runs five conditions per question: baseline and +/-0.5 for each of two
+position groups. For 50 development questions, use `--num-examples 50` and
+`--output outputs/steer-angry-dev`. It saves a frozen question plan, full responses,
+strict existing answer scores, actual forward counts, and a paired summary.
+Rerunning the same command skips completed clip/condition combinations; new
+crops do not change the saved sample. `--prepare-only` writes the plan without
+loading GPU dependencies.
+
+The default `--mode fixed` uses `pair_mean_sums / pair_counts`: one direction per
+layer/group, applied at every forward. `--mode per-pass` uses the corresponding
+`sums / counts` direction at each forward. Unsupported passes are left unchanged;
+`--min-pairs` sets how many extraction pairs must support a per-pass direction.
+The saved vector file supplies the original solving prompt and answer length.
+All conditions for a clip use the same random seed. Parse failures remain
+incorrect; full answers are retained for review. Reported p-values are exact,
+two-sided McNemar tests and are unadjusted during exploratory sweeps.
+
+After choosing layer/group/strength on development questions, evaluate the fixed
+choice on different questions. Pass both `extraction-labels.jsonl` and the dev
+`results.jsonl` to `--exclude-results` to exclude extraction and tuning questions.
+A 50-question sweep is exploratory, not proof of an accuracy improvement. This
+script currently tests audio inputs; text-only transfer is a separate experiment.
 
 ### Alternative TTS smoke: Fish Audio S2-Pro
 
