@@ -4,7 +4,7 @@ from contextlib import redirect_stdout
 import io
 import unittest
 
-from steer import make_conditions, make_steering_hook, select_neutrals, summarize
+from steer import make_conditions, make_steering_hook, reuse_questions, select_neutrals, summarize
 from prepare_steering_exclusions import extraction_questions
 
 
@@ -112,6 +112,16 @@ class SteeringTests(unittest.TestCase):
         self.assertEqual(len(conditions), 23)
         self.assertEqual({c["layer"] for c in conditions[1:]}, set(range(15, 26)))
         self.assertEqual(len(conditions) * 200, 4600)
+
+    def test_reusing_previous_questions_preserves_order_despite_new_crops(self):
+        previous = [dict(clip_id=q, question_id=q) for q in ["q2", "q1"]]
+        records = {r["clip_id"]: r for r in previous}
+        records["new"] = dict(clip_id="new", question_id="new")
+        self.assertEqual(reuse_questions(previous, records, set(), 2), previous)
+        with self.assertRaisesRegex(ValueError, "now excluded"):
+            reuse_questions(previous, records, {"q1"}, 2)
+        with self.assertRaisesRegex(ValueError, "requested 3"):
+            reuse_questions(previous, records, set(), 3)
 
     def test_summary_matches_questions_and_uses_latest_result(self):
         conditions = make_conditions([15], ["answer"], [0, 1])

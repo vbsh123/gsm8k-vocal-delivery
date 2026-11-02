@@ -45,6 +45,16 @@ def make_conditions(layers, groups, strengths):
     return conditions
 
 
+def reuse_questions(previous, records, excluded, count):
+    """Keep exactly a previous run's questions and order for a new layer sweep."""
+    if len(previous) != count:
+        raise ValueError(f"Previous plan has {len(previous)} questions; requested {count}")
+    for r in previous:
+        if records.get(r["clip_id"]) != r or r["question_id"] in excluded:
+            raise ValueError("A previous question changed or is now excluded")
+    return previous
+
+
 def make_steering_hook(direction, valid_passes, mode, group, strength, bounds, answer_tokens):
     """Modify only one chosen decoder block's output; count its forward calls."""
     state = {"forwards": 0, "steered": 0}
@@ -115,6 +125,8 @@ def main():
     parser.add_argument("--exclude-results", type=Path, nargs="+", required=True,
                         help="Exclude ALL question IDs in these JSONLs: extraction labels, and optionally prior steering runs")
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--questions-from", type=Path,
+                        help="Reuse exactly the recordings/order from a previous run_config.json")
     parser.add_argument("--num-examples", type=int, default=50)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--style", choices=["angry", "happy", "confident"], default="angry")
@@ -140,6 +152,9 @@ def main():
                     exclude_results=[str(p.resolve()) for p in args.exclude_results],
                     num_examples=args.num_examples, seed=args.seed, style=args.style,
                     mode=args.mode, min_pairs=args.min_pairs, conditions=conditions)
+    if args.questions_from:
+        settings["questions_from"] = str(args.questions_from.resolve())
+        settings["questions_from_sha256"] = hashlib.sha256(args.questions_from.read_bytes()).hexdigest()
     config_path = args.output / "run_config.json"
     records = {r["clip_id"]: r for r in read_rows(args.path / "manifest.jsonl")}
     excluded = {r["question_id"] for p in args.exclude_results for r in read_rows(p)}
@@ -152,7 +167,11 @@ def main():
             if (records.get(r["clip_id"]) != r or r["question_id"] in excluded):
                 parser.error("A selected recording changed or entered the exclusion set; use a new output")
     else:
-        selected = select_neutrals(records.values(), excluded, args.num_examples, args.seed)
+        if args.questions_from:
+            previous = json.loads(args.questions_from.read_text())["recordings"]
+            selected = reuse_questions(previous, records, excluded, args.num_examples)
+        else:
+            selected = select_neutrals(records.values(), excluded, args.num_examples, args.seed)
         plan = dict(settings=settings, recordings=selected, excluded_question_ids=sorted(excluded))
         args.output.mkdir(parents=True, exist_ok=True)
         config_path.write_text(json.dumps(plan, indent=2) + "\n")

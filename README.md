@@ -260,6 +260,11 @@ This is 200 x (1 baseline + 11 layers x 2 groups) = 4,600 generations.
 Use `--prepare-only` first to verify availability and freeze the sample without
 loading the model. These questions are separate from extraction and the prior
 10-question layer sweep; some may have appeared in earlier delivery evaluations.
+To compare another layer range on exactly the same recordings, pass
+`--questions-from outputs/steer-angry-L15-25-dev200-a1/run_config.json` with a
+new output folder and the same exclusions/count. This preserves question order
+even if more crops arrive. It expands the development sweep; it is not a fresh
+confirmation set. Existing runs without this option retain their resume settings.
 
 ### Alternative TTS smoke: Fish Audio S2-Pro
 
