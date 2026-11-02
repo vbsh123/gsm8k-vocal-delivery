@@ -266,6 +266,46 @@ new output folder and the same exclusions/count. This preserves question order
 even if more crops arrive. It expands the development sweep; it is not a fresh
 confirmation set. Existing runs without this option retain their resume settings.
 
+### Sequential strength, combination and semantic follow-up
+
+`run_steering_followup.py` is a separate runner; it imports the existing hook
+from `steer.py` without modifying that script. Its default plan reuses the same
+200 questions from `outputs/steer-angry-L15-25-dev200-a1/run_config.json`.
+Every intervention uses the fixed angry direction for its own layer and group.
+
+First, it runs one baseline and these six conditions per question:
+
+- L4 acoustic, +0.5.
+- L2 answer, +0.5.
+- L18 answer, +0.5.
+- L20 answer, +0.5.
+- L4 acoustic AND L18 answer simultaneously, +1 at each.
+- L18 answer AND L20 answer simultaneously, +0.5 at each.
+
+After that stage finishes for all questions, it tests semantic positions at each
+layer 0–25 separately, strength +1. The baseline is reused across stages. This
+is 1,400 first-stage plus 5,200 semantic generations: 6,600 total. It keeps the
+model loaded once, prints stage/question/condition progress, saves full answers
+and per-layer hook counts, and resumes completed clip/condition combinations.
+Generation times are recorded. Each stage also saves an interim summary.
+
+```bash
+# A one-question GPU smoke, including both combinations and two semantic layers:
+.venv-diffa/bin/python run_steering_followup.py \
+  --num-examples 1 --semantic-layers 4 18 \
+  --output outputs/steer-angry-followup-smoke
+
+# Full sequential run, surviving terminal disconnects:
+nohup .venv-diffa/bin/python -u run_steering_followup.py \
+  > outputs/manual200-mixed/steer-angry-followup200.log 2>&1 < /dev/null &
+```
+
+Output defaults to `outputs/steer-angry-followup200/`. Add `--prepare-only` to
+inspect the frozen plan without loading the GPU model. `--semantic-layers`
+can explicitly select another layer range. Do not run two GPU model jobs if
+they do not fit together. This extends development on the same question set;
+confirm any selected setting on separate questions afterward.
+
 ### Alternative TTS smoke: Fish Audio S2-Pro
 
 This separate smoke test speaks the first question from `examples/tiny.jsonl`
