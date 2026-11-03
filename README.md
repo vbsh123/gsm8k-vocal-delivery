@@ -805,6 +805,23 @@ the anger category. Original emotion labels and scores remain available.
 
 ## Development checks
 
+To compare existing steering gains by the original audio's DIFFA and emotion2vec
+classifications (no inference or dependencies beyond Python's standard library):
+
+```bash
+python analyze_steering_groups.py
+```
+
+Defaults use L4 acoustic x1 from `outputs/steer-angry-L0-15-dev200-a1/results.jsonl`
+and the labels in `outputs/manual200-mixed/cropped`. Override `--results`,
+`--condition`, or `--path` as needed. Reports baseline and steered accuracies on
+identical clip IDs within each classifier's groups, normal 95% accuracy CIs,
+wins/losses, and exact McNemar p-values. Both original strict scores and the prior
+non-strict last-number extraction rule are shown (`--scoring strict` or
+`--scoring non-strict` selects one). Unresolved/missing labels are shown separately.
+Classifier groups are selected independently and may overlap; labels are never
+recomputed from steered answers.
+
 No GPU, model download, or third-party packages required:
 
 ```bash
