@@ -824,6 +824,23 @@ recomputed from steered answers.
 
 ### Classify all evaluated styles and compare layer effects
 
+To test fixed L4 acoustic x1 steering on additional DIFFA-neutral
+questions, use `run_diffa_neutral_steering.py`. It excludes all questions from the
+original 200-question sweep, the 10-question pilot, and vector extraction.
+It prints counts and freezes the remaining selection; `steer.py` is unchanged.
+
+```bash
+python run_diffa_neutral_steering.py --prepare-only
+.venv-diffa/bin/python -u run_diffa_neutral_steering.py
+```
+
+New baseline and steered results save under
+`outputs/steer-diffa-neutral-new-L4-acoustic-a1/`. Selection uses DIFFA yes labels
+independent of whether math answers already exist, never correctness. It considers
+the full classified-neutral cohort (210 in the current dataset) and excludes
+previous steering and vector-extraction questions. Reruns use the frozen selection and resume
+completed conditions through the existing steering runner.
+
 `classify_evaluated.py` classifies every clip with a saved math answer that is
 still in the cropped manifest, across all generated styles. Inclusion does not
 require passing DIFFA's emotion filter or having a neutral partner. It reuses
