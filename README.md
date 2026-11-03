@@ -735,6 +735,51 @@ DIFFA constant and never pass its TTS style instruction as part of the input.
 For the acoustic-only experiment, the problem itself should arrive via audio;
 giving DIFFA the full transcript as well is a separate control condition.
 
+## External emotion agreement on neutral recordings
+
+Two separate entry scripts compare dedicated emotion models against saved DIFFA
+binary labels. They select only `style == "neutral"` clips from the cropped
+manifest with a DIFFA `yes` (neutral) or `no` (emotional) classification. Selection
+does not depend on math answers, an angry partner, or the external prediction.
+
+Use a separate environment so DIFFA/TTS dependencies are not changed:
+
+```bash
+bash setup_emotion.sh
+.venv-emotion/bin/python emotion2vec_agreement.py --limit 2
+.venv-emotion/bin/python sensevoice_agreement.py --limit 2
+```
+
+After the smoke runs, omit `--limit` to process all selected neutrals:
+
+```bash
+.venv-emotion/bin/python -u emotion2vec_agreement.py
+.venv-emotion/bin/python -u sensevoice_agreement.py
+```
+
+Defaults read `outputs/manual200-mixed/cropped/manifest.jsonl` and
+`results-neutral-binary.jsonl` in the same folder. Override `--path` for another
+cropped dataset. Both scripts use CUDA by default; `--device cpu` is supported.
+Models download on first use. Each entry prints progress, appends predictions per
+clip, and skips saved clip IDs on rerun, including after a smoke run.
+
+Predictions are saved separately as `results-emotion2vec-neutral.jsonl` and
+`results-sensevoice-neutral.jsonl`, with adjacent `.summary.json` files. Add
+`--summary-only` to recalculate agreement without loading models. No clips are
+copied, removed, or filtered by these scripts.
+
+The shared `emotion_agreement.py` reports a 2x2 table, agreement within each DIFFA
+group, overall agreement, and Cohen's kappa. Neutral maps to neutral; explicit
+emotion classes map to emotional. Other/unknown or missing emotion tags remain
+unresolved and are counted separately, excluded from agreement denominators.
+Emotion2vec uses the highest-scoring original class and saves all class scores.
+SenseVoice uses the raw emotion token before transcription postprocessing, without
+VAD segmentation, and saves the raw tagged text. Agreement is not an accuracy
+estimate: DIFFA is a comparator, not a human reference.
+
+Official inference examples: [emotion2vec+ Large](https://huggingface.co/emotion2vec/emotion2vec_plus_large)
+and [SenseVoice Small](https://huggingface.co/FunAudioLLM/SenseVoiceSmall).
+
 ## Development checks
 
 No GPU, model download, or third-party packages required:

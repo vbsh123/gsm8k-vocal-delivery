@@ -1,0 +1,7 @@
+funasr>=1.2.6
+modelscope
+huggingface-hub
+soundfile
+librosa
+numpy<2
+sentencepiece
