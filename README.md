@@ -863,6 +863,18 @@ prediction files supplement/replace them by clip ID when available. Missing
 labels are reported in the CSV, never treated as emotional. These layer/subgroup
 rankings and their unadjusted p-values are exploratory.
 
+To copy a reproducible random sample of 15 emotion2vec-unresolved clips for
+listening (source audio stays intact):
+
+```bash
+python prepare_unknown_listen.py
+```
+
+Download `outputs/emotion2vec-unknown15.zip`, extract it, and open `listen.html`.
+It contains audio copies, original question text, and a manifest with predictions.
+Selection uses seed 42 and does not use math correctness. Override `--count`,
+`--seed`, or `--output`; use a fresh output folder for another sample.
+
 No GPU, model download, or third-party packages required:
 
 ```bash
