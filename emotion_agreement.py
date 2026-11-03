@@ -69,9 +69,12 @@ def print_summary(summary):
 
 
 def run(name, model_id, load_predictor):
-    parser = argparse.ArgumentParser(description=f"Compare {name} with DIFFA on neutral recordings only.")
+    parser = argparse.ArgumentParser(description=f"Compare {name} with saved DIFFA emotion labels.")
     parser.add_argument("--path", type=Path, default=Path("outputs/manual200-mixed/cropped"))
     parser.add_argument("--labels-file", default="results-neutral-binary.jsonl")
+    parser.add_argument("--style", choices=("neutral", "angry"), default="neutral")
+    parser.add_argument("--diffa-label", choices=("yes", "no"),
+                        help="Select only DIFFA yes=neutral or no=emotional; default includes both")
     parser.add_argument("--output", type=Path, help="Prediction JSONL; defaults inside --path")
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--limit", type=int, help="Maximum selected clips, for a smoke run")
@@ -85,18 +88,19 @@ def run(name, model_id, load_predictor):
     labels = read_rows(labels_path)
     recordings = {
         k: r for k, r in read_rows(args.path / "manifest.jsonl").items()
-        if r["style"] == "neutral" and labels.get(k, {}).get("predicted_style") in ("yes", "no")
+        if r["style"] == args.style and labels.get(k, {}).get("predicted_style") in ("yes", "no")
+        and (args.diffa_label is None or labels[k]["predicted_style"] == args.diffa_label)
     }
     if args.limit is not None:
         recordings = dict(list(recordings.items())[:args.limit])
-    output = args.output or args.path / f"results-{name}-neutral.jsonl"
+    output = args.output or args.path / f"results-{name}-{args.style}.jsonl"
     if output.resolve() in (labels_path.resolve(), (args.path / "manifest.jsonl").resolve()):
         parser.error("Output must be separate from the input manifest and DIFFA labels")
     predictions = read_rows(output)
-    if any(r["model"] != model_id for r in predictions.values()):
-        parser.error("Output contains a different model; use a separate --output")
+    if any(r["model"] != model_id or r["style"] != args.style for r in predictions.values()):
+        parser.error("Output contains a different model or style; use a separate --output")
     pending = [r for k, r in recordings.items() if k not in predictions]
-    print(f"Selected {len(recordings)} neutral recordings; {len(pending)} pending.", flush=True)
+    print(f"Selected {len(recordings)} {args.style} recordings; {len(pending)} pending.", flush=True)
     if pending and not args.summary_only:
         predict = load_predictor(args.device)
         import librosa
@@ -113,7 +117,7 @@ def run(name, model_id, load_predictor):
                 prediction = predict(audio)
                 clip_id = recording["clip_id"]
                 row = {"clip_id": clip_id, "question_id": recording["question_id"],
-                       "style": "neutral", "model": model_id,
+                       "style": args.style, "model": model_id,
                        "diffa_prediction": labels[clip_id]["predicted_style"],
                        **prediction}
                 row["binary_prediction"] = binary_label(row["emotion"])

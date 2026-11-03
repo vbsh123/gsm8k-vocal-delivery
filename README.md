@@ -796,6 +796,13 @@ The four checkpoint labels (neutral, happy, angry, sad) are decoded using its ow
 label encoder. This classifier has no explicit unknown class. Downloaded model
 files are kept under `external/speechbrain-emotion` and the Hugging Face cache.
 
+To check only angry recordings that passed DIFFA's emotional filter, add
+`--style angry --diffa-label no` to any agreement script. This selects by saved
+classification, independent of math evaluation and the neutral partner's label.
+Predictions are saved separately as `results-MODEL-angry.jsonl`; neutral results
+are preserved. Agreement here means neutral versus emotional, not specifically
+the anger category. Original emotion labels and scores remain available.
+
 ## Development checks
 
 No GPU, model download, or third-party packages required:

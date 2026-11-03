@@ -80,6 +80,26 @@ class AgreementTests(unittest.TestCase):
                 self.assertEqual(len(output.read_text().splitlines()), 2)
                 summary = json.loads(output.with_suffix(".summary.json").read_text())
                 self.assertEqual(summary["agreement"], 1)
+            # The filtered-angry comparison selects DIFFA-emotional angry clips,
+            # writes separately, and leaves all neutral predictions intact.
+            recordings.append({"clip_id": "4", "question_id": "4", "style": "angry",
+                               "audio_path": "4.wav"})
+            labels.append({"clip_id": "4", "predicted_style": "yes"})
+            for name, rows in [("manifest.jsonl", recordings), ("results-neutral-binary.jsonl", labels)]:
+                (folder / name).write_text("".join(json.dumps(r) + "\n" for r in rows))
+            angry_loader = Mock(return_value=Mock(return_value={"emotion": "angry"}))
+            with patch.object(sys, "argv", ["test", "--path", directory,
+                                           "--style", "angry", "--diffa-label", "no"]):
+                with redirect_stdout(io.StringIO()), patch.dict(
+                    sys.modules, {"soundfile": fake_sf, "librosa": SimpleNamespace()}
+                ):
+                    run("test", "test-model", angry_loader)
+            angry_output = folder / "results-test-angry.jsonl"
+            angry_saved = [json.loads(line) for line in angry_output.read_text().splitlines()]
+            self.assertEqual([r["clip_id"] for r in angry_saved], ["2"])
+            self.assertEqual(angry_saved[0]["style"], "angry")
+            self.assertEqual(angry_saved[0]["diffa_prediction"], "no")
+            self.assertEqual(len(output.read_text().splitlines()), 2)
 
 
 if __name__ == "__main__":
