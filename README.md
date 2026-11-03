@@ -894,6 +894,22 @@ Selection uses seed 42 and does not use math correctness. Override `--count`,
 
 ### Original Spoken GSM classification
 
+To DIFFA-classify the 300 prepared original clips and automatically test the
+existing fixed angry direction with L4 acoustic x1 on its neutral subset:
+
+```bash
+.venv-diffa/bin/python -u run_spoken_steering.py --num-examples 300
+```
+
+This resumes existing DIFFA labels, finishes classification before steering, and
+generates paired unsteered/steered math answers using the original audio. It uses
+`steer.py` without modifying it. Results save separately under
+`outputs/steer-spoken-gsm-diffa-neutral-L4-acoustic-a1/`. The selected subset is
+frozen for restart. Source-audio IDs are not mapped to text GSM8K IDs, so overlap
+with vector-extraction questions is unverified: this tests transfer to another
+audio source, not a guaranteed question-disjoint holdout. `--prepare-only`
+inspects existing labels and freezes selection without inference.
+
 To classify 300 original recordings using emotion2vec, SenseVoice and SpeechBrain
 sequentially, without loading DIFFA or solving the math questions:
 
