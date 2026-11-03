@@ -822,6 +822,47 @@ non-strict last-number extraction rule are shown (`--scoring strict` or
 Classifier groups are selected independently and may overlap; labels are never
 recomputed from steered answers.
 
+### Classify all evaluated styles and compare layer effects
+
+`classify_evaluated.py` classifies every clip with a saved math answer that is
+still in the cropped manifest, across all generated styles. Inclusion does not
+require passing DIFFA's emotion filter or having a neutral partner. It reuses
+existing model-identical neutral/angry predictions and resumes new predictions
+per clip. Math answers and audio files are not modified.
+
+```bash
+.venv-emotion/bin/python -u classify_evaluated.py --model emotion2vec
+.venv-emotion/bin/python -u classify_evaluated.py --model sensevoice
+.venv-emotion/bin/python -u classify_evaluated.py --model speechbrain
+```
+
+Predictions are saved as `results-MODEL-evaluated.jsonl` in the cropped folder.
+The adjacent `.summary.json` stores strict/non-strict accuracy, counts, and normal
+95% confidence intervals by binary prediction and individual emotion tag, both
+pooled and within each generated style. Use `--summary-only --by-style` to print
+those breakdowns without model inference. `--limit 2` is available for a smoke run.
+Pooled groups contain multiple recordings of some questions, so they are
+descriptive clip-level accuracies, not independent-question samples.
+
+For all saved layer conditions, strengths, and combinations:
+
+```bash
+python analyze_layer_groups.py --scoring non-strict --top 3
+```
+
+This reads the completed 200-question early/late sweeps and follow-up run folders
+when present; override with `--results PATH/results.jsonl ...`. No inference is
+performed. It prints the largest gains and losses within each classifier's binary
+groups and writes **all** effects, including individual emotion-tag groups, to
+`outputs/steering-group-effects.csv`. Defaults exclude groups smaller than 20
+only from printed rankings; all nonempty groups remain in the CSV. Each condition
+uses its own run's matched baseline and available input labels. Repeated settings
+in separate runs remain separate rows, not independent replications or pooled
+samples. Original neutral predictions are used immediately; broader evaluated
+prediction files supplement/replace them by clip ID when available. Missing
+labels are reported in the CSV, never treated as emotional. These layer/subgroup
+rankings and their unadjusted p-values are exploratory.
+
 No GPU, model download, or third-party packages required:
 
 ```bash
