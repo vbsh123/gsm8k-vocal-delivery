@@ -8,6 +8,16 @@ import subprocess
 import sys
 
 from emotion_agreement import read_rows
+from classify_spoken_gsm import DIFFA_MODEL, DIFFA_PROMPT
+
+
+def validate_classifications(labels, cohort):
+    for k in cohort.keys() & labels.keys():
+        row = labels[k]
+        expected = {"model": DIFFA_MODEL, "prompt": DIFFA_PROMPT, "system_prompt": "",
+                    "max_new_tokens": 512, "decoder": "fast_dllm"}
+        if any(row.get(field) != value for field, value in expected.items()):
+            raise ValueError(f"Classification settings differ from the intended DIFFA filter: {k}")
 
 
 def main():
@@ -43,6 +53,16 @@ def main():
         if not exclusions_file.exists():
             parser.error("Frozen selection is missing its exclusions file")
         selected = plan["recordings"]
+        if "source_clip_ids" in plan and plan["source_clip_ids"] != list(cohort):
+            parser.error("Source manifest order/cohort changed; use a new --output")
+        labels = read_rows(args.path / "results-diffa-original.jsonl")
+        try:
+            validate_classifications(labels, cohort)
+        except ValueError as exc:
+            parser.error(str(exc))
+        if any(cohort.get(r["clip_id"]) != r or
+               labels.get(r["clip_id"], {}).get("predicted_style") != "yes" for r in selected):
+            parser.error("Frozen recordings or their DIFFA-neutral labels changed; use a new --output")
         print(f"Reusing {len(selected)} frozen DIFFA-neutral original recordings.", flush=True)
     else:
         if not args.prepare_only:
@@ -50,6 +70,10 @@ def main():
                             "--path", str(args.path), "--model", "diffa",
                             "--limit", str(args.num_examples)], cwd=repo, check=True)
         labels = read_rows(args.path / "results-diffa-original.jsonl")
+        try:
+            validate_classifications(labels, cohort)
+        except ValueError as exc:
+            parser.error(str(exc))
         missing = cohort.keys() - labels.keys()
         if missing:
             print(f"{len(missing)}/{len(cohort)} original clips still need DIFFA classification.")
@@ -62,12 +86,15 @@ def main():
             print("No DIFFA-neutral original clips. Steering was not started.")
             return
         plan = {"recordings": selected, "source_path": str(args.path),
-                "source_count": args.num_examples, "selection_rule": "original audio; DIFFA predicted yes",
+                "source_count": args.num_examples, "source_clip_ids": list(cohort),
+                "selection_rule": "original audio; DIFFA predicted yes",
                 "question_overlap": "Not verified: source audio rows are not mapped 1:1 to text GSM8K IDs"}
-        selection_file.write_text(json.dumps(plan, indent=2) + "\n")
         # These source-audio IDs cannot be matched to the text-question exclusion
         # IDs. This is an audio-source transfer test, not a guaranteed question holdout.
         exclusions_file.write_text("")
+        temporary = selection_file.with_suffix(".json.tmp")
+        temporary.write_text(json.dumps(plan, indent=2) + "\n")
+        temporary.replace(selection_file)
     print(f"{len(selected)} original questions x 2 conditions: baseline and L4 acoustic x1.", flush=True)
     if not args.prepare_only:
         subprocess.run([sys.executable, "-u", str(repo / "steer.py"),
