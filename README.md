@@ -780,6 +780,22 @@ estimate: DIFFA is a comparator, not a human reference.
 Official inference examples: [emotion2vec+ Large](https://huggingface.co/emotion2vec/emotion2vec_plus_large)
 and [SenseVoice Small](https://huggingface.co/FunAudioLLM/SenseVoiceSmall).
 
+For a third comparison, `speechbrain_agreement.py` uses the official
+[SpeechBrain wav2vec2 IEMOCAP classifier](https://huggingface.co/speechbrain/emotion-recognition-wav2vec2-IEMOCAP).
+Reuse the working emotion environment and its installed PyTorch:
+
+```bash
+.venv-emotion/bin/python -m pip install -r requirements-speechbrain.txt
+.venv-emotion/bin/python -u speechbrain_agreement.py --limit 2
+.venv-emotion/bin/python -u speechbrain_agreement.py
+```
+
+It uses the same neutral-only selection and reporting, saves original class
+scores and labels to `results-speechbrain-neutral.jsonl`, and resumes saved clips.
+The four checkpoint labels (neutral, happy, angry, sad) are decoded using its own
+label encoder. This classifier has no explicit unknown class. Downloaded model
+files are kept under `external/speechbrain-emotion` and the Hugging Face cache.
+
 ## Development checks
 
 No GPU, model download, or third-party packages required:

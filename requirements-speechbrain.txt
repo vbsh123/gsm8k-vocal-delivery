@@ -1,0 +1,5 @@
+# Install into the working .venv-emotion; reuse its torch/torchaudio installation.
+speechbrain==1.0.3
+# SpeechBrain 1.0.3's Hub interface uses APIs from before huggingface-hub 1.x.
+huggingface-hub>=0.25,<1
+transformers>=4.40,<5

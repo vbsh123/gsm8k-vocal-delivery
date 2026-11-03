@@ -13,9 +13,21 @@ from unittest.mock import Mock, patch
 from emotion_agreement import agreement_summary, binary_label, run
 from emotion2vec_agreement import parse_prediction as emotion2vec_prediction
 from sensevoice_agreement import parse_prediction as sensevoice_prediction
+from speechbrain_agreement import parse_prediction as speechbrain_prediction
 
 
 class AgreementTests(unittest.TestCase):
+    def test_speechbrain_label_encoder_order_and_scores(self):
+        # Use the checkpoint's encoder order, not a presumed alphabetical order.
+        labels = ["hap", "ang", "neu", "sad"]
+        prediction = speechbrain_prediction(labels, [0.1, 0.05, 0.8, 0.05])
+        self.assertEqual(prediction["emotion"], "neutral")
+        self.assertEqual(prediction["predicted_label"], "neu")
+        self.assertEqual(prediction["scores"][2], 0.8)
+        self.assertAlmostEqual(sum(prediction["scores"]), 1)
+        prediction = speechbrain_prediction(labels, [0.1, 0.7, 0.1, 0.1])
+        self.assertEqual(binary_label(prediction["emotion"]), "emotional")
+
     def test_actual_model_output_formats(self):
         prediction = emotion2vec_prediction({"labels": ["中立/neutral", "生气/angry"],
                                             "scores": [0.2, 0.8]})
