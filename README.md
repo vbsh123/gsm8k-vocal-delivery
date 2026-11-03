@@ -306,6 +306,20 @@ can explicitly select another layer range. Do not run two GPU model jobs if
 they do not fit together. This extends development on the same question set;
 confirm any selected setting on separate questions afterward.
 
+For the subsequent stronger-direction test, use the separate runner's
+`--plan higher-strength`. This reuses the same saved questions and fixed angry
+directions, running baseline plus L4 acoustic +2, L18 answer +2, L20 answer +2,
+L4 acoustic/L18 answer simultaneously at +2 each, and L18/L20 answer
+simultaneously at +1 each. It does not run semantic steering. For 200 questions
+this is 1,200 generations. Use a fresh output folder:
+
+```bash
+nohup .venv-diffa/bin/python -u run_steering_followup.py \
+  --plan higher-strength \
+  --output outputs/steer-angry-higher-strength200 \
+  > outputs/manual200-mixed/steer-angry-higher-strength200.log 2>&1 < /dev/null &
+```
+
 ### Alternative TTS smoke: Fish Audio S2-Pro
 
 This separate smoke test speaks the first question from `examples/tiny.jsonl`

@@ -40,6 +40,19 @@ class FollowupTests(unittest.TestCase):
         for layer, condition in enumerate(stages[1]["conditions"]):
             self.assertEqual(condition["interventions"], [dict(layer=layer, group="semantic", strength=1)])
 
+    def test_higher_strength_plan_has_only_the_requested_five_interventions(self):
+        stages = build_stages(list(range(26)), "higher-strength")
+        self.assertEqual(len(stages), 1)
+        conditions = stages[0]["conditions"]
+        self.assertEqual([c["name"] for c in conditions], [
+            "baseline", "L4-acoustic-a2", "L18-answer-a2", "L20-answer-a2",
+            "L4-acoustic+L18-answer-a2", "L18-answer+L20-answer-a1"])
+        self.assertEqual(conditions[4]["interventions"], [
+            dict(layer=4, group="acoustic", strength=2), dict(layer=18, group="answer", strength=2)])
+        self.assertEqual(conditions[5]["interventions"], [
+            dict(layer=18, group="answer", strength=1), dict(layer=20, group="answer", strength=1)])
+        self.assertEqual(200 * len(conditions), 1200)
+
     def test_acoustic_and_answer_are_steered_in_same_forward_and_cleaned_up(self):
         layers = [Layer() for _ in range(21)]
         original = Hidden([[0, 0] for _ in range(7)])

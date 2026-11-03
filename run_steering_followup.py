@@ -1,4 +1,4 @@
-"""Run focused strength/combination tests, then a semantic sweep, without editing steer.py."""
+"""Run focused strength/combination plans without editing steer.py."""
 
 import argparse
 from contextlib import contextmanager
@@ -12,10 +12,17 @@ from scoring import score_response
 from steer import make_steering_hook, read_rows, reuse_questions, summarize
 
 
-def build_stages(semantic_layers):
+def build_stages(semantic_layers, plan="original"):
     def condition(name, targets):
         return dict(name=name, interventions=[dict(layer=layer, group=group, strength=strength)
                                              for layer, group, strength in targets])
+    if plan == "higher-strength":
+        conditions = [condition("baseline", [])]
+        for layer, group in [(4, "acoustic"), (18, "answer"), (20, "answer")]:
+            conditions.append(condition(f"L{layer}-{group}-a2", [(layer, group, 2)]))
+        conditions.append(condition("L4-acoustic+L18-answer-a2", [(4, "acoustic", 2), (18, "answer", 2)]))
+        conditions.append(condition("L18-answer+L20-answer-a1", [(18, "answer", 1), (20, "answer", 1)]))
+        return [dict(name="higher-strength", conditions=conditions)]
     first = [condition("baseline", [])]
     for layer, group in [(4, "acoustic"), (2, "answer"), (18, "answer"), (20, "answer")]:
         first.append(condition(f"L{layer}-{group}-a0.5", [(layer, group, 0.5)]))
@@ -49,6 +56,8 @@ def install_interventions(layers, directions, interventions, bounds, answer_toke
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--plan", choices=["original", "higher-strength"], default="original",
+                        help="higher-strength runs five stronger interventions plus baseline, with no semantic sweep")
     parser.add_argument("--path", type=Path, default=Path("outputs/manual200-mixed/cropped"))
     parser.add_argument("--vectors", type=Path, default=Path("outputs/manual200-mixed/style_vectors.pt"))
     parser.add_argument("--questions-from", type=Path,
@@ -68,7 +77,7 @@ def main():
         parser.error("num-examples must be positive")
     if not all(p.is_file() for p in args.exclude_results):
         parser.error("Exclusion files must exist")
-    stages = build_stages(args.semantic_layers)
+    stages = build_stages(args.semantic_layers, args.plan)
     conditions = [c for stage in stages for c in stage["conditions"]]
     previous = json.loads(args.questions_from.read_text())["recordings"]
     if args.num_examples > len(previous):
