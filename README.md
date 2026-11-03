@@ -875,6 +875,47 @@ It contains audio copies, original question text, and a manifest with prediction
 Selection uses seed 42 and does not use math correctness. Override `--count`,
 `--seed`, or `--output`; use a fresh output folder for another sample.
 
+### Original Spoken GSM classification
+
+To classify 300 original recordings using emotion2vec, SenseVoice and SpeechBrain
+sequentially, without loading DIFFA or solving the math questions:
+
+```bash
+bash run_spoken_classification.sh 300
+```
+
+This prepares the first 300 eligible test recordings from
+[`mistralai/gsm8k_speech`](https://huggingface.co/datasets/mistralai/gsm8k_speech),
+the XTTS-v2 speech dataset used in the caching experiments. The source revision is
+saved on first use and reused on reruns. It is not newly synthesized or cropped;
+export preserves decoded waveform samples and sampling rates. All models use
+the same <=30-second subset; longer source rows are listed in `skipped.jsonl`.
+The dataset card warns against assuming a 1:1 mapping with text GSM8K, so these
+records have independent source-audio IDs and `style="original"`.
+
+Files live separately under `outputs/spoken-gsm-original/`: original audio,
+`manifest.jsonl`, `source.json`, `results-MODEL-original.jsonl`, and
+`classification-summary.json`. All stages skip saved clips. The preparation uses
+`.venv-diffa` only for its dataset/audio dependencies; no DIFFA model is loaded
+unless explicitly requested. Model inference uses `.venv-emotion`.
+
+Use `bash run_spoken_classification.sh all` to extend to all eligible recordings.
+Optionally add `--include-diffa` as the second argument, or run DIFFA later:
+
+```bash
+.venv-diffa/bin/python -u classify_spoken_gsm.py --model diffa --limit 300
+```
+
+DIFFA uses the same binary emotion prompt/settings as the generated-clip filter.
+It only classifies the audio. Once DIFFA labels exist, summaries also report
+external-model agreement with DIFFA and kappa on shared valid labels. Individual
+external models can be resumed independently, e.g.:
+
+```bash
+.venv-emotion/bin/python -u classify_spoken_gsm.py --model sensevoice --limit 300
+.venv-emotion/bin/python classify_spoken_gsm.py --model sensevoice --summary-only --limit 300
+```
+
 No GPU, model download, or third-party packages required:
 
 ```bash
