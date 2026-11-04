@@ -894,6 +894,23 @@ Selection uses seed 42 and does not use math correctness. Override `--count`,
 
 ### Original Spoken GSM classification
 
+To test angry-direction x1 at layers 15--25, acoustic and answer positions
+separately, on the same completed original-audio cohort:
+
+```bash
+.venv-diffa/bin/python -u run_spoken_layer_sweep.py
+```
+
+It reads `outputs/steer-spoken-gsm-diffa-neutral-L4-acoustic-a1/run_config.json`,
+reuses the exact selected recordings/order and validated saved baseline answers,
+and creates a separate run in `outputs/steer-spoken-gsm-L15-25-a1/`. Source vectors,
+seeds, references, and baseline scores are checked before reuse. Existing output
+baselines must match, and unrelated result rows are rejected. Each run includes
+22 separate interventions, not simultaneous multi-layer steering. For 282 clips,
+only 6,204 new steered answers are generated; baseline answers are not rerun.
+Use `--prepare-only` to validate/freeze the plan and import baselines without
+inference. Restarts skip completed conditions. `steer.py` remains unchanged.
+
 To DIFFA-classify the 300 prepared original clips and automatically test the
 existing fixed angry direction with L4 acoustic x1 on its neutral subset:
 
