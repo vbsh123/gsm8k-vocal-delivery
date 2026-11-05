@@ -12,12 +12,13 @@ from steer import make_conditions, read_rows, summarize
 from run_steering_followup import install_interventions
 
 
-def select_neutrals(records, labels, excluded, seed, limit=None):
+def select_neutrals(records, labels, excluded, seed, limit=None, original=False, all_originals=False):
     latest = {r["clip_id"]: r for r in labels}
     neutral_ids = {clip for clip, r in latest.items() if r["emotion"] == "neutral"}
     selected = {r["question_id"]: r for r in records
-                if r["clip_id"] in neutral_ids and r["style"] == "neutral"
-                and r["speaker"] == "Ryan" and r["repeat"] == 0
+                if (r["clip_id"] in neutral_ids or (original and all_originals))
+                and r["style"] == ("original" if original else "neutral")
+                and r["speaker"] == ("source" if original else "Ryan") and r["repeat"] == 0
                 and r["duration_seconds"] <= 30 and r["question_id"] not in excluded}
     rows = [r for _, r in sorted(selected.items())]
     random.Random(seed).shuffle(rows)
@@ -33,6 +34,9 @@ def main(argv=None):
     p.add_argument("--layers", type=int, nargs="+", default=list(range(26)))
     p.add_argument("--groups", nargs="+", choices=["acoustic", "semantic", "combined", "answer"],
                    default=["acoustic", "answer"])
+    p.add_argument("--targets", nargs="+", help="Specific layer:group targets instead of a cross-product")
+    p.add_argument("--original-spoken", action="store_true", help="Test source-audio transfer; question overlap is unverified")
+    p.add_argument("--all-originals", action="store_true", help="Include originals regardless of classifier emotion")
     p.add_argument("--strength", type=float, default=-1.0)
     p.add_argument("--num-examples", type=int, help="Default: all eligible held-out questions")
     p.add_argument("--seed", type=int, default=42)
@@ -42,27 +46,53 @@ def main(argv=None):
         p.error("Use a finite negative strength to move away from unknown")
     if args.num_examples is not None and args.num_examples < 1:
         p.error("--num-examples must be positive")
-    args.vectors = args.vectors or args.path.parent / f"unknown-vectors-{args.classifier}" / "unknown-vectors.pt"
-    args.output = args.output or Path(f"outputs/steer-unknown-{args.classifier}-neutral-L0-25")
+    if args.all_originals and not args.original_spoken:
+        p.error("--all-originals requires --original-spoken")
+    default_audio_path = Path("outputs/manual200-mixed/cropped")
+    if args.original_spoken and args.path == default_audio_path:
+        args.path = Path("outputs/spoken-gsm-original")
+    vector_root = Path("outputs/manual200-mixed") if args.original_spoken else args.path.parent
+    args.vectors = args.vectors or vector_root / f"unknown-vectors-{args.classifier}" / "unknown-vectors.pt"
+    suffix = "original-top3" if args.original_spoken else "neutral-L0-25"
+    args.output = args.output or Path(f"outputs/steer-unknown-{args.classifier}-{suffix}")
     pairs_path = args.vectors.parent / "pairs.jsonl"
+    labels_name = f"results-{args.classifier}-{'original' if args.original_spoken else 'evaluated'}.jsonl"
     for path in (pairs_path, args.path / "manifest.jsonl",
-                 args.path / f"results-{args.classifier}-evaluated.jsonl", args.vectors):
+                 args.path / labels_name, args.vectors):
         if not path.is_file():
             p.error(f"Missing required input: {path}")
     excluded = {r["question_id"] for r in read_rows(pairs_path)}
     records = read_rows(args.path / "manifest.jsonl")
-    labels = read_rows(args.path / f"results-{args.classifier}-evaluated.jsonl")
-    selected = select_neutrals(records, labels, excluded, args.seed, args.num_examples)
+    labels = read_rows(args.path / labels_name)
+    selected = select_neutrals(records, labels, excluded, args.seed, args.num_examples,
+                               args.original_spoken, args.all_originals)
     if not selected:
         print("No held-out neutral-generated, classifier-neutral questions. No model loaded.")
         return
-    conditions = make_conditions(args.layers, args.groups, [args.strength])
+    if args.targets:
+        conditions = [dict(name="baseline", layer=None, group=None, strength=0.0)]
+        for target in args.targets:
+            try:
+                layer, group = target.split(":")
+                layer = int(layer)
+            except ValueError:
+                p.error("Targets must use layer:group, e.g. 9:acoustic")
+            if not 0 <= layer < 32 or group not in ["acoustic", "semantic", "combined", "answer"]:
+                p.error(f"Invalid target: {target}")
+            conditions.extend(make_conditions([layer], [group], [args.strength])[1:])
+        if len({c["name"] for c in conditions}) != len(conditions):
+            p.error("Duplicate targets")
+    else:
+        conditions = make_conditions(args.layers, args.groups, [args.strength])
     stat = args.vectors.stat()
     settings = {"classifier": args.classifier, "vectors": str(args.vectors.resolve()),
                 "vector_bytes": stat.st_size, "vector_mtime_ns": stat.st_mtime_ns,
                 "path": str(args.path.resolve()), "seed": args.seed,
                 "mode": "fixed", "conditions": conditions,
                 "sign": "unknown minus neutral"}
+    if args.original_spoken:
+        settings.update(original_spoken=True, all_originals=args.all_originals,
+                        question_overlap="Unverified: original audio row IDs do not map reliably to text GSM8K IDs")
     plan = {"settings": settings, "recordings": selected, "excluded_question_ids": sorted(excluded)}
     args.output.mkdir(parents=True, exist_ok=True)
     config_path = args.output / "run_config.json"
@@ -75,8 +105,13 @@ def main(argv=None):
     results = read_rows(results_path)
     completed = {(r["clip_id"], r["condition"]) for r in results}
     pending = sum((r["clip_id"], c["name"]) not in completed for r in selected for c in conditions)
-    print(f"{len(selected)} held-out neutral-generated AND {args.classifier}-neutral questions.", flush=True)
-    print(f"Excluded all {len(excluded)} planned extraction questions.", flush=True)
+    if args.original_spoken:
+        print(f"{len(selected)} original Spoken GSM recordings; "
+              f"{'all labels' if args.all_originals else args.classifier+'-neutral only'}.", flush=True)
+        print("Audio-source transfer test: text-question overlap with extraction/development is unverified.", flush=True)
+    else:
+        print(f"{len(selected)} held-out neutral-generated AND {args.classifier}-neutral questions.", flush=True)
+        print(f"Excluded all {len(excluded)} planned extraction questions.", flush=True)
     print(f"{len(conditions)} conditions: one baseline plus separate layer/group interventions; "
           f"{pending} generations pending. Strength={args.strength}.", flush=True)
     print("Frozen question selection:", config_path, flush=True)
