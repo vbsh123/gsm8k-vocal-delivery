@@ -1,4 +1,4 @@
-"""One question, four deliveries, using Azure and/or ElevenLabs (no GPU needed)."""
+"""One question, selected deliveries, using Azure and/or ElevenLabs (no GPU needed)."""
 
 import argparse
 from html import escape
@@ -11,6 +11,7 @@ from urllib.request import Request, urlopen
 
 
 STYLES = ("neutral", "angry", "happy", "sad")
+AZURE_EXTRA_STYLES = ("excited", "terrified", "shouting")
 
 
 def azure_ssml(text, style, voice, intensity):
@@ -42,7 +43,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--provider", choices=["azure", "elevenlabs", "both"], default="both")
     parser.add_argument("--text", default="Maya has twelve apples and gives away five. How many apples remain?")
-    parser.add_argument("--styles", nargs="+", choices=STYLES, default=list(STYLES))
+    parser.add_argument("--styles", nargs="+", choices=STYLES + AZURE_EXTRA_STYLES, default=list(STYLES))
     parser.add_argument("--output", type=Path, default=Path("outputs/cloud-tts-smoke"))
     parser.add_argument("--azure-voice", default="en-US-JennyNeural")
     parser.add_argument("--azure-intensity", type=float, default=1.5)
@@ -50,6 +51,8 @@ def main():
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--prepare-only", action="store_true", help="Save the requests without calling APIs.")
     args = parser.parse_args()
+    if args.provider != "azure" and any(style in AZURE_EXTRA_STYLES for style in args.styles):
+        parser.error("excited, terrified, and shouting currently require --provider azure.")
     if not 0.01 <= args.azure_intensity <= 2:
         parser.error("--azure-intensity must be between 0.01 and 2.")
 

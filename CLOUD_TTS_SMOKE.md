@@ -21,6 +21,32 @@ python cloud_tts_smoke.py --provider azure
 python cloud_tts_smoke.py --provider elevenlabs
 ```
 
+Azure also supports excited, terrified, and shouting:
+
+```bash
+python cloud_tts_smoke.py --provider azure \
+  --styles excited terrified shouting \
+  --output outputs/azure-extra-smoke
+```
+
+Use `--styles neutral angry happy sad excited terrified shouting` for all seven.
+These extra styles are currently exposed for Azure only; the default remains four styles.
+
+Generate all seven with Guy, then classify them using the existing emotion2vec environment:
+
+```bash
+python cloud_tts_smoke.py --provider azure --azure-voice en-US-GuyNeural \
+  --styles neutral angry happy sad excited terrified shouting \
+  --output outputs/azure-guy-smoke && \
+.venv-emotion/bin/python -u classify_cloud_smoke.py --path outputs/azure-guy-smoke
+```
+
+The classifier prints each requested style, predicted emotion, and top score.
+Full label scores are saved to `results-emotion2vec.jsonl` in the smoke folder.
+Emotion2vec does not have excited, terrified, or shouting labels: these are
+classified into its own label set, without treating them as exact style matches.
+Rerunning classification replaces that results file.
+
 Outputs go to `outputs/cloud-tts-smoke/`: Azure WAVs, ElevenLabs MP3s, a
 `plan.jsonl` containing the exact requests without keys, and `listen.html`.
 Download the folder and open `listen.html` to compare the samples. Rerunning
