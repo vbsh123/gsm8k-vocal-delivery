@@ -1,4 +1,4 @@
-"""One question, selected deliveries, using Azure and/or ElevenLabs (no GPU needed)."""
+"""Generate selected question deliveries using Azure and/or ElevenLabs (no GPU needed)."""
 
 import argparse
 from html import escape
@@ -43,6 +43,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--provider", choices=["azure", "elevenlabs", "both"], default="both")
     parser.add_argument("--text", default="Maya has twelve apples and gives away five. How many apples remain?")
+    parser.add_argument("--input-jsonl", type=Path, help="Question rows with question and optional question_id/id, answer.")
+    parser.add_argument("--num-examples", type=int, default=1)
     parser.add_argument("--styles", nargs="+", choices=STYLES + AZURE_EXTRA_STYLES, default=list(STYLES))
     parser.add_argument("--output", type=Path, default=Path("outputs/cloud-tts-smoke"))
     parser.add_argument("--azure-voice", default="en-US-JennyNeural")
@@ -55,6 +57,12 @@ def main():
         parser.error("excited, terrified, and shouting currently require --provider azure.")
     if not 0.01 <= args.azure_intensity <= 2:
         parser.error("--azure-intensity must be between 0.01 and 2.")
+    questions = [{"question": args.text}]
+    if args.input_jsonl:
+        questions = [json.loads(line) for line in args.input_jsonl.read_text().splitlines() if line.strip()]
+    if not 1 <= args.num_examples <= len(questions):
+        parser.error(f"Requested {args.num_examples} questions; {len(questions)} available.")
+    questions = questions[:args.num_examples]
 
     providers = ["azure", "elevenlabs"] if args.provider == "both" else [args.provider]
     required = {"azure": ["AZURE_SPEECH_KEY", "AZURE_SPEECH_REGION"],
@@ -66,34 +74,41 @@ def main():
 
     args.output.mkdir(parents=True, exist_ok=True)
     tasks = []
-    for provider in providers:
+    for provider, question_index, question in (
+            (provider, index, question) for provider in providers
+            for index, question in enumerate(questions)):
+        text = question["question"]
+        question_id = question.get("question_id", question.get("id", f"local_{question_index:05d}"))
+        prefix = f"q{question_index:05d}-" if args.input_jsonl else ""
         for style in args.styles:
             if provider == "azure":
                 voice = args.azure_voice
-                request = azure_ssml(args.text, style, voice, args.azure_intensity)
+                request = azure_ssml(text, style, voice, args.azure_intensity)
                 extension = "wav"
             else:
                 voice = os.environ.get("ELEVENLABS_VOICE_ID", "YOUR_VOICE_ID")
-                request = {"text": eleven_text(args.text, style), "model_id": args.eleven_model,
+                request = {"text": eleven_text(text, style), "model_id": args.eleven_model,
                            "seed": args.seed}
                 extension = "mp3"
             tasks.append({"provider": provider, "style": style, "voice": voice,
-                          "question": args.text, "request": request,
-                          "audio_path": f"{provider}-{style}.{extension}"})
+                          "question_id": question_id, "question": text, "answer": question.get("answer"),
+                          "request": request,
+                          "audio_path": f"{prefix}{provider}-{style}.{extension}"})
     (args.output / "plan.jsonl").write_text(
         "".join(json.dumps(task) + "\n" for task in tasks), encoding="utf-8")
     cards = "\n".join(
-        f'<p><b>{task["provider"]} / {task["style"]}</b><br>'
+        f'<p><b>{escape(str(task["question_id"]))} / {task["provider"]} / {task["style"]}</b><br>'
+        f'{escape(task["question"])}<br>'
         f'<audio controls preload="none" src="{task["audio_path"]}"></audio></p>' for task in tasks)
     (args.output / "listen.html").write_text(
         '<!doctype html><meta charset="utf-8"><title>Cloud TTS smoke</title>'
-        f'<h1>Cloud TTS smoke</h1><p>{escape(args.text)}</p>{cards}', encoding="utf-8")
+        f'<h1>Cloud TTS smoke</h1>{cards}', encoding="utf-8")
     if args.prepare_only:
         print(f"Prepared {len(tasks)} requests in {args.output}; no API calls made.")
         return
 
     for index, task in enumerate(tasks, 1):
-        print(f'[{index}/{len(tasks)}] {task["provider"]} / {task["style"]}', flush=True)
+        print(f'[{index}/{len(tasks)}] {task["question_id"]} / {task["provider"]} / {task["style"]}', flush=True)
         if task["provider"] == "azure":
             region = os.environ["AZURE_SPEECH_REGION"]
             audio = request_audio(

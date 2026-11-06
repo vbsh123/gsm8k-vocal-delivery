@@ -47,6 +47,24 @@ Emotion2vec does not have excited, terrified, or shouting labels: these are
 classified into its own label set, without treating them as exact style matches.
 Rerunning classification replaces that results file.
 
+For 50 existing GSM8K questions in Jenny's angry, happy, and sad styles (150 clips):
+
+```bash
+python cloud_tts_smoke.py --provider azure --azure-voice en-US-JennyNeural \
+  --input-jsonl outputs/text-prompt-prefix300/questions.jsonl --num-examples 50 \
+  --styles angry happy sad --output outputs/azure-jenny50 && \
+.venv-emotion/bin/python -u classify_cloud_smoke.py --path outputs/azure-jenny50
+```
+
+This uses the first 50 questions from the saved text experiment question file.
+Alternatively supply another JSONL file with `question` and optional `question_id`/`id`, `answer`.
+The classifier finishes with a requested-style by predicted-emotion count table and match rates.
+Show the saved table again without loading the model:
+
+```bash
+python classify_cloud_smoke.py --path outputs/azure-jenny50 --summary-only
+```
+
 Outputs go to `outputs/cloud-tts-smoke/`: Azure WAVs, ElevenLabs MP3s, a
 `plan.jsonl` containing the exact requests without keys, and `listen.html`.
 Download the folder and open `listen.html` to compare the samples. Rerunning
