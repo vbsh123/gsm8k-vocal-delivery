@@ -107,7 +107,7 @@ def main():
     parser.add_argument("--path", type=Path, default=Path("outputs/azure-jenny50"))
     parser.add_argument("--older-results", type=Path,
                         default=Path("outputs/manual200-mixed/cropped/results-reasoning-v2.jsonl"))
-    parser.add_argument("--styles", nargs="+", choices=["angry", "happy", "sad"], default=["angry", "happy"])
+    parser.add_argument("--styles", nargs="+", choices=["neutral", "angry", "happy", "sad"], default=["angry", "happy"])
     parser.add_argument("--prepare-only", action="store_true")
     parser.add_argument("--summary-only", action="store_true")
     parser.add_argument("--all-cloud", action="store_true", help="Evaluate all selected Azure clips, including unmatched questions.")

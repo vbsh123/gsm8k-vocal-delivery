@@ -15,3 +15,5 @@ python -u cloud_tts_smoke.py \
 
 .venv-diffa/bin/python -u compare_cloud_accuracy.py \
   --path "$OUTPUT" --all-cloud --styles angry happy sad
+
+bash run_azure_jenny_neutral500.sh "$OUTPUT" outputs/azure-jenny500-neutral "$QUESTIONS"

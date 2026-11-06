@@ -143,6 +143,26 @@ python compare_cloud_accuracy.py --path outputs/azure-jenny500-extra \
   --all-cloud --styles angry happy sad --summary-only
 ```
 
+The complete pipeline now follows the emotional clips with 500 neutral Jenny
+counterparts (the same input rows 50–549). Neutral clips are saved separately in
+`outputs/azure-jenny500-neutral`, bringing the total to 2,000 clips. The final
+combined report gives overall accuracy and paired comparisons for all four
+deliveries, first unfiltered (primary) and then requiring emotion2vec agreement
+on both sides. Pair counts can differ because each clip must fit within 30 seconds.
+
+If the earlier three-style pipeline is already running, let it finish and run
+the neutral stage separately afterward:
+
+```bash
+bash run_azure_jenny_neutral500.sh
+```
+
+Reprint the combined report anytime, without loading any model:
+
+```bash
+python analyze_jenny_deliveries.py
+```
+
 Outputs go to `outputs/cloud-tts-smoke/`: Azure WAVs, ElevenLabs MP3s, a
 `plan.jsonl` containing the exact requests without keys, and `listen.html`.
 Download the folder and open `listen.html` to compare the samples. Rerunning
