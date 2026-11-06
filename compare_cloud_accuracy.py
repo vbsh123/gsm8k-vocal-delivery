@@ -80,9 +80,17 @@ def main():
     parser.add_argument("--prepare-only", action="store_true")
     parser.add_argument("--summary-only", action="store_true")
     parser.add_argument("--all-cloud", action="store_true", help="Evaluate all selected Azure clips, including unmatched questions.")
+    parser.add_argument("--older-emotion-agreed", action="store_true",
+                        help="Keep older clips only when emotion2vec agrees with their requested style.")
+    parser.add_argument("--older-labels", type=Path,
+                        default=Path("outputs/manual200-mixed/cropped/results-emotion2vec-evaluated.jsonl"))
     args = parser.parse_args()
     tasks = read(args.path / "plan.jsonl")
     older = read(args.older_results)
+    if args.older_emotion_agreed:
+        labels = {r["clip_id"]: r for r in read(args.older_labels)}
+        older = [r for r in older if labels.get(r["clip_id"], {}).get("emotion") == r["style"]]
+        print("Older TTS subset: requested style equals emotion2vec prediction.", flush=True)
     pairs = matched_tasks(tasks, older, args.styles)
     counts = Counter(task["style"] for task, old in pairs)
     for style in args.styles:

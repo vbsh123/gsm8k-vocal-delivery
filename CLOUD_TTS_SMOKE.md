@@ -101,6 +101,20 @@ separate denominators. This is descriptive: the question sets differ and no
 paired significance test is applied. The 30-second audio limit still applies.
 Use the same options with `--summary-only` to show progress without loading DIFFA.
 
+To compare against only older clips whose intended style was also predicted by
+emotion2vec, add `--older-emotion-agreed`. For example, this uses saved answers
+only and reports overall accuracy against that filtered older subset:
+
+```bash
+python compare_cloud_accuracy.py --path outputs/azure-jenny50 \
+  --all-cloud --styles angry happy sad --older-emotion-agreed --summary-only
+```
+
+The labels come from `outputs/manual200-mixed/cropped/results-emotion2vec-evaluated.jsonl`.
+Missing labels are excluded. This flag filters the older side only; Azure remains
+unfiltered. Omit `--all-cloud` for the smaller matched-question comparison with
+this same older subset.
+
 Outputs go to `outputs/cloud-tts-smoke/`: Azure WAVs, ElevenLabs MP3s, a
 `plan.jsonl` containing the exact requests without keys, and `listen.html`.
 Download the folder and open `listen.html` to compare the samples. Rerunning
