@@ -2,6 +2,7 @@
 
 import argparse
 from collections import Counter
+from itertools import combinations
 import json
 from math import comb
 from pathlib import Path
@@ -71,6 +72,36 @@ def summarize_all(tasks, results, older, styles):
     print("All available clips per style; this is an unpaired descriptive comparison.")
 
 
+def summarize_deliveries(tasks, results, styles, labels=None):
+    groups = {style: {} for style in styles}
+    for task in tasks:
+        if task["style"] not in groups or task["audio_path"] not in results:
+            continue
+        if labels is not None and labels.get(task["audio_path"], {}).get("emotion") != task["style"]:
+            continue
+        row = results[task["audio_path"]]
+        key = (task["question_id"], task["voice"])
+        groups[task["style"]][key] = score_response(row["response"], row["reference_answer"])["correct"]
+    subset = "emotion2vec-agreed on both sides" if labels is not None else "all requested deliveries"
+    print(f"\nWithin-Azure, same question and voice ({subset})")
+    print(f'{"Reference":10} {"Test":10} {"Pairs":>6} {"Ref acc":>9} {"Test acc":>9} '
+          f'{"Gain pp":>9} {"Wins":>6} {"Losses":>7} {"Exact p":>9}')
+    for reference, test in combinations(styles, 2):
+        keys = groups[reference].keys() & groups[test].keys()
+        n = len(keys)
+        if not n:
+            continue
+        a, b = groups[reference], groups[test]
+        wins = sum(b[k] and not a[k] for k in keys)
+        losses = sum(a[k] and not b[k] for k in keys)
+        d = wins + losses
+        p = min(1.0, 2 * sum(comb(d, k) for k in range(min(wins, losses) + 1)) / 2**d)
+        ref_acc, test_acc = sum(a[k] for k in keys)/n, sum(b[k] for k in keys)/n
+        print(f'{reference:10} {test:10} {n:6} {ref_acc:9.1%} {test_acc:9.1%} '
+              f'{100*(test_acc-ref_acc):+9.1f} {wins:6} {losses:7} {p:9.4f}')
+    print("Gain and wins/losses refer to test versus reference. McNemar p-values are unadjusted.")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--path", type=Path, default=Path("outputs/azure-jenny50"))
@@ -104,7 +135,13 @@ def main():
     results = {r["audio_path"]: r for r in read(output)} if output.exists() else {}
     def report(selected):
         if args.all_cloud:
-            summarize_all([task for task, old in selected], results, older, args.styles)
+            selected_tasks = [task for task, old in selected]
+            summarize_all(selected_tasks, results, older, args.styles)
+            summarize_deliveries(selected_tasks, results, args.styles)
+            labels_path = args.path / "results-emotion2vec.jsonl"
+            if labels_path.exists():
+                labels = {r["audio_path"]: r for r in read(labels_path)}
+                summarize_deliveries(selected_tasks, results, args.styles, labels)
         else:
             summarize(selected, results, args.styles)
     if args.prepare_only or args.summary_only:

@@ -115,6 +115,34 @@ Missing labels are excluded. This flag filters the older side only; Azure remain
 unfiltered. Omit `--all-cloud` for the smaller matched-question comparison with
 this same older subset.
 
+## Jenny: 500 additional questions per style
+
+```bash
+bash run_azure_jenny500.sh
+```
+
+The script selects input rows 50–549 from the saved full GSM8K question file,
+excluding the previous first 50. It generates 1,500 clips (angry/happy/sad with
+Jenny, intensity 1.5), classifies them with emotion2vec, then evaluates GSM8K
+accuracy. Each stage finishes before the next starts. Outputs are separate in
+`outputs/azure-jenny500-extra`. Azure generation resumes saved files only when
+the saved request plan matches; evaluation also skips completed clips.
+Classification reruns from the beginning and is fast. The generation stage
+requires the Azure environment variables in the shell running the script.
+
+The final report includes within-Azure comparisons matched by question ID and
+voice, both for all requested deliveries and for emotion2vec agreement on both
+sides. Each comparison excludes missing/over-30-second partners individually.
+These are exploratory comparisons with unadjusted McNemar p-values. The all-clip
+analysis avoids selecting the primary cohort by classifier predictions.
+
+Check accuracy while evaluation runs, or show the final results again:
+
+```bash
+python compare_cloud_accuracy.py --path outputs/azure-jenny500-extra \
+  --all-cloud --styles angry happy sad --summary-only
+```
+
 Outputs go to `outputs/cloud-tts-smoke/`: Azure WAVs, ElevenLabs MP3s, a
 `plan.jsonl` containing the exact requests without keys, and `listen.html`.
 Download the folder and open `listen.html` to compare the samples. Rerunning

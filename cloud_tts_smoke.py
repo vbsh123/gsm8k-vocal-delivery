@@ -45,6 +45,7 @@ def main():
     parser.add_argument("--text", default="Maya has twelve apples and gives away five. How many apples remain?")
     parser.add_argument("--input-jsonl", type=Path, help="Question rows with question and optional question_id/id, answer.")
     parser.add_argument("--num-examples", type=int, default=1)
+    parser.add_argument("--start-index", type=int, default=0, help="Skip this many input questions before selecting the batch.")
     parser.add_argument("--styles", nargs="+", choices=STYLES + AZURE_EXTRA_STYLES, default=list(STYLES))
     parser.add_argument("--output", type=Path, default=Path("outputs/cloud-tts-smoke"))
     parser.add_argument("--azure-voice", default="en-US-JennyNeural")
@@ -52,6 +53,7 @@ def main():
     parser.add_argument("--eleven-model", default="eleven_v3")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--prepare-only", action="store_true", help="Save the requests without calling APIs.")
+    parser.add_argument("--resume", action="store_true", help="Skip saved audio from an identical request plan.")
     args = parser.parse_args()
     if args.provider != "azure" and any(style in AZURE_EXTRA_STYLES for style in args.styles):
         parser.error("excited, terrified, and shouting currently require --provider azure.")
@@ -60,9 +62,9 @@ def main():
     questions = [{"question": args.text}]
     if args.input_jsonl:
         questions = [json.loads(line) for line in args.input_jsonl.read_text().splitlines() if line.strip()]
-    if not 1 <= args.num_examples <= len(questions):
-        parser.error(f"Requested {args.num_examples} questions; {len(questions)} available.")
-    questions = questions[:args.num_examples]
+    if args.start_index < 0 or args.num_examples < 1 or args.start_index + args.num_examples > len(questions):
+        parser.error(f"Requested {args.num_examples} questions starting at {args.start_index}; {len(questions)} available.")
+    questions = questions[args.start_index:args.start_index + args.num_examples]
 
     providers = ["azure", "elevenlabs"] if args.provider == "both" else [args.provider]
     required = {"azure": ["AZURE_SPEECH_KEY", "AZURE_SPEECH_REGION"],
@@ -76,7 +78,7 @@ def main():
     tasks = []
     for provider, question_index, question in (
             (provider, index, question) for provider in providers
-            for index, question in enumerate(questions)):
+            for index, question in enumerate(questions, start=args.start_index)):
         text = question["question"]
         question_id = question.get("question_id", question.get("id", f"local_{question_index:05d}"))
         prefix = f"q{question_index:05d}-" if args.input_jsonl else ""
@@ -94,7 +96,12 @@ def main():
                           "question_id": question_id, "question": text, "answer": question.get("answer"),
                           "request": request,
                           "audio_path": f"{prefix}{provider}-{style}.{extension}"})
-    (args.output / "plan.jsonl").write_text(
+    plan_path = args.output / "plan.jsonl"
+    if args.resume and plan_path.exists():
+        previous = [json.loads(line) for line in plan_path.read_text().splitlines() if line.strip()]
+        if previous != tasks:
+            parser.error("Saved request plan differs; use a separate output folder.")
+    plan_path.write_text(
         "".join(json.dumps(task) + "\n" for task in tasks), encoding="utf-8")
     cards = "\n".join(
         f'<p><b>{escape(str(task["question_id"]))} / {task["provider"]} / {task["style"]}</b><br>'
@@ -108,6 +115,10 @@ def main():
         return
 
     for index, task in enumerate(tasks, 1):
+        target = args.output / task["audio_path"]
+        if args.resume and target.exists():
+            print(f'[{index}/{len(tasks)}] skip {task["audio_path"]}', flush=True)
+            continue
         print(f'[{index}/{len(tasks)}] {task["question_id"]} / {task["provider"]} / {task["style"]}', flush=True)
         if task["provider"] == "azure":
             region = os.environ["AZURE_SPEECH_REGION"]
@@ -123,7 +134,9 @@ def main():
                 f'https://api.elevenlabs.io/v1/text-to-speech/{quote(task["voice"], safe="")}'
                 '?output_format=mp3_44100_128', json.dumps(task["request"]).encode("utf-8"),
                 {"xi-api-key": os.environ["ELEVENLABS_API_KEY"], "Content-Type": "application/json"})
-        (args.output / task["audio_path"]).write_bytes(audio)
+        temporary = target.with_suffix(target.suffix + ".tmp")
+        temporary.write_bytes(audio)
+        temporary.replace(target)
     print(f"Saved audio and listening page: {args.output / 'listen.html'}")
 
 
