@@ -184,6 +184,39 @@ accuracy tables are omitted. Missing predictions are shown and excluded from
 filtered comparisons. SenseVoice does not supply class scores in this adapter,
 so its per-clip score column is `n/a`.
 
+## Next independent 500-question batch
+
+```bash
+bash run_azure_jenny_next500.sh
+```
+
+This selects input rows 550–1049, without overlap with either earlier batch,
+and runs generation, both classifiers, and evaluation for neutral/angry/happy/sad.
+The output is `outputs/azure-jenny-next500`. Optional extra styles are positional:
+
+```bash
+bash run_azure_jenny_next500.sh terrified shouting
+```
+
+That example generates 3,000 clips: 500 questions times six styles. Jenny also
+supports hopeful, friendly, unfriendly, shouting, and whispering. Extra styles
+have no exact emotion2vec/SenseVoice label in these adapters; the report shows
+their predicted-label distributions and unfiltered matched accuracy, without
+inventing an exact emotion match. Use the same style arguments on rerun so the
+saved generation plan remains identical.
+
+Inspect the new batch independently, retaining it as a replication of the first:
+
+```bash
+python analyze_jenny_deliveries.py --paths outputs/azure-jenny-next500 \
+  --styles neutral angry happy sad terrified shouting
+```
+
+You can subsequently pool the new and previous batches with `--paths` listing
+`outputs/azure-jenny-next500 outputs/azure-jenny500-extra outputs/azure-jenny500-neutral`.
+Only the new batch includes any additional styles; the matched comparisons
+automatically use the available question partners.
+
 Outputs go to `outputs/cloud-tts-smoke/`: Azure WAVs, ElevenLabs MP3s, a
 `plan.jsonl` containing the exact requests without keys, and `listen.html`.
 Download the folder and open `listen.html` to compare the samples. Rerunning

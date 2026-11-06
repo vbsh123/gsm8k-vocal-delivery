@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 from compare_cloud_accuracy import read, summarize_deliveries
+from cloud_tts_smoke import STYLES, AZURE_EXTRA_STYLES
 
 
 def main():
@@ -12,6 +13,8 @@ def main():
         Path("outputs/azure-jenny500-extra"), Path("outputs/azure-jenny500-neutral")])
     parser.add_argument("--classifiers", nargs="+", choices=["emotion2vec", "sensevoice"],
                         default=["emotion2vec", "sensevoice"])
+    parser.add_argument("--styles", nargs="+", choices=STYLES + AZURE_EXTRA_STYLES,
+                        default=["neutral", "angry", "happy", "sad"])
     args = parser.parse_args()
     tasks, results = [], {}
     labels = {name: {} for name in args.classifiers}
@@ -26,7 +29,7 @@ def main():
             label_path = folder / f"results-{name}.jsonl"
             if label_path.exists():
                 labels[name].update({prefix + row["audio_path"]: row for row in read(label_path)})
-    styles = ["neutral", "angry", "happy", "sad"]
+    styles = args.styles
     print("\nClassifier agreement with intended style (all generated clips)")
     print(f'{"Model":12} {"Style":10} {"Classified":>11} {"Matching":>10} {"Match rate":>11} {"Missing":>9}')
     for name, predictions in labels.items():
@@ -35,20 +38,27 @@ def main():
             selected = [predictions[t["audio_path"]] for t in intended if t["audio_path"] in predictions]
             n = len(selected)
             k = sum(row["emotion"] == style for row in selected)
-            rate = f"{k/n:.1%}" if n else "n/a"
-            print(f'{name:12} {style:10} {n:11} {k:10} {rate:>11} {len(intended)-n:9}')
+            supported = style in STYLES
+            rate = f"{k/n:.1%}" if n and supported else "n/a"
+            matching = str(k) if supported else "n/a"
+            print(f'{name:12} {style:10} {n:11} {matching:>10} {rate:>11} {len(intended)-n:9}')
+            if not supported and selected:
+                from collections import Counter
+                print("  Predicted labels:", dict(Counter(row["emotion"] for row in selected)))
 
     print("\nALL EVALUATED CLIPS — PRIMARY; PAIRED ACCURACY ONLY")
     summarize_deliveries(tasks, results, styles)
     for name, predictions in labels.items():
         if predictions:
-            summarize_deliveries(tasks, results, styles, predictions, name)
+            summarize_deliveries(tasks, results, [s for s in styles if s in STYLES], predictions, name)
     if len(labels) > 1 and all(labels.values()):
         agreed = {t["audio_path"]: {"emotion": t["style"]} for t in tasks
                   if all(predictions.get(t["audio_path"], {}).get("emotion") == t["style"]
                          for predictions in labels.values())}
-        summarize_deliveries(tasks, results, styles, agreed, "+".join(labels))
+        summarize_deliveries(tasks, results, [s for s in styles if s in STYLES], agreed, "+".join(labels))
     print("Filtered comparisons require the requested emotion on both sides, including neutral.")
+    if any(s not in STYLES for s in styles):
+        print("Additional Azure styles have no exact classifier label; their comparisons are unfiltered only.")
 
 
 if __name__ == "__main__":

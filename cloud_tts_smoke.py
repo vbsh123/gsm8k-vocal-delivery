@@ -13,7 +13,7 @@ from urllib.request import Request, urlopen
 
 
 STYLES = ("neutral", "angry", "happy", "sad")
-AZURE_EXTRA_STYLES = ("excited", "terrified", "shouting")
+AZURE_EXTRA_STYLES = ("excited", "terrified", "shouting", "whispering", "hopeful", "friendly", "unfriendly")
 
 
 def azure_ssml(text, style, voice, intensity):
@@ -67,7 +67,7 @@ def main():
     parser.add_argument("--resume", action="store_true", help="Skip saved audio from an identical request plan.")
     args = parser.parse_args()
     if args.provider != "azure" and any(style in AZURE_EXTRA_STYLES for style in args.styles):
-        parser.error("excited, terrified, and shouting currently require --provider azure.")
+        parser.error("The additional Azure styles require --provider azure.")
     if not 0.01 <= args.azure_intensity <= 2:
         parser.error("--azure-intensity must be between 0.01 and 2.")
     questions = [{"question": args.text}]
