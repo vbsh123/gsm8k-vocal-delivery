@@ -65,6 +65,29 @@ Show the saved table again without loading the model:
 python classify_cloud_smoke.py --path outputs/azure-jenny50 --summary-only
 ```
 
+Compare GSM8K solving accuracy against the older cropped Ryan recordings, matching
+question ID and requested TTS style (angry versus angry, happy versus happy):
+
+```bash
+python compare_cloud_accuracy.py --path outputs/azure-jenny50 --prepare-only
+.venv-diffa/bin/python -u compare_cloud_accuracy.py --path outputs/azure-jenny50
+```
+
+This reuses `outputs/manual200-mixed/cropped/results-reasoning-v2.jsonl` for
+older answers and evaluates only the matched Azure clips, skipping audio over
+30 seconds. It does not require a neutral partner or filter by emotion labels.
+It uses the existing DIFFA loader, reasoning prompt, 512-token limit, and strict
+scorer, saving full Azure responses to `results-matched-accuracy.jsonl`.
+Completed Azure evaluations are skipped on rerun. Unmatched questions are excluded;
+the matching counts print before loading the model. Both styles have their own
+matched cohort. Voices and TTS systems differ, so this comparison cannot isolate
+emotion strength alone. The new run uses seed 42; older results retain their
+original decoding randomness. Rerun reports during or after evaluation with:
+
+```bash
+python compare_cloud_accuracy.py --path outputs/azure-jenny50 --summary-only
+```
+
 Outputs go to `outputs/cloud-tts-smoke/`: Azure WAVs, ElevenLabs MP3s, a
 `plan.jsonl` containing the exact requests without keys, and `listen.html`.
 Download the folder and open `listen.html` to compare the samples. Rerunning
