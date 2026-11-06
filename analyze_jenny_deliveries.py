@@ -52,11 +52,18 @@ def main():
         if predictions:
             summarize_deliveries(tasks, results, [s for s in styles if s in STYLES], predictions, name)
     if len(labels) > 1 and all(labels.values()):
+        any_agreed = {t["audio_path"]: {"emotion": t["style"]} for t in tasks
+                      if any(predictions.get(t["audio_path"], {}).get("emotion") == t["style"]
+                             for predictions in labels.values())}
+        summarize_deliveries(tasks, results, [s for s in styles if s in STYLES],
+                             any_agreed, "at least one classifier")
         agreed = {t["audio_path"]: {"emotion": t["style"]} for t in tasks
                   if all(predictions.get(t["audio_path"], {}).get("emotion") == t["style"]
                          for predictions in labels.values())}
         summarize_deliveries(tasks, results, [s for s in styles if s in STYLES], agreed, "+".join(labels))
     print("Filtered comparisons require the requested emotion on both sides, including neutral.")
+    if len(labels) > 1:
+        print("At least one: each clip needs a matching classifier; the classifier may differ between the two clips.")
     if any(s not in STYLES for s in styles):
         print("Additional Azure styles have no exact classifier label; their comparisons are unfiltered only.")
 

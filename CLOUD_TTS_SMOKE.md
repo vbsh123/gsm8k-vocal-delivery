@@ -184,6 +184,13 @@ accuracy tables are omitted. Missing predictions are shown and excluded from
 filtered comparisons. SenseVoice does not supply class scores in this adapter,
 so its per-clip score column is `n/a`.
 
+The matched report also includes **at least one classifier agrees**: each recording
+in the pair must match its intended style under emotion2vec OR SenseVoice. The
+classifier matching the neutral clip can differ from the one matching the emotional
+clip. This is a per-recording union, followed by matching question/voice pairs;
+both recordings still need to pass. Reprinting the report uses saved labels and
+answers only, without model loading or new generation.
+
 ## Next independent 500-question batch
 
 ```bash
