@@ -2,10 +2,12 @@
 
 import argparse
 from html import escape
+from http.client import IncompleteRead
 import json
 import os
 from pathlib import Path
-from urllib.error import HTTPError
+import time
+from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
@@ -32,11 +34,20 @@ def eleven_text(text, style):
 
 def request_audio(url, body, headers):
     request = Request(url, data=body, headers=headers, method="POST")
-    try:
-        with urlopen(request, timeout=180) as response:
-            return response.read()
-    except HTTPError as error:
-        raise RuntimeError(f"TTS HTTP {error.code}: {error.read().decode(errors='replace')}") from None
+    for attempt in range(3):
+        try:
+            with urlopen(request, timeout=180) as response:
+                return response.read()
+        except HTTPError as error:
+            if error.code not in (429, 500, 502, 503, 504) or attempt == 2:
+                raise RuntimeError(f"TTS HTTP {error.code}: {error.read().decode(errors='replace')}") from None
+            error.close()
+        except (IncompleteRead, URLError, TimeoutError, ConnectionError):
+            if attempt == 2:
+                raise
+        delay = 2 ** (attempt + 1)
+        print(f"TTS download interrupted or service busy; retry {attempt + 1}/2 in {delay}s.", flush=True)
+        time.sleep(delay)
 
 
 def main():
