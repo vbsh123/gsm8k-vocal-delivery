@@ -1,0 +1,89 @@
+"""Run the existing steering engine on held-out Jenny neutral recordings."""
+
+import argparse
+import json
+from pathlib import Path
+import random
+import sys
+import wave
+
+from compare_cloud_accuracy import read
+from extract_jenny_angry import freeze
+
+
+def main(argv=None):
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("--path", type=Path, default=Path("outputs/azure-jenny-next500"))
+    p.add_argument("--vectors", type=Path, default=Path("outputs/jenny-angry-vectors/style-vectors.pt"))
+    p.add_argument("--output", type=Path, default=Path("outputs/steer-jenny-angry-L0-25-n50"))
+    p.add_argument("--num-examples", type=int, default=50, help="Use 0 for all eligible held-out neutrals.")
+    p.add_argument("--layers", type=int, nargs="+", default=list(range(26)))
+    p.add_argument("--groups", nargs="+", choices=["acoustic", "semantic", "combined", "answer"],
+                   default=["acoustic", "answer"])
+    p.add_argument("--strength", type=float, default=1.0)
+    p.add_argument("--seed", type=int, default=42)
+    p.add_argument("--prepare-only", action="store_true")
+    args = p.parse_args(argv)
+    if args.num_examples < 0:
+        p.error("--num-examples must be nonnegative")
+    excluded_path = args.vectors.parent / "extraction-questions.jsonl"
+    excluded = {r["question_id"] for r in read(excluded_path)}
+    selected = []
+    seen = set()
+    for task in read(args.path / "plan.jsonl"):
+        if task["provider"] != "azure" or task["style"] != "neutral":
+            continue
+        if task["question_id"] in excluded:
+            raise ValueError(f'Extraction/test question overlap: {task["question_id"]}')
+        if task["question_id"] in seen:
+            raise ValueError(f'Duplicate test question: {task["question_id"]}')
+        seen.add(task["question_id"])
+        audio_path = (args.path / task["audio_path"]).resolve()
+        with wave.open(str(audio_path), "rb") as audio:
+            duration = audio.getnframes() / audio.getframerate()
+        if duration > 30:
+            continue
+        selected.append({"clip_id": f'{task["question_id"]}__{task["voice"]}__neutral__r00',
+                         "question_id": task["question_id"], "style": "neutral",
+                         "speaker": task["voice"], "repeat": 0, "audio_path": str(audio_path),
+                         "duration_seconds": duration,
+                         "answer": str(task["answer"]).rsplit("####", 1)[-1].strip()})
+    selected.sort(key=lambda row: row["question_id"])
+    random.Random(args.seed).shuffle(selected)
+    if args.num_examples:
+        if len(selected) < args.num_examples:
+            p.error(f"Only {len(selected)} eligible neutrals; requested {args.num_examples}")
+        selected = selected[:args.num_examples]
+    if not selected:
+        p.error("No eligible held-out neutral clips")
+    inputs = args.output / "inputs"
+    inputs.mkdir(parents=True, exist_ok=True)
+    freeze(inputs / "manifest.jsonl", selected)
+    question_path = inputs / "questions.json"
+    question_plan = {"recordings": selected}
+    if question_path.exists() and json.loads(question_path.read_text()) != question_plan:
+        p.error("Saved test selection changed; use another --output")
+    question_path.write_text(json.dumps(question_plan, indent=2) + "\n")
+    conditions = 1 + len(args.layers) * len(args.groups)
+    print(f"{len(selected)} held-out Jenny neutrals; {conditions} conditions; "
+          f"{len(selected)*conditions} generations before resume.", flush=True)
+    print("Test selection uses neutral TTS style, without filtering by classifier or correctness.", flush=True)
+    import steer
+
+    command = ["steer.py", "--path", str(inputs), "--vectors", str(args.vectors),
+               "--exclude-results", str(excluded_path), "--questions-from", str(question_path),
+               "--output", str(args.output), "--num-examples", str(len(selected)),
+               "--style", "angry", "--mode", "fixed", "--strengths", str(args.strength),
+               "--layers", *map(str, args.layers), "--groups", *args.groups, "--seed", str(args.seed)]
+    if args.prepare_only:
+        command.append("--prepare-only")
+    previous = sys.argv
+    try:
+        sys.argv = command
+        steer.main()
+    finally:
+        sys.argv = previous
+
+
+if __name__ == "__main__":
+    main()

@@ -224,6 +224,78 @@ You can subsequently pool the new and previous batches with `--paths` listing
 Only the new batch includes any additional styles; the matched comparisons
 automatically use the available question partners.
 
+## Nightly Jenny evaluation, angry vectors, and steering
+
+```bash
+bash run_jenny_angry_night.sh
+```
+
+The script waits for a detected running `run_azure_jenny_next500.sh` (or its
+standalone new-batch accuracy evaluator), then resumes the six-style new batch
+through classification/evaluation. It next extracts angry-minus-neutral vectors
+from the **first** Jenny batch, requiring emotion2vec to label the angry and neutral
+clips as intended and both to fit within 30 seconds. Selection never uses reasoning
+correctness. Input paths are `outputs/azure-jenny500-extra` and
+`outputs/azure-jenny500-neutral`. All question IDs in these training folders are
+excluded from steering, including questions that fail the extraction filter.
+
+Vectors go to `outputs/jenny-angry-vectors/style-vectors.pt` in the existing
+steering format, with acoustic, semantic, combined, and answer groups, all layers,
+per-forward aggregates, and an equal-question fixed direction. Forward indices
+are matched only up to the shorter generation in each pair. Completed pairs are
+checkpointed every 25 pairs and on normal exit/Ctrl-C; force-killing can lose the
+work since the last checkpoint. Keep space for the roughly 1 GiB vector checkpoint
+plus a temporary replacement during saving. The original extractor and `steer.py`
+are unchanged.
+
+Steering selects **50** new-batch neutral-generated clips by seed 42, without
+classifier or correctness filtering. It excludes long audio and all training
+question IDs. Each question gets a fresh unsteered baseline and +1 fixed angry
+steering at each layer 0–25, on acoustic and answer tokens separately. This is
+53 conditions per question, 2,650 generations; layers are not steered simultaneously.
+The fixed direction is added at every decoder forward. Results go to
+`outputs/steer-jenny-angry-L0-25-n50`, with per-condition resume.
+
+Choose a specific running pipeline PID and/or a different steering count:
+
+```bash
+bash run_jenny_angry_night.sh auto 200
+# 0 for the question count means all eligible new neutrals, a much longer sweep:
+bash run_jenny_angry_night.sh auto 0
+# Explicit PID instead of automatic detection:
+bash run_jenny_angry_night.sh 12345 50
+```
+
+Only the new-batch pipeline is detected automatically; other DIFFA jobs must
+finish before starting this sequence. If multiple matching pipelines exist, the
+queue stops and asks for an explicit PID. A stopped process remains pending until
+it is resumed or terminated. Model processes run sequentially; no second DIFFA
+instance is launched by the queue while its detected pipeline remains alive.
+
+Preparation and GPU smoke options, in separate output folders:
+
+```bash
+python extract_jenny_angry.py --prepare-only
+.venv-diffa/bin/python -u extract_jenny_angry.py --limit 1 \
+  --output outputs/jenny-angry-vector-smoke
+.venv-diffa/bin/python -u steer_jenny_angry.py --num-examples 1 --layers 4 \
+  --vectors outputs/jenny-angry-vector-smoke/style-vectors.pt \
+  --output outputs/steer-jenny-angry-smoke
+```
+
+To print interim steering results without loading a model:
+
+```bash
+python - <<'PY'
+import json
+from pathlib import Path
+from steer import read_rows, summarize
+p = Path("outputs/steer-jenny-angry-L0-25-n50")
+config = json.loads((p / "run_config.json").read_text())
+summarize(read_rows(p / "results.jsonl"), config["settings"]["conditions"])
+PY
+```
+
 Outputs go to `outputs/cloud-tts-smoke/`: Azure WAVs, ElevenLabs MP3s, a
 `plan.jsonl` containing the exact requests without keys, and `listen.html`.
 Download the folder and open `listen.html` to compare the samples. Rerunning
