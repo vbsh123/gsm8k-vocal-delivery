@@ -53,6 +53,24 @@ def summarize(pairs, results, styles):
     print("Exact p is paired McNemar, unadjusted. Questions are matched; voices differ.")
 
 
+def summarize_all(tasks, results, older, styles):
+    latest = {r["clip_id"]: r for r in older}
+    print("\nOverall GSM8K accuracy (strict scoring; different question sets)")
+    print(f'{"Style":10} {"Azure correct/N":>17} {"Azure acc":>11} '
+          f'{"Older correct/N":>17} {"Older acc":>11}')
+    for style in styles:
+        new = [results[t["audio_path"]] for t in tasks
+               if t["style"] == style and t["audio_path"] in results]
+        old = [r for r in latest.values() if r["style"] == style
+               and r["speaker"] == "Ryan" and r["repeat"] == 0]
+        values = []
+        for rows in (new, old):
+            k = sum(score_response(r["response"], r["reference_answer"])["correct"] for r in rows)
+            values.extend([f"{k}/{len(rows)}", f"{k/len(rows):.1%}" if rows else "n/a"])
+        print(f'{style:10} {values[0]:>17} {values[1]:>11} {values[2]:>17} {values[3]:>11}')
+    print("All available clips per style; this is an unpaired descriptive comparison.")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--path", type=Path, default=Path("outputs/azure-jenny50"))
@@ -61,17 +79,28 @@ def main():
     parser.add_argument("--styles", nargs="+", choices=["angry", "happy", "sad"], default=["angry", "happy"])
     parser.add_argument("--prepare-only", action="store_true")
     parser.add_argument("--summary-only", action="store_true")
+    parser.add_argument("--all-cloud", action="store_true", help="Evaluate all selected Azure clips, including unmatched questions.")
     args = parser.parse_args()
     tasks = read(args.path / "plan.jsonl")
-    pairs = matched_tasks(tasks, read(args.older_results), args.styles)
+    older = read(args.older_results)
+    pairs = matched_tasks(tasks, older, args.styles)
     counts = Counter(task["style"] for task, old in pairs)
     for style in args.styles:
         total = sum(t["provider"] == "azure" and t["style"] == style for t in tasks)
         print(f"{style}: {counts[style]}/{total} Azure clips have an evaluated older Ryan/repeat-0 partner.")
+    if args.all_cloud:
+        references = {task["audio_path"]: old for task, old in pairs}
+        pairs = [(task, references.get(task["audio_path"])) for task in tasks
+                 if task["provider"] == "azure" and task["style"] in args.styles]
     output = args.path / "results-matched-accuracy.jsonl"
     results = {r["audio_path"]: r for r in read(output)} if output.exists() else {}
+    def report(selected):
+        if args.all_cloud:
+            summarize_all([task for task, old in selected], results, older, args.styles)
+        else:
+            summarize(selected, results, args.styles)
     if args.prepare_only or args.summary_only:
-        summarize(pairs, results, args.styles)
+        report(pairs)
         return
 
     import soundfile as sf
@@ -104,7 +133,7 @@ def main():
                 score = score_response(response, answer)
                 row = {"question_id": task["question_id"], "style": task["style"],
                        "voice": task["voice"], "audio_path": task["audio_path"],
-                       "older_clip_id": old["clip_id"], "response": response,
+                       "older_clip_id": old["clip_id"] if old else None, "response": response,
                        "prompt": PROMPT, "max_new_tokens": 512, "decoder": "fast_dllm",
                        "seed": 42, **score}
                 stream.write(json.dumps(row) + "\n")
@@ -112,7 +141,7 @@ def main():
                 results[task["audio_path"]] = row
                 print(f'[{index}/{len(pending)}] {task["question_id"]} {task["style"]}: '
                       f'correct={score["correct"]} answer={score["predicted_answer"]}', flush=True)
-    summarize(eligible, results, args.styles)
+    report(eligible)
     print(f"Saved: {output}")
 
 

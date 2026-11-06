@@ -88,6 +88,19 @@ original decoding randomness. Rerun reports during or after evaluation with:
 python compare_cloud_accuracy.py --path outputs/azure-jenny50 --summary-only
 ```
 
+Evaluate every Azure angry/happy/sad clip without requiring an older partner:
+
+```bash
+.venv-diffa/bin/python -u compare_cloud_accuracy.py --path outputs/azure-jenny50 \
+  --all-cloud --styles angry happy sad
+```
+
+This reuses completed Azure evaluations in the same results file. The final table
+shows all Azure accuracy versus all older Ryan/repeat-0 accuracy per style, with
+separate denominators. This is descriptive: the question sets differ and no
+paired significance test is applied. The 30-second audio limit still applies.
+Use the same options with `--summary-only` to show progress without loading DIFFA.
+
 Outputs go to `outputs/cloud-tts-smoke/`: Azure WAVs, ElevenLabs MP3s, a
 `plan.jsonl` containing the exact requests without keys, and `listen.html`.
 Download the folder and open `listen.html` to compare the samples. Rerunning
