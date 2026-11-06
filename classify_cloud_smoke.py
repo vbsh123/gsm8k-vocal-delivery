@@ -1,15 +1,13 @@
-"""Classify cloud TTS smoke samples with the existing emotion2vec+ Large setup."""
+"""Classify cloud TTS samples with the existing emotion2vec or SenseVoice setup."""
 
 import argparse
 from collections import Counter
 import json
+import importlib
 from pathlib import Path
 
-from emotion2vec_agreement import MODEL, load_predictor
-
-
-def summarize(rows):
-    print("\nEmotion2vec classification summary")
+def summarize(rows, model="emotion2vec"):
+    print(f"\n{model} classification summary")
     labels = sorted({row["emotion"] for row in rows})
     print(f'{"Requested":12} {"Clips":>6}' + ''.join(f'{label:>12}' for label in labels) + f'{"Match":>10}')
     for style in dict.fromkeys(row["requested_style"] for row in rows):
@@ -24,18 +22,20 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--path", type=Path, default=Path("outputs/azure-guy-smoke"))
     parser.add_argument("--device", default="cuda:0")
+    parser.add_argument("--model", choices=["emotion2vec", "sensevoice"], default="emotion2vec")
     parser.add_argument("--summary-only", action="store_true")
     args = parser.parse_args()
-    output = args.path / "results-emotion2vec.jsonl"
+    output = args.path / f"results-{args.model}.jsonl"
     if args.summary_only:
-        summarize([json.loads(line) for line in output.read_text().splitlines() if line.strip()])
+        summarize([json.loads(line) for line in output.read_text().splitlines() if line.strip()], args.model)
         return
     tasks = [json.loads(line) for line in (args.path / "plan.jsonl").read_text().splitlines()
              if line.strip()]
     import librosa
     import soundfile as sf
 
-    predict = load_predictor(args.device)
+    adapter = importlib.import_module(f"{args.model}_agreement")
+    predict = adapter.load_predictor(args.device)
     rows = []
     with output.open("w") as stream:
         print(f'{"Provider":12} {"Requested":12} {"Predicted":12} {"Top score":>10}', flush=True)
@@ -49,13 +49,14 @@ def main():
             row = {"provider": task["provider"], "requested_style": task["style"],
                    "voice": task["voice"], "audio_path": task["audio_path"],
                    "question_id": task.get("question_id"),
-                   "model": MODEL, **prediction}
+                   "model": adapter.MODEL, **prediction}
             rows.append(row)
             stream.write(json.dumps(row, ensure_ascii=False) + "\n")
             stream.flush()
+            score = f'{max(prediction["scores"]):.1%}' if "scores" in prediction else "n/a"
             print(f'{task["provider"]:12} {task["style"]:12} {prediction["emotion"]:12} '
-                  f'{max(prediction["scores"]):10.1%}', flush=True)
-    summarize(rows)
+                  f'{score:>10}', flush=True)
+    summarize(rows, args.model)
     print(f"Saved: {output}")
 
 

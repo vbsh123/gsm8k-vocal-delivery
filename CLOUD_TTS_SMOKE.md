@@ -163,6 +163,27 @@ Reprint the combined report anytime, without loading any model:
 python analyze_jenny_deliveries.py
 ```
 
+## Second classifier and matched-only accuracy reports
+
+Classify the generated Jenny audio with SenseVoice using the existing emotion
+environment. This leaves the emotion2vec results intact:
+
+```bash
+.venv-emotion/bin/python -u classify_cloud_smoke.py --model sensevoice \
+  --path outputs/azure-jenny500-extra && \
+.venv-emotion/bin/python -u classify_cloud_smoke.py --model sensevoice \
+  --path outputs/azure-jenny500-neutral && \
+python analyze_jenny_deliveries.py
+```
+
+The report shows intended-style agreement counts/rates for each classifier,
+then accuracy only on matched question/voice pairs: unfiltered, emotion2vec-agreed,
+SenseVoice-agreed, and agreement from both classifiers. In the filtered analyses,
+both recordings in each pair must receive their intended emotion label. Whole-group
+accuracy tables are omitted. Missing predictions are shown and excluded from
+filtered comparisons. SenseVoice does not supply class scores in this adapter,
+so its per-clip score column is `n/a`.
+
 Outputs go to `outputs/cloud-tts-smoke/`: Azure WAVs, ElevenLabs MP3s, a
 `plan.jsonl` containing the exact requests without keys, and `listen.html`.
 Download the folder and open `listen.html` to compare the samples. Rerunning

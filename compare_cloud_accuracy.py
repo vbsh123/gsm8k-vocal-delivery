@@ -72,7 +72,7 @@ def summarize_all(tasks, results, older, styles):
     print("All available clips per style; this is an unpaired descriptive comparison.")
 
 
-def summarize_deliveries(tasks, results, styles, labels=None):
+def summarize_deliveries(tasks, results, styles, labels=None, filter_name="emotion2vec"):
     groups = {style: {} for style in styles}
     for task in tasks:
         if task["style"] not in groups or task["audio_path"] not in results:
@@ -82,7 +82,7 @@ def summarize_deliveries(tasks, results, styles, labels=None):
         row = results[task["audio_path"]]
         key = (task["question_id"], task["voice"])
         groups[task["style"]][key] = score_response(row["response"], row["reference_answer"])["correct"]
-    subset = "emotion2vec-agreed on both sides" if labels is not None else "all requested deliveries"
+    subset = f"{filter_name}-agreed on both sides" if labels is not None else "all requested deliveries"
     print(f"\nWithin-Azure, same question and voice ({subset})")
     print(f'{"Reference":10} {"Test":10} {"Pairs":>6} {"Ref acc":>9} {"Test acc":>9} '
           f'{"Gain pp":>9} {"Wins":>6} {"Losses":>7} {"Exact p":>9}')

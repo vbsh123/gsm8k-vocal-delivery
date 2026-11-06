@@ -4,15 +4,17 @@ import argparse
 from pathlib import Path
 
 from compare_cloud_accuracy import read, summarize_deliveries
-from scoring import score_response
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--paths", type=Path, nargs="+", default=[
         Path("outputs/azure-jenny500-extra"), Path("outputs/azure-jenny500-neutral")])
+    parser.add_argument("--classifiers", nargs="+", choices=["emotion2vec", "sensevoice"],
+                        default=["emotion2vec", "sensevoice"])
     args = parser.parse_args()
-    tasks, results, labels = [], {}, {}
+    tasks, results = [], {}
+    labels = {name: {} for name in args.classifiers}
     for folder in args.paths:
         prefix = str(folder.resolve()) + "/"
         tasks.extend({**row, "audio_path": prefix + row["audio_path"]}
@@ -20,22 +22,32 @@ def main():
         result_path = folder / "results-matched-accuracy.jsonl"
         if result_path.exists():
             results.update({prefix + row["audio_path"]: row for row in read(result_path)})
-        label_path = folder / "results-emotion2vec.jsonl"
-        if label_path.exists():
-            labels.update({prefix + row["audio_path"]: row for row in read(label_path)})
+        for name in args.classifiers:
+            label_path = folder / f"results-{name}.jsonl"
+            if label_path.exists():
+                labels[name].update({prefix + row["audio_path"]: row for row in read(label_path)})
     styles = ["neutral", "angry", "happy", "sad"]
-    for filtered in (False, True):
-        print("\n" + ("EMOTION2VEC-AGREED CLIPS" if filtered else "ALL EVALUATED CLIPS — PRIMARY"))
-        print(f'{"Style":10} {"Correct/N":>12} {"Accuracy":>10}')
+    print("\nClassifier agreement with intended style (all generated clips)")
+    print(f'{"Model":12} {"Style":10} {"Classified":>11} {"Matching":>10} {"Match rate":>11} {"Missing":>9}')
+    for name, predictions in labels.items():
         for style in styles:
-            selected = [results[t["audio_path"]] for t in tasks if t["style"] == style
-                        and t["audio_path"] in results
-                        and (not filtered or labels.get(t["audio_path"], {}).get("emotion") == style)]
+            intended = [t for t in tasks if t["style"] == style]
+            selected = [predictions[t["audio_path"]] for t in intended if t["audio_path"] in predictions]
             n = len(selected)
-            k = sum(score_response(row["response"], row["reference_answer"])["correct"] for row in selected)
-            accuracy = f"{k/n:.1%}" if n else "n/a"
-            print(f'{style:10} {f"{k}/{n}":>12} {accuracy:>10}')
-        summarize_deliveries(tasks, results, styles, labels if filtered else None)
+            k = sum(row["emotion"] == style for row in selected)
+            rate = f"{k/n:.1%}" if n else "n/a"
+            print(f'{name:12} {style:10} {n:11} {k:10} {rate:>11} {len(intended)-n:9}')
+
+    print("\nALL EVALUATED CLIPS — PRIMARY; PAIRED ACCURACY ONLY")
+    summarize_deliveries(tasks, results, styles)
+    for name, predictions in labels.items():
+        if predictions:
+            summarize_deliveries(tasks, results, styles, predictions, name)
+    if len(labels) > 1 and all(labels.values()):
+        agreed = {t["audio_path"]: {"emotion": t["style"]} for t in tasks
+                  if all(predictions.get(t["audio_path"], {}).get("emotion") == t["style"]
+                         for predictions in labels.values())}
+        summarize_deliveries(tasks, results, styles, agreed, "+".join(labels))
     print("Filtered comparisons require the requested emotion on both sides, including neutral.")
 
 
