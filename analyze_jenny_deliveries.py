@@ -15,6 +15,8 @@ def main():
                         default=["emotion2vec", "sensevoice"])
     parser.add_argument("--styles", nargs="+", choices=STYLES + AZURE_EXTRA_STYLES,
                         default=["neutral", "angry", "happy", "sad"])
+    parser.add_argument("--results-file", default="results-matched-accuracy.jsonl",
+                        help="Answer JSONL filename inside each input folder; defaults to DIFFA results.")
     args = parser.parse_args()
     tasks, results = [], {}
     labels = {name: {} for name in args.classifiers}
@@ -22,7 +24,7 @@ def main():
         prefix = str(folder.resolve()) + "/"
         tasks.extend({**row, "audio_path": prefix + row["audio_path"]}
                      for row in read(folder / "plan.jsonl") if row["provider"] == "azure")
-        result_path = folder / "results-matched-accuracy.jsonl"
+        result_path = folder / args.results_file
         if result_path.exists():
             results.update({prefix + row["audio_path"]: row for row in read(result_path)})
         for name in args.classifiers:
@@ -30,6 +32,7 @@ def main():
             if label_path.exists():
                 labels[name].update({prefix + row["audio_path"]: row for row in read(label_path)})
     styles = args.styles
+    print(f"Accuracy results: {args.results_file}")
     print("\nClassifier agreement with intended style (all generated clips)")
     print(f'{"Model":12} {"Style":10} {"Classified":>11} {"Matching":>10} {"Match rate":>11} {"Missing":>9}')
     for name, predictions in labels.items():
