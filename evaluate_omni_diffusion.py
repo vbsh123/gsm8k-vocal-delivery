@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import random
 import time
+from unittest.mock import patch
 
 from compare_cloud_accuracy import PROMPT, read, summarize_deliveries
 from evaluate_qwen_omni import select_tasks
@@ -129,9 +130,13 @@ def main():
             raise RuntimeError("CUDA GPU required")
         # The checkpoint overrides from_pretrained. Request its supported tuple
         # return explicitly to avoid its fallback loading the entire model twice.
-        model, info = model_class.from_pretrained(
-            path, config=config, torch_dtype=torch.bfloat16, device_map="cuda:0",
-            attn_implementation="sdpa", output_loading_info=True)
+        # FunASR 1.2.6 otherwise runs pip against SenseVoice's unpinned model
+        # requirements during loading (including gradio/huggingface), which can
+        # break Transformers for the next process. Setup owns our dependencies.
+        with patch("funasr.utils.install_model_requirements.install_requirements", return_value=True):
+            model, info = model_class.from_pretrained(
+                path, config=config, torch_dtype=torch.bfloat16, device_map="cuda:0",
+                attn_implementation="sdpa", output_loading_info=True)
         model.eval()
         if info.get("missing_keys") or info.get("mismatched_keys"):
             raise RuntimeError(f"Incomplete checkpoint load: {info}")
