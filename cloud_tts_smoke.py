@@ -80,10 +80,6 @@ def main():
     providers = ["azure", "elevenlabs"] if args.provider == "both" else [args.provider]
     required = {"azure": ["AZURE_SPEECH_KEY", "AZURE_SPEECH_REGION"],
                 "elevenlabs": ["ELEVENLABS_API_KEY", "ELEVENLABS_VOICE_ID"]}
-    if not args.prepare_only:
-        missing = [name for provider in providers for name in required[provider] if not os.environ.get(name)]
-        if missing:
-            parser.error("Set environment variables: " + ", ".join(missing))
 
     args.output.mkdir(parents=True, exist_ok=True)
     tasks = []
@@ -130,6 +126,9 @@ def main():
         if args.resume and target.exists():
             print(f'[{index}/{len(tasks)}] skip {task["audio_path"]}', flush=True)
             continue
+        missing = [name for name in required[task["provider"]] if not os.environ.get(name)]
+        if missing:
+            parser.error("Generating missing audio requires environment variables: " + ", ".join(missing))
         print(f'[{index}/{len(tasks)}] {task["question_id"]} / {task["provider"]} / {task["style"]}', flush=True)
         if task["provider"] == "azure":
             region = os.environ["AZURE_SPEECH_REGION"]

@@ -231,8 +231,11 @@ bash run_jenny_angry_night.sh
 ```
 
 The script waits for a detected running `run_azure_jenny_next500.sh` (or its
-standalone new-batch accuracy evaluator), then resumes the six-style new batch
-through classification/evaluation. It next extracts angry-minus-neutral vectors
+standalone new-batch accuracy evaluator), then uses saved audio to finish
+classification/evaluation. It never invokes cloud generation and needs no Azure
+credentials. Missing audio stops the queue with an explanation. Complete saved
+classifier results skip model loading; the accuracy evaluator resumes completed
+clips. It next extracts angry-minus-neutral vectors
 from the **first** Jenny batch, requiring emotion2vec to label the angry and neutral
 clips as intended and both to fit within 30 seconds. Selection never uses reasoning
 correctness. Input paths are `outputs/azure-jenny500-extra` and
