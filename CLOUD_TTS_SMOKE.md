@@ -299,6 +299,40 @@ summarize(read_rows(p / "results.jsonl"), config["settings"]["conditions"])
 PY
 ```
 
+## Check spoken question content from saved transcripts
+
+SenseVoice classification already saves its ASR transcript in `raw_text`, so we
+can audit all three Jenny folders without loading another model or using the GPU:
+
+```bash
+.venv-diffa/bin/python verify_jenny_content.py --evaluated-only
+```
+
+The report compares each supplied question with its saved SenseVoice transcript,
+using Whisper's English text normalizer for punctuation and number formats (for
+example `twelve` versus `12`). Parenthesized words and numeric negatives are
+preserved before normalization. It reports normalized exact text agreement,
+ordered number-token agreement, and word error rate per requested delivery.
+`--evaluated-only` restricts the audit to clips included in GSM8K evaluation;
+omit it to check all generated clips. Use `--paths` to select individual folders.
+
+All comparisons go to `outputs/jenny-content-check/results.jsonl`; text mismatches
+go to `review.csv`, sorted with number mismatches first. The CSV contains the
+expected text, transcript, edits, and original audio path for listening. This
+does not modify, filter, or regenerate any recordings or evaluation results.
+
+ASR disagreement is a review flag, not proof that the TTS changed the question.
+Conversely, normalized agreement does not prove perfectly identical spoken
+content. Fractions, units, proper names, and other meaning changes need listening
+or an independent recognizer for confirmation. Missing transcripts are reported
+separately and excluded from agreement denominators.
+
+Reprint the saved summary without importing Transformers:
+
+```bash
+python verify_jenny_content.py --summary-only
+```
+
 Outputs go to `outputs/cloud-tts-smoke/`: Azure WAVs, ElevenLabs MP3s, a
 `plan.jsonl` containing the exact requests without keys, and `listen.html`.
 Download the folder and open `listen.html` to compare the samples. Rerunning
