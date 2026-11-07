@@ -403,6 +403,23 @@ Reprint interim or completed six-question results without a model:
 python steer_jenny_six.py --summary-only
 ```
 
+For the next six-question diagnostic, combine L5 acoustic x1 + L11 answer x1 +
+L3 answer x2 simultaneously, and separately test the remaining previously
+successful layer/group settings at x0.5:
+
+```bash
+.venv-diffa/bin/python -u steer_jenny_six.py --plan lower-strength
+```
+
+This excludes L5 acoustic, L11 answer, and L3 answer from the individual x0.5
+tests. With the current original sweep, this is 12 individual tests, one triple
+combination, and a fresh baseline: 84 generations across the same six questions.
+Results are separate in `outputs/steer-jenny-angry-six-half`, with resume.
+
+```bash
+python steer_jenny_six.py --plan lower-strength --summary-only
+```
+
 Provider documentation:
 
 - [Azure REST TTS](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/rest-text-to-speech)

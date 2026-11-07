@@ -16,7 +16,7 @@ QUESTIONS = ["gsm8k_test_00708", "gsm8k_test_00736", "gsm8k_test_00746",
              "gsm8k_test_00781", "gsm8k_test_00792", "gsm8k_test_00987"]
 
 
-def build_conditions(config, results, questions):
+def build_conditions(config, results, questions, plan="original"):
     latest = {(r["question_id"], r["condition"]): r for r in results}
 
     def correct(row):
@@ -36,6 +36,15 @@ def build_conditions(config, results, questions):
     def condition(name, targets):
         return {"name": name, "interventions": [
             {"layer": layer, "group": group, "strength": strength} for layer, group, strength in targets]}
+
+    if plan == "lower-strength":
+        conditions = [condition("baseline", []),
+                      condition("L5ac1+L11ans1+L3ans2", [
+                          (5, "acoustic", 1), (11, "answer", 1), (3, "answer", 2)])]
+        excluded = {(5, "acoustic"), (11, "answer"), (3, "answer")}
+        for layer, group in sorted(recovered - excluded):
+            conditions.append(condition(f"L{layer}-{group}-a0.5", [(layer, group, 0.5)]))
+        return conditions
 
     conditions = [condition("baseline", []), condition("L5-acoustic-a2", [(5, "acoustic", 2)])]
     for layer, group, short in [(0, "acoustic", "L0-ac"), (11, "answer", "L11-ans")]:
@@ -65,10 +74,13 @@ def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--previous", type=Path, default=Path("outputs/steer-jenny-angry-L0-25-n50"))
     p.add_argument("--vectors", type=Path, default=Path("outputs/jenny-angry-vectors/style-vectors.pt"))
-    p.add_argument("--output", type=Path, default=Path("outputs/steer-jenny-angry-six-followup"))
+    p.add_argument("--plan", choices=["original", "lower-strength"], default="original")
+    p.add_argument("--output", type=Path)
     p.add_argument("--prepare-only", action="store_true")
     p.add_argument("--summary-only", action="store_true")
     args = p.parse_args(argv)
+    args.output = args.output or Path("outputs/steer-jenny-angry-six-" + (
+        "half" if args.plan == "lower-strength" else "followup"))
     config_path = args.output / "run_config.json"
     results_path = args.output / "results.jsonl"
     if args.summary_only:
@@ -78,7 +90,7 @@ def main(argv=None):
     previous = json.loads((args.previous / "run_config.json").read_text())
     records = {r["question_id"]: r for r in previous["recordings"]}
     selected = [records[qid] for qid in QUESTIONS]
-    conditions = build_conditions(previous, read_rows(args.previous / "results.jsonl"), QUESTIONS)
+    conditions = build_conditions(previous, read_rows(args.previous / "results.jsonl"), QUESTIONS, args.plan)
     excluded = {r["question_id"] for r in read_rows(args.vectors.parent / "extraction-questions.jsonl")}
     if excluded & set(QUESTIONS):
         p.error("The diagnostic overlaps vector-extraction questions")
@@ -87,6 +99,8 @@ def main(argv=None):
                 "vector_bytes": stat.st_size, "vector_mtime_ns": stat.st_mtime_ns,
                 "seed": previous["settings"]["seed"], "conditions": conditions,
                 "style": "angry", "mode": "fixed", "selection": "outcome-selected diagnostic"}
+    if args.plan != "original":
+        settings["plan"] = args.plan
     plan = {"settings": settings, "recordings": selected}
     args.output.mkdir(parents=True, exist_ok=True)
     if config_path.exists() and json.loads(config_path.read_text()) != plan:
@@ -97,7 +111,10 @@ def main(argv=None):
     pending = sum((r["clip_id"], c["name"]) not in completed for r in selected for c in conditions)
     print(f"{len(selected)} questions x {len(conditions)} conditions = "
           f"{len(selected)*len(conditions)} generations; {pending} pending.", flush=True)
-    print("Combinations: L5 acoustic + L0 acoustic, or L5 acoustic + L11 answer.", flush=True)
+    if args.plan == "lower-strength":
+        print("Combination: L5 acoustic x1 + L11 answer x1 + L3 answer x2. Other targets individually x0.5.", flush=True)
+    else:
+        print("Combinations: L5 acoustic + L0 acoustic, or L5 acoustic + L11 answer.", flush=True)
     for c in conditions:
         print(f'  {c["name"]}: {c["interventions"]}', flush=True)
     if args.prepare_only:
