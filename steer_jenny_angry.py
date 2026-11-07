@@ -22,19 +22,26 @@ def main(argv=None):
                    default=["acoustic", "answer"])
     p.add_argument("--strength", type=float, default=1.0)
     p.add_argument("--seed", type=int, default=42)
+    p.add_argument("--exclude-runs", type=Path, nargs="+", default=[],
+                   help="Exclude question IDs in previous steering run_config.json files.")
     p.add_argument("--prepare-only", action="store_true")
     args = p.parse_args(argv)
     if args.num_examples < 0:
         p.error("--num-examples must be nonnegative")
     excluded_path = args.vectors.parent / "extraction-questions.jsonl"
-    excluded = {r["question_id"] for r in read(excluded_path)}
+    training_questions = {r["question_id"] for r in read(excluded_path)}
+    previously_tested = {r["question_id"] for path in args.exclude_runs
+                         for r in json.loads(path.read_text())["recordings"]}
+    excluded = training_questions | previously_tested
     selected = []
     seen = set()
     for task in read(args.path / "plan.jsonl"):
         if task["provider"] != "azure" or task["style"] != "neutral":
             continue
-        if task["question_id"] in excluded:
+        if task["question_id"] in training_questions:
             raise ValueError(f'Extraction/test question overlap: {task["question_id"]}')
+        if task["question_id"] in previously_tested:
+            continue
         if task["question_id"] in seen:
             raise ValueError(f'Duplicate test question: {task["question_id"]}')
         seen.add(task["question_id"])
@@ -58,6 +65,10 @@ def main(argv=None):
         p.error("No eligible held-out neutral clips")
     inputs = args.output / "inputs"
     inputs.mkdir(parents=True, exist_ok=True)
+    if args.exclude_runs:
+        excluded_path = inputs / "excluded-questions.jsonl"
+        freeze(excluded_path, [{"question_id": qid} for qid in sorted(excluded)])
+        print(f"Excluded {len(previously_tested)} previously tested question IDs.", flush=True)
     freeze(inputs / "manifest.jsonl", selected)
     question_path = inputs / "questions.json"
     question_plan = {"recordings": selected}

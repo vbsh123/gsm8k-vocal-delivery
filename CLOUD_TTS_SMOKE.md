@@ -362,6 +362,19 @@ Optional overrides: `--text "..."`, `--styles angry sad`,
 ElevenLabs receives a fixed seed (default 42), which is best-effort reproducibility.
 `--prepare-only` writes the plan and listening page without credentials or API calls.
 
+For a focused follow-up of L3-answer and L5-acoustic at strength +1:
+
+```bash
+bash run_jenny_top2.sh
+```
+
+Both settings use the same 200 additional new-batch neutrals, excluding all
+questions in `outputs/steer-jenny-angry-L0-25-n50/run_config.json` and all vector
+extraction questions. Selection uses seed 42 and never correctness. Settings run
+sequentially in separate processes, each with its own fresh baseline: 800 total
+generations. Results resume in `outputs/steer-jenny-angry-L3-answer-new200` and
+`outputs/steer-jenny-angry-L5-acoustic-new200`. The underlying `steer.py` is unchanged.
+
 Provider documentation:
 
 - [Azure REST TTS](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/rest-text-to-speech)
