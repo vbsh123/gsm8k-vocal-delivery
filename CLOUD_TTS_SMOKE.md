@@ -333,6 +333,18 @@ Reprint the saved summary without importing Transformers:
 python verify_jenny_content.py --summary-only
 ```
 
+To listen to the five worst flagged clips alongside their neutral counterparts:
+
+```bash
+python listen_jenny_content.py
+```
+
+Download the entire `outputs/jenny-content-listen` folder and open `index.html`.
+It includes copied audio, expected questions, and SenseVoice transcripts. Original
+audio is unchanged. `--limit` changes the number of flagged examples; neutral
+partners are additional clips. This is a deliberately selected review sample,
+not an estimate of the dataset's error rate.
+
 Outputs go to `outputs/cloud-tts-smoke/`: Azure WAVs, ElevenLabs MP3s, a
 `plan.jsonl` containing the exact requests without keys, and `listen.html`.
 Download the folder and open `listen.html` to compare the samples. Rerunning
