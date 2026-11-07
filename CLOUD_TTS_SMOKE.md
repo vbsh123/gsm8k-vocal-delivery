@@ -377,6 +377,34 @@ generations. Results resume in `outputs/steer-jenny-angry-L3-answer-new200` and
 
 Provider documentation:
 
+For the outcome-selected six-question strength/combination diagnostic:
+
+```bash
+python steer_jenny_six.py --prepare-only
+.venv-diffa/bin/python -u steer_jenny_six.py
+```
+
+This freezes exactly `00708`, `00736`, `00746`, `00781`, `00792`, and `00987`
+from the original 50-question Jenny sweep. Conditions are a fresh baseline,
+L5-acoustic at x2, L5-acoustic x1 plus L0-acoustic or L11-answer at x1 and x0.5,
+and x2 individually for each other layer/group that recovered at least one of
+the six in the original sweep. With the current results, this is 20 conditions
+and 120 generations. Combination hooks run together during the same generation;
+each uses its own layer's fixed direction. Seeds match the previous sweep.
+
+Results resume per question/condition in `outputs/steer-jenny-angry-six-followup`.
+The output includes full answers and per-intervention counters. This is a selected
+diagnostic, not an unbiased test of general accuracy. No Azure calls or audio
+generation are performed. Existing steering scripts are unchanged.
+
+Reprint interim or completed six-question results without a model:
+
+```bash
+python steer_jenny_six.py --summary-only
+```
+
+Provider documentation:
+
 - [Azure REST TTS](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/rest-text-to-speech)
 - [Azure SSML styles](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/speech-synthesis-markup-voice)
 - [ElevenLabs TTS API](https://elevenlabs.io/docs/api-reference/text-to-speech/convert)
