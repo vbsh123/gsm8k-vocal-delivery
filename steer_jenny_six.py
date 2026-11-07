@@ -79,6 +79,8 @@ def main(argv=None):
     p.add_argument("--output", type=Path)
     p.add_argument("--prepare-only", action="store_true")
     p.add_argument("--summary-only", action="store_true")
+    p.add_argument("--allow-extraction-overlap", action="store_true",
+                   help="Explicit in-sample diagnostic only; otherwise extraction overlap is rejected.")
     args = p.parse_args(argv)
     args.output = args.output or Path("outputs/steer-jenny-angry-six-" + (
         "half" if args.plan == "lower-strength" else "followup"))
@@ -104,7 +106,7 @@ def main(argv=None):
         conditions = build_conditions(previous, read_rows(args.previous / "results.jsonl"), QUESTIONS, args.plan)
     selected_ids = {r["question_id"] for r in selected}
     excluded = {r["question_id"] for r in read_rows(args.vectors.parent / "extraction-questions.jsonl")}
-    if excluded & selected_ids:
+    if excluded & selected_ids and not args.allow_extraction_overlap:
         p.error("The diagnostic overlaps vector-extraction questions")
     stat = args.vectors.stat()
     settings = {"previous": str(args.previous.resolve()), "vectors": str(args.vectors.resolve()),
@@ -113,6 +115,9 @@ def main(argv=None):
                 "style": "angry", "mode": "fixed", "selection": "outcome-selected diagnostic"}
     if args.plan != "original":
         settings["plan"] = args.plan
+    if args.allow_extraction_overlap:
+        settings["allow_extraction_overlap"] = True
+        print("IN-SAMPLE diagnostic: extraction-question overlap is explicitly allowed.", flush=True)
     if args.prepared_plan:
         settings.update(prepared_plan=str(args.prepared_plan.resolve()),
                         prepared_plan_sha256=hashlib.sha256(args.prepared_plan.read_bytes()).hexdigest())
@@ -150,7 +155,7 @@ def main(argv=None):
     data = torch.load(args.vectors, map_location="cpu", weights_only=True, mmap=True)
     if data.get("sign") != "style minus neutral":
         raise ValueError("Expected angry-minus-neutral vectors")
-    if set(data.get("extraction_question_ids", [])) & selected_ids:
+    if set(data.get("extraction_question_ids", [])) & selected_ids and not args.allow_extraction_overlap:
         raise ValueError("Diagnostic questions overlap extraction metadata")
     prompt, answer_tokens = data["prompt"], data["max_new_tokens"]
     directions = {}
