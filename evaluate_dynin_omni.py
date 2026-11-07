@@ -19,7 +19,10 @@ from scoring import score_response
 
 REVISION = "d6e3ca874f399a976c42bd3c8a58eb469eb7e3a3"
 MODEL = "snu-aidas/Dynin-Omni"
-AUDIO_MODEL = "snu-aidas/emova_speech_tokenizer_hf"
+# Upstream demo YAML names an inaccessible mirror. The public original and
+# snu-aidas/emova_speech_tokenizer_vllm have identical model.safetensors SHA256:
+# 0f01ab4b6cbe65d477f5d57e704f1324104f5437b1517c8938a194be2d98a7a6.
+AUDIO_MODEL = "Emova-ollm/emova_speech_tokenizer_hf"
 RESULTS = "results-dynin-omni.jsonl"
 
 
@@ -91,8 +94,15 @@ def main():
                   task="experimental_s2t_math_instruction")
     for folder in folders:
         settings = folder / "dynin-omni-settings.json"
-        if settings.exists() and json.loads(settings.read_text()) != recipe:
-            raise ValueError(f"Settings changed for {folder}; use a separate folder/result run.")
+        if settings.exists():
+            previous_recipe = json.loads(settings.read_text())
+            if previous_recipe != recipe:
+                failed_download = (not saved[folder]
+                    and previous_recipe.get("audio_model") == "snu-aidas/emova_speech_tokenizer_hf"
+                    and {**previous_recipe, "audio_model": AUDIO_MODEL} == recipe)
+                if not failed_download:
+                    raise ValueError(f"Settings changed for {folder}; use a separate folder/result run.")
+                print(f"{folder}: empty failed run will use the public audio tokenizer.", flush=True)
         if saved[folder] and not settings.exists():
             raise ValueError(f"Saved answers have no settings: {settings}")
     if args.prepare_only:
