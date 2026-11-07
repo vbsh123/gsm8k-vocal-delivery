@@ -59,7 +59,7 @@ def build_conditions(config, results, questions, plan="original"):
 def report(results, conditions, recordings):
     summary = summarize(results, conditions)
     latest = {(r["question_id"], r["condition"]): r for r in results}
-    print("\nPer-question correct conditions (selected from previous failures):")
+    print("\nPer-question correct conditions (outcome-selected diagnostic):")
     for recording in recordings:
         qid = recording["question_id"]
         baseline = latest.get((qid, "baseline"))
