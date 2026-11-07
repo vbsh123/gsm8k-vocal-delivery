@@ -442,6 +442,27 @@ python steer_jenny_recovery.py --prepare-only
 python steer_jenny_recovery.py --summary-only
 ```
 
+Expand the same frozen recovery cohort with the remaining zero-regression
+candidates from the filtered 44-question view, plus L11 answer x1.5:
+
+```bash
+.venv-diffa/bin/python -u steer_jenny_recovery_followup.py
+```
+
+New individual targets are L0-answer x1, L2-acoustic x1, L3-answer x1,
+L8-answer x1, L9-answer x1, L12-acoustic x1, L14-answer x1, L23-acoustic x1,
+and L11-answer x1.5. The runner copies completed baseline/L5-acoustic x1/
+L3-answer x2/L11-answer x1 results from `outputs/steer-jenny-angry-recovery74`
+into `outputs/steer-jenny-angry-recovery74-expanded`, leaving the originals
+unchanged. With all original conditions complete, 666 new generations remain.
+It verifies vector identity and seeds before reusing saved results and freezes
+the same 74 recordings. The final report includes old and new conditions.
+
+```bash
+python steer_jenny_recovery_followup.py --prepare-only
+python steer_jenny_recovery_followup.py --summary-only
+```
+
 Provider documentation:
 
 - [Azure REST TTS](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/rest-text-to-speech)
