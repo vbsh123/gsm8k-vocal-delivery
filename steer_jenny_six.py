@@ -59,7 +59,7 @@ def build_conditions(config, results, questions, plan="original"):
 def report(results, conditions, recordings):
     summary = summarize(results, conditions)
     latest = {(r["question_id"], r["condition"]): r for r in results}
-    print("\nPer-question correct conditions (all six were selected from previous failures):")
+    print("\nPer-question correct conditions (selected from previous failures):")
     for recording in recordings:
         qid = recording["question_id"]
         baseline = latest.get((qid, "baseline"))
@@ -75,6 +75,7 @@ def main(argv=None):
     p.add_argument("--previous", type=Path, default=Path("outputs/steer-jenny-angry-L0-25-n50"))
     p.add_argument("--vectors", type=Path, default=Path("outputs/jenny-angry-vectors/style-vectors.pt"))
     p.add_argument("--plan", choices=["original", "lower-strength"], default="original")
+    p.add_argument("--prepared-plan", type=Path, help="Explicit recordings and intervention conditions from a diagnostic adapter.")
     p.add_argument("--output", type=Path)
     p.add_argument("--prepare-only", action="store_true")
     p.add_argument("--summary-only", action="store_true")
@@ -88,11 +89,22 @@ def main(argv=None):
         report(read_rows(results_path), saved["settings"]["conditions"], saved["recordings"])
         return
     previous = json.loads((args.previous / "run_config.json").read_text())
-    records = {r["question_id"]: r for r in previous["recordings"]}
-    selected = [records[qid] for qid in QUESTIONS]
-    conditions = build_conditions(previous, read_rows(args.previous / "results.jsonl"), QUESTIONS, args.plan)
+    if args.prepared_plan:
+        prepared = json.loads(args.prepared_plan.read_text())
+        selected, conditions = prepared["recordings"], prepared["conditions"]
+        if not selected or conditions[0]["name"] != "baseline" or conditions[0]["interventions"]:
+            p.error("Prepared diagnostic needs recordings and an unsteered first baseline")
+        if len({r["clip_id"] for r in selected}) != len(selected):
+            p.error("Duplicate recordings in prepared plan")
+        if len({c["name"] for c in conditions}) != len(conditions):
+            p.error("Duplicate conditions in prepared plan")
+    else:
+        records = {r["question_id"]: r for r in previous["recordings"]}
+        selected = [records[qid] for qid in QUESTIONS]
+        conditions = build_conditions(previous, read_rows(args.previous / "results.jsonl"), QUESTIONS, args.plan)
+    selected_ids = {r["question_id"] for r in selected}
     excluded = {r["question_id"] for r in read_rows(args.vectors.parent / "extraction-questions.jsonl")}
-    if excluded & set(QUESTIONS):
+    if excluded & selected_ids:
         p.error("The diagnostic overlaps vector-extraction questions")
     stat = args.vectors.stat()
     settings = {"previous": str(args.previous.resolve()), "vectors": str(args.vectors.resolve()),
@@ -101,6 +113,9 @@ def main(argv=None):
                 "style": "angry", "mode": "fixed", "selection": "outcome-selected diagnostic"}
     if args.plan != "original":
         settings["plan"] = args.plan
+    if args.prepared_plan:
+        settings.update(prepared_plan=str(args.prepared_plan.resolve()),
+                        prepared_plan_sha256=hashlib.sha256(args.prepared_plan.read_bytes()).hexdigest())
     plan = {"settings": settings, "recordings": selected}
     args.output.mkdir(parents=True, exist_ok=True)
     if config_path.exists() and json.loads(config_path.read_text()) != plan:
@@ -111,7 +126,9 @@ def main(argv=None):
     pending = sum((r["clip_id"], c["name"]) not in completed for r in selected for c in conditions)
     print(f"{len(selected)} questions x {len(conditions)} conditions = "
           f"{len(selected)*len(conditions)} generations; {pending} pending.", flush=True)
-    if args.plan == "lower-strength":
+    if args.prepared_plan:
+        print("Explicit diagnostic targets; each condition runs separately against a fresh baseline.", flush=True)
+    elif args.plan == "lower-strength":
         print("Combination: L5 acoustic x1 + L11 answer x1 + L3 answer x2. Other targets individually x0.5.", flush=True)
     else:
         print("Combinations: L5 acoustic + L0 acoustic, or L5 acoustic + L11 answer.", flush=True)
@@ -133,7 +150,7 @@ def main(argv=None):
     data = torch.load(args.vectors, map_location="cpu", weights_only=True, mmap=True)
     if data.get("sign") != "style minus neutral":
         raise ValueError("Expected angry-minus-neutral vectors")
-    if set(data.get("extraction_question_ids", [])) & set(QUESTIONS):
+    if set(data.get("extraction_question_ids", [])) & selected_ids:
         raise ValueError("Diagnostic questions overlap extraction metadata")
     prompt, answer_tokens = data["prompt"], data["max_new_tokens"]
     directions = {}

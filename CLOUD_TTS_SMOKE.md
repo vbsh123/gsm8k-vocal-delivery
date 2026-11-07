@@ -420,6 +420,28 @@ Results are separate in `outputs/steer-jenny-angry-six-half`, with resume.
 python steer_jenny_six.py --plan lower-strength --summary-only
 ```
 
+For the remaining angry-correct/neutral-incorrect candidates in the new Jenny
+batch, excluding all 50 prior sweep questions and all extraction questions:
+
+```bash
+.venv-diffa/bin/python -u steer_jenny_recovery.py
+```
+
+The current saved answers give 80 candidates, six already in the sweep, leaving
+74. Each remaining neutral recording gets a fresh baseline, L5-acoustic x1,
+L3-answer x2, and L11-answer x1, tested separately: 296 generations. Classifier
+labels are not used for this selection. Results resume in
+`outputs/steer-jenny-angry-recovery74`. The frozen settings are evaluated by the
+same diagnostic runtime as the six-question experiments; `steer.py` is unchanged.
+The recovery table excludes questions that already succeed under the fresh
+baseline from its recovery denominator. This is an outcome-selected recovery
+diagnostic, not the later regression test or an overall accuracy estimate.
+
+```bash
+python steer_jenny_recovery.py --prepare-only
+python steer_jenny_recovery.py --summary-only
+```
+
 Provider documentation:
 
 - [Azure REST TTS](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/rest-text-to-speech)
