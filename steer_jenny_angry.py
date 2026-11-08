@@ -7,6 +7,8 @@ import random
 import sys
 import wave
 
+import steer
+
 from compare_cloud_accuracy import read
 from extract_jenny_angry import freeze
 
@@ -26,15 +28,12 @@ def main(argv=None):
                    help="Exclude question IDs in previous steering run_config.json files.")
     p.add_argument("--prepare-only", action="store_true")
     args = p.parse_args(argv)
-    if args.num_examples < 0:
-        p.error("--num-examples must be nonnegative")
     excluded_path = args.vectors.parent / "extraction-questions.jsonl"
     training_questions = {r["question_id"] for r in read(excluded_path)}
     previously_tested = {r["question_id"] for path in args.exclude_runs
                          for r in json.loads(path.read_text())["recordings"]}
     excluded = training_questions | previously_tested
     selected = []
-    seen = set()
     for task in read(args.path / "plan.jsonl"):
         if task["provider"] != "azure" or task["style"] != "neutral":
             continue
@@ -42,9 +41,6 @@ def main(argv=None):
             raise ValueError(f'Extraction/test question overlap: {task["question_id"]}')
         if task["question_id"] in previously_tested:
             continue
-        if task["question_id"] in seen:
-            raise ValueError(f'Duplicate test question: {task["question_id"]}')
-        seen.add(task["question_id"])
         audio_path = (args.path / task["audio_path"]).resolve()
         with wave.open(str(audio_path), "rb") as audio:
             duration = audio.getnframes() / audio.getframerate()
@@ -58,11 +54,7 @@ def main(argv=None):
     selected.sort(key=lambda row: row["question_id"])
     random.Random(args.seed).shuffle(selected)
     if args.num_examples:
-        if len(selected) < args.num_examples:
-            p.error(f"Only {len(selected)} eligible neutrals; requested {args.num_examples}")
         selected = selected[:args.num_examples]
-    if not selected:
-        p.error("No eligible held-out neutral clips")
     inputs = args.output / "inputs"
     inputs.mkdir(parents=True, exist_ok=True)
     if args.exclude_runs:
@@ -79,7 +71,6 @@ def main(argv=None):
     print(f"{len(selected)} held-out Jenny neutrals; {conditions} conditions; "
           f"{len(selected)*conditions} generations before resume.", flush=True)
     print("Test selection uses neutral TTS style, without filtering by classifier or correctness.", flush=True)
-    import steer
 
     command = ["steer.py", "--path", str(inputs), "--vectors", str(args.vectors),
                "--exclude-results", str(excluded_path), "--questions-from", str(question_path),

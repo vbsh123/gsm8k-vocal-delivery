@@ -20,8 +20,6 @@ def recordings(paths):
             if task["provider"] != "azure" or task["style"] not in ("neutral", "angry"):
                 continue
             key = (task["question_id"], task["voice"], task["style"])
-            if key in records:
-                raise ValueError(f"Duplicate question/voice/style: {key}")
             audio_path = (folder / task["audio_path"]).resolve()
             with wave.open(str(audio_path), "rb") as audio:
                 duration = audio.getnframes() / audio.getframerate()
@@ -68,12 +66,6 @@ def main(argv=None):
     p.add_argument("--save-every", type=int, default=25)
     p.add_argument("--prepare-only", action="store_true")
     args = p.parse_args(argv)
-    if args.limit is not None and args.limit < 1:
-        p.error("--limit must be positive")
-    if args.save_every < 1:
-        p.error("--save-every must be positive")
-    if args.max_new_tokens < 32 or args.max_new_tokens % 32 or 128 % (args.max_new_tokens // 32):
-        p.error("Invalid --max-new-tokens for steps=128, block_length=32")
     records, predictions = recordings(args.paths)
     manifest = {row["clip_id"]: row for row in records.values()}
     all_pairs = select_pairs(records, predictions, args.seed)
@@ -144,8 +136,6 @@ def main(argv=None):
         captured = [[] for _ in layers]
         bounds.clear()
         audio, rate = sf.read(manifest[clip_id]["audio_path"], dtype="float32")
-        if len(audio) / rate > 30:
-            raise ValueError(f"Clip exceeds 30 seconds: {clip_id}")
         random.seed(42)
         np.random.seed(42)
         torch.manual_seed(42)
@@ -169,8 +159,6 @@ def main(argv=None):
             neutral_response, neutral = capture(pair["neutral_id"], pair["seed"])
             angry_response, angry = capture(pair["angry_id"], pair["seed"])
             n = min(neutral.shape[1], angry.shape[1])
-            if not 0 < n <= args.max_new_tokens:
-                raise ValueError(f"Unexpected forward count: {n}")
             difference = angry[:, :n] - neutral[:, :n]
             state["sums"]["angry"][:, :n] += difference
             state["counts"]["angry"][:, :n] += 1

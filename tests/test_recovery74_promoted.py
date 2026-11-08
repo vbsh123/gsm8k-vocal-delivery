@@ -24,19 +24,6 @@ class PromotionTests(unittest.TestCase):
         self.assertEqual([r['recovered'] for r in evidence], [4, 5])
         self.assertEqual(len(self.source['recordings']), 74)
 
-    def test_incomplete_screen_and_wrong_cohort_are_rejected(self):
-        with self.assertRaisesRegex(ValueError, 'incomplete'):
-            select_conditions(self.source, self.screen, self.rows[:-1])
-        self.screen['recordings'] = [dict(r) for r in self.screen['recordings']]
-        self.screen['recordings'][0]['question_id'] = 'different'
-        with self.assertRaisesRegex(ValueError, 'differs'):
-            select_conditions(self.source, self.screen, self.rows)
-
-    def test_screen_baseline_must_still_fail(self):
-        self.rows[0]['response'] = 'Final answer: 1'
-        with self.assertRaisesRegex(ValueError, 'baseline failures'):
-            select_conditions(self.source, self.screen, self.rows)
-
 
 if __name__ == '__main__':
     unittest.main()

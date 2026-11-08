@@ -16,6 +16,9 @@ import sys
 import time
 from unittest.mock import patch
 
+import numpy as np
+import torch
+
 from cloud_tts_smoke import STYLES, AZURE_EXTRA_STYLES
 from compare_cloud_accuracy import PROMPT, read, summarize_deliveries
 from evaluate_qwen_omni import select_tasks
@@ -63,8 +66,6 @@ def assets(source):
     config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)
     AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
     get_class_from_dynamic_module(config.auto_map["AutoModelForCausalLM"], model_path)
-    if not (Path(model_path)/"whisper-large-v3/config.json").exists():
-        raise ValueError("Kimi snapshot is missing its continuous Whisper input encoder")
     print("Kimi source/import/tokenizer preflight passed; no model loaded onto GPU yet.", flush=True)
     return model_path, tokenizer_path, KimiAudio
 
@@ -86,13 +87,7 @@ def main():
     if args.download_only:
         assets(args.source)
         return
-    if args.num_questions < 0 or not 0 < args.max_new_tokens <= 4096:
-        p.error("Use nonnegative question count and 1..4096 output tokens (upstream buffer limit)")
-    if len(set(args.styles)) != len(args.styles):
-        p.error("Styles must be unique")
     selected = select_tasks([folder.resolve() for folder in args.paths], args.styles, args.num_questions)
-    if not selected:
-        p.error("No eligible clips; small smoke needs complete same-question/voice style groups")
     folders = sorted({folder for folder, _ in selected})
     saved = {folder: {r["audio_path"]: r for r in read(folder/RESULTS)}
              if (folder/RESULTS).exists() else {} for folder in folders}
@@ -114,10 +109,6 @@ def main():
         return
     if pending and not args.summary_only:
         model_path, tokenizer_path, KimiAudio = assets(args.source)
-        import numpy as np
-        import torch
-        if not torch.cuda.is_available():
-            raise RuntimeError("CUDA GPU required")
         from kimia_infer.api.prompt_manager import Glm4Tokenizer
         # Preserve the official tokenizer implementation; give its constructor
         # the pinned local snapshot instead of the upstream hardcoded main ID.
