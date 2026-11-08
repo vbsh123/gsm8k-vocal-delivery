@@ -6,6 +6,7 @@ Saved answers are separate from Qwen/DIFFA/Omni and resumable per recording.
 """
 
 import argparse
+from contextlib import contextmanager
 from collections import Counter
 import json
 import os
@@ -28,6 +29,37 @@ TOKENIZER_MODEL = "THUDM/glm-4-voice-tokenizer"
 TOKENIZER_REVISION = "a5f2404e63c84e92f5238908e1706316324ebafa"
 RESULTS = "results-kimi-audio.jsonl"
 SETTINGS = "kimi-audio-settings.json"
+
+
+@contextmanager
+def pytorch_safetensors_metadata():
+    """Compat for Kimi's Whisper file, whose valid tensor data has no metadata.
+
+    Transformers 4.44.2 assumes f.metadata() is a dict. Supply its expected
+    PyTorch format hint only when absent; preserve tensors and existing metadata.
+    This patch is active only while loading the pinned Kimi checkpoints.
+    """
+    import transformers.modeling_utils as modeling_utils
+    original = modeling_utils.safe_open
+
+    class Reader:
+        def __init__(self, reader):
+            self.reader = reader
+
+        def metadata(self):
+            metadata = self.reader.metadata()
+            return {"format": "pt"} if metadata is None else metadata
+
+        def __getattr__(self, name):
+            return getattr(self.reader, name)
+
+    @contextmanager
+    def open_with_metadata(*args, **kwargs):
+        with original(*args, **kwargs) as reader:
+            yield Reader(reader)
+
+    with patch.object(modeling_utils, "safe_open", open_with_metadata):
+        yield
 
 
 def messages(audio_path):
@@ -121,7 +153,7 @@ def main():
         from kimia_infer.api.prompt_manager import Glm4Tokenizer
         # Preserve the official tokenizer implementation; give its constructor
         # the pinned local snapshot instead of the upstream hardcoded main ID.
-        with patch("kimia_infer.api.prompt_manager.Glm4Tokenizer",
+        with pytorch_safetensors_metadata(), patch("kimia_infer.api.prompt_manager.Glm4Tokenizer",
                    side_effect=lambda _: Glm4Tokenizer(tokenizer_path)):
             model = KimiAudio(model_path=model_path, load_detokenizer=False)
         model.alm.eval()
