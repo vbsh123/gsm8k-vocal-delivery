@@ -22,6 +22,27 @@ def point(group, strength, correct, n, wins, losses):
     return dict(group=group, strength=strength, correct=correct, n=n, wins=wins, losses=losses, p=p)
 
 
+def diagnostic_data():
+    recovery = [(5,"acoustic",1,13),(3,"answer",2,15),(11,"answer",1,24),
+                (0,"answer",1,17),(2,"acoustic",1,12),(3,"answer",1,16),
+                (8,"answer",1,12),(9,"answer",1,13),(12,"acoustic",1,22),
+                (14,"answer",1,15),(23,"acoustic",1,4),(11,"answer",1.5,19)]
+    regressions = [(11,"answer",1,15),(12,"acoustic",1,9),
+                   (11,"answer",1.5,20),(0,"answer",1,13)]
+    layers = {}
+    for layer,group,strength,recovered in recovery:
+        layers.setdefault(str(layer),dict(n=74,baseline=0,points=[]))["points"].append(
+            point(group,strength,recovered,74,recovered,0))
+    other = {}
+    for layer,group,strength,lost in regressions:
+        other.setdefault(str(layer),dict(n=260,baseline=260,points=[]))["points"].append(
+            point(group,strength,260-lost,260,0,lost))
+    return [dict(title="Recovery diagnostic · 74 baseline failures",layers=layers,
+                 source="Outcome-selected: angry succeeded and neutral failed; these 74 also failed the fresh baseline. Accuracy here is recovery, not overall model accuracy. P-values are conditional diagnostics."),
+            dict(title="Regression diagnostic · 260 baseline successes",layers=other,
+                 source="Outcome-selected: neutral and angry both succeeded, and all 260 succeeded under the fresh baseline. Accuracy here measures retention of successes, not overall model accuracy. Do not combine directly with the recovery cohort.")]
+
+
 def pasted_data():
     # Full Azure pilot table supplied by the user: same 50 recordings at every layer.
     acoustic = [(1,3),(0,1),(1,1),(0,1),(0,1),(2,1),(0,1),(0,2),(0,1),(1,3),
@@ -41,7 +62,7 @@ def pasted_data():
                          "12":dict(n=373, baseline=238, points=[point("acoustic",1,247,373,22,13)])}),
             dict(title="Batch 1 vector → batch 2 neutrals · complete", source="Pasted Azure table; all 460 matched neutral–angry questions. Steering is applied to neutral audio.",
                  layers={"11":dict(n=460, baseline=304, points=[point("answer",1,313,460,30,21)]),
-                         "12":dict(n=460, baseline=304, points=[point("acoustic",1,316,460,29,17)])})]
+                         "12":dict(n=460, baseline=304, points=[point("acoustic",1,316,460,29,17)])})]+diagnostic_data()
 
 
 def read_rows(path):
@@ -66,7 +87,9 @@ def from_runs(paths):
             targets = c.get("interventions")
             if targets is None:
                 targets = [] if c["name"]=="baseline" else [{k:c[k] for k in ("layer","group","strength")}]
-            if c["name"]=="baseline" or len(targets)==1:
+            # A coefficient curve is defined for combinations with the same
+            # coefficient at every intervention. Mixed strengths need a separate plot.
+            if not targets or len({t["strength"] for t in targets})==1:
                 exp["conditions"][c["name"]] = targets
         latest = {(r["clip_id"],r["condition"]):r for r in read_rows(path/"results.jsonl")}
         for k, r in latest.items():
@@ -83,7 +106,9 @@ def from_runs(paths):
         by_layer = defaultdict(list)
         for name, targets in conditions.items():
             if targets and -2 <= targets[0]["strength"] <= 2:
-                by_layer[targets[0]["layer"]].append((name,targets[0]))
+                layer=" + ".join(str(v) for v in sorted({t["layer"] for t in targets}))
+                for group in sorted({t["group"] for t in targets}):
+                    by_layer[layer].append((name,dict(layer=layer,group=group,strength=targets[0]["strength"],label=name)))
         layers = {}
         for layer, targets in sorted(by_layer.items()):
             common = {cid for cid,c in rows if c=="baseline"}
@@ -101,7 +126,7 @@ def from_runs(paths):
                         raise ValueError(f"Nonmatching baseline recipe at {cid}: {name}")
                 wins=sum(rows[cid,name]["ok"] and not b[cid]["ok"] for cid in common)
                 losses=sum(b[cid]["ok"] and not rows[cid,name]["ok"] for cid in common)
-                points.append(point(t["group"],t["strength"],sum(rows[cid,name]["ok"] for cid in common),len(common),wins,losses))
+                points.append({**point(t["group"],t["strength"],sum(rows[cid,name]["ok"] for cid in common),len(common),wins,losses),"label":name})
             layers[str(layer)] = dict(n=len(common),baseline=sum(r["ok"] for r in b.values()),points=points)
         if layers:
             vector=Path(exp["settings"]["vectors"]).parent.name
