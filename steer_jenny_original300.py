@@ -18,7 +18,7 @@ def main():
     p.add_argument("--path",type=Path,default=Path("outputs/spoken-gsm-original"))
     p.add_argument("--vectors",type=Path,default=Path("outputs/jenny-angry-vectors/style-vectors.pt"))
     p.add_argument("--previous",type=Path,default=Path("outputs/steer-jenny-angry-complete"))
-    p.add_argument("--output",type=Path,default=Path("outputs/steer-jenny-original300-seed42"))
+    p.add_argument("--output",type=Path,default=Path("outputs/steer-jenny-original300-L12-acoustic-a1-seed42"))
     p.add_argument("--prepare-only",action="store_true")
     p.add_argument("--summary-only",action="store_true")
     args=p.parse_args()
@@ -38,7 +38,7 @@ def main():
     if any(not Path(r["audio_path"]).is_file() for r in selected):
         p.error("Missing original audio files")
     conditions=[dict(name="baseline",interventions=[])]
-    for layer,group in [(11,"answer"),(12,"acoustic")]:
+    for layer,group in [(12,"acoustic")]:
         conditions.append(dict(name=f"L{layer}-{group}-a1",interventions=[dict(layer=layer,group=group,strength=1)]))
     plan=dict(recordings=selected,conditions=conditions,
               selection="First 300 eligible original recordings; no emotion or correctness filtering",
@@ -49,7 +49,7 @@ def main():
     if path.exists() and json.loads(path.read_text())!=plan:
         p.error("Frozen cohort changed; use a new output folder")
     path.write_text(json.dumps(plan,indent=2)+"\n")
-    print("300 originals × baseline / L11 answer x1 / L12 acoustic x1 = 900 generations.",flush=True)
+    print("300 originals × baseline / L12 acoustic x1 = 600 generations.",flush=True)
     print("Exactly seed 42 before every generation. No old baseline answers imported.",flush=True)
     print("Audio-source transfer; question overlap with extraction is not verified.",flush=True)
     command=["--previous",str(args.previous),"--vectors",str(args.vectors),
