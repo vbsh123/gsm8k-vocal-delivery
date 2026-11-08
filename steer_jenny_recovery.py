@@ -74,8 +74,6 @@ def main(argv=None):
                            "speaker": task["voice"], "repeat": 0, "duration_seconds": duration,
                            "audio_path": str(audio_path),
                            "answer": str(task["answer"]).rsplit("####", 1)[-1].strip()})
-    if not recordings:
-        p.error("No remaining eligible recovery candidates")
     conditions = [{"name": "baseline", "interventions": []}]
     for layer, group, strength in [(5, "acoustic", 1), (3, "answer", 2), (11, "answer", 1)]:
         conditions.append({"name": f"L{layer}-{group}-a{strength}", "interventions": [

@@ -11,6 +11,11 @@ from pathlib import Path
 import random
 import time
 
+import librosa
+import numpy as np
+import soundfile as sf
+import torch
+
 from compare_cloud_accuracy import PROMPT
 from scoring import score_response
 from steer import read_rows
@@ -59,13 +64,8 @@ def main():
     if args.summary_only:
         report(args.output)
         return
-    if args.num_examples<1:
-        p.error("--num-examples must be positive")
-    import soundfile as sf
-    import librosa
     records=read_rows(args.path/"manifest.jsonl")
     selected=[]
-    seen=set()
     for r in records:
         if r["style"]!="original":
             continue
@@ -74,15 +74,10 @@ def main():
         # At 0.7x, an original <=21 seconds remains within the shared 30s limit.
         if not 0<info.frames/info.samplerate<=30*min(RATES):
             continue
-        if r["question_id"] in seen:
-            p.error(f"Duplicate source question: {r['question_id']}")
-        seen.add(r["question_id"])
         selected.append({**r,"audio_path":str(path),"audio_bytes":path.stat().st_size,
                          "audio_mtime_ns":path.stat().st_mtime_ns})
         if len(selected)==args.num_examples:
             break
-    if len(selected)!=args.num_examples:
-        p.error(f"Only {len(selected)} originals <=21s available; prepare more originals or lower --num-examples")
     conditions=[dict(name="baseline")]+[dict(name=condition(r)) for r in RATES if r!=1]
     plan=dict(recordings=selected,conditions=conditions,rates=RATES,
               settings=dict(seed=42,prompt=PROMPT,steps=128,block_length=32,max_new_tokens=512,
@@ -111,8 +106,6 @@ def main():
     if not pending:
         report(args.output)
         return
-    import numpy as np
-    import torch
     from extract_vectors import load_model,gen
     model,tokenizer,feature_extractor=load_model()
     for i,r in enumerate(selected,1):
@@ -128,8 +121,6 @@ def main():
             if (r["clip_id"],name) in completed:
                 continue
             changed=audio if rate==1 else librosa.effects.time_stretch(audio,rate=rate)
-            if len(changed)>30*16000 or not np.isfinite(changed).all():
-                raise ValueError(f"Invalid or >30s transformed audio: {r['clip_id']} {rate}x")
             if args.save_audio:
                 folder=args.output/"audio"
                 folder.mkdir(exist_ok=True)

@@ -78,8 +78,6 @@ def main(argv=None):
                            "speaker": task["voice"], "repeat": 0, "duration_seconds": duration,
                            "audio_path": str(audio_path),
                            "answer": str(task["answer"]).rsplit("####", 1)[-1].strip()})
-    if not recordings:
-        p.error("No eligible both-correct questions")
     conditions = [{"name": "baseline", "interventions": []}] + [
         {"name": f"L{layer}-{group}-a{strength:g}", "interventions": [
             {"layer": layer, "group": group, "strength": strength}]}

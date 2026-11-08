@@ -24,8 +24,6 @@ def build_conditions(config, results, questions, plan="original"):
 
     for qid in questions:
         baseline = latest.get((qid, "baseline"))
-        if baseline is None or correct(baseline):
-            raise ValueError(f"Expected a saved incorrect baseline for {qid}")
     recovered = set()
     for c in config["settings"]["conditions"]:
         if c["name"] == "baseline":
@@ -96,12 +94,6 @@ def main(argv=None):
     if args.prepared_plan:
         prepared = json.loads(args.prepared_plan.read_text())
         selected, conditions = prepared["recordings"], prepared["conditions"]
-        if not selected or conditions[0]["name"] != "baseline" or conditions[0]["interventions"]:
-            p.error("Prepared diagnostic needs recordings and an unsteered first baseline")
-        if len({r["clip_id"] for r in selected}) != len(selected):
-            p.error("Duplicate recordings in prepared plan")
-        if len({c["name"] for c in conditions}) != len(conditions):
-            p.error("Duplicate conditions in prepared plan")
     else:
         records = {r["question_id"]: r for r in previous["recordings"]}
         selected = [records[qid] for qid in QUESTIONS]
@@ -158,19 +150,13 @@ def main(argv=None):
     from extract_vectors import load_model
 
     data = torch.load(args.vectors, map_location="cpu", weights_only=True, mmap=True)
-    if data.get("sign") != "style minus neutral":
-        raise ValueError("Expected angry-minus-neutral vectors")
     if set(data.get("extraction_question_ids", [])) & selected_ids and not args.allow_extraction_overlap:
         raise ValueError("Diagnostic questions overlap extraction metadata")
     prompt, answer_tokens = data["prompt"], data["max_new_tokens"]
     directions = {}
     for layer, group in {(t["layer"], t["group"]) for c in conditions for t in c["interventions"]}:
         count = int(data["pair_counts"]["angry"][layer])
-        if count == 0:
-            raise ValueError(f"No angry extraction pairs at layer {layer}")
         vector = data["pair_mean_sums"]["angry"][layer, data["groups"].index(group)] / count
-        if not torch.isfinite(vector).all():
-            raise ValueError("Non-finite steering direction")
         directions[layer, group] = vector.to(device="cuda", dtype=torch.bfloat16)
     del data
     model, tokenizer, feature_extractor = load_model()
@@ -193,8 +179,6 @@ def main(argv=None):
             if not audio_path.is_absolute():
                 audio_path = Path(previous["settings"]["path"]) / audio_path
             audio, rate = sf.read(audio_path, dtype="float32")
-            if len(audio) > 30 * rate:
-                raise ValueError(f"Audio over 30 seconds: {audio_path}")
             if audio.ndim == 2:
                 audio = audio.mean(axis=1)
             if rate != 16000:

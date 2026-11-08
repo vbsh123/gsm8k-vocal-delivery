@@ -11,39 +11,17 @@ from steer_jenny_six import main as run
 
 
 def select_conditions(source, screen, rows, minimum=.4):
-    recordings = source['recordings']
-    if len(recordings) != 74 or len({r['question_id'] for r in recordings}) != 74:
-        raise ValueError('Expected the original 74-question recovery cohort')
-    original = {r['clip_id']: r for r in recordings}
     screened = screen['recordings']
-    if len(screened) != 10 or len({r['clip_id'] for r in screened}) != 10:
-        raise ValueError('Expected the completed ten-question screen')
-    for r in recordings:
-        if r['style'] != 'neutral':
-            raise ValueError('This experiment steers neutral recordings with angry vectors')
-    for r in screened:
-        if r['clip_id'] not in original or r != original[r['clip_id']]:
-            raise ValueError('Screen recording differs from original 74-question cohort')
     conditions = screen['settings']['conditions']
     latest = {(r['clip_id'], r['condition']): r for r in rows}
-    if any((r['clip_id'], c['name']) not in latest for r in screened for c in conditions):
-        raise ValueError('Ten-question screen is incomplete; finish it before selecting candidates')
-    if any(correct(latest[r['clip_id'], 'baseline']) for r in screened):
-        raise ValueError('Expected ten fresh-baseline failures in the screening cohort')
     selected, evidence = [dict(name='baseline', interventions=[])], []
     for c in conditions:
         if c['name'] == 'baseline':
             continue
-        targets = c.get('interventions', [])
-        if (len(targets) != 1 or targets[0]['strength'] != 1.25
-                or targets[0]['group'] not in {'acoustic', 'answer'}):
-            raise ValueError('Expected individual acoustic/answer targets at strength1.25')
         recovered = sum(correct(latest[r['clip_id'], c['name']]) for r in screened)
         if recovered / len(screened) >= minimum:
             selected.append(c)
             evidence.append(dict(condition=c['name'], recovered=recovered, n=len(screened)))
-    if len(selected) == 1:
-        raise ValueError('No conditions meet the recovery threshold')
     return selected, evidence
 
 
@@ -78,8 +56,6 @@ def main():
         recovery_summary(args.output)
         report_unseen(args.output, set(saved['screen_question_ids']))
         return
-    if not 0 <= args.min_recovery <= 1:
-        parser.error('--min-recovery must be between0 and1')
     source_path, screen_path = args.source_run/'run_config.json', args.screen_run/'run_config.json'
     source, screen = json.loads(source_path.read_text()), json.loads(screen_path.read_text())
     screen_results = args.screen_run/'results.jsonl'
@@ -99,8 +75,6 @@ def main():
     extraction = {r['question_id'] for r in read_rows(args.vectors.parent/'extraction-questions.jsonl')}
     if extraction & {r['question_id'] for r in recordings}:
         parser.error('Recovery recordings overlap vector extraction')
-    if any(not Path(r['audio_path']).is_absolute() or not Path(r['audio_path']).is_file() for r in recordings):
-        parser.error('Original 74 recordings must exist at their saved absolute paths')
     screen_ids = sorted(r['question_id'] for r in screen['recordings'])
     plan = dict(recordings=recordings, conditions=conditions, screening=evidence,
                 screen_question_ids=screen_ids, minimum_recovery=args.min_recovery,

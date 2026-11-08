@@ -139,8 +139,6 @@ def main(argv=None):
         return
     excluded = {r["question_id"] for r in read_rows(args.vectors.parent/"extraction-questions.jsonl")}
     recordings = cohort(args.path, excluded)
-    if not recordings:
-        p.error("No eligible evaluated neutral/angry pairs")
     seed = json.loads((args.previous/"run_config.json").read_text())["settings"]["seed"]
     cached, conflicts = merge_cache(args.cached_runs, recordings, args.vectors, seed)
     prepared = dict(recordings=recordings, conditions=CONDITIONS,

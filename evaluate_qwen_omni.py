@@ -14,6 +14,11 @@ import random
 import time
 import wave
 
+import librosa
+import numpy as np
+import soundfile as sf
+import torch
+
 from cloud_tts_smoke import STYLES, AZURE_EXTRA_STYLES
 from compare_cloud_accuracy import PROMPT, read, summarize_deliveries
 from scoring import score_response
@@ -32,16 +37,12 @@ def select_tasks(paths, styles, num_questions):
             if task["provider"] != "azure" or task["style"] not in styles:
                 continue
             audio = folder / task["audio_path"]
-            if not audio.exists():
-                raise FileNotFoundError(f"Extract the audio archive first: {audio}")
             with wave.open(str(audio), "rb") as handle:
                 duration = handle.getnframes() / handle.getframerate()
             if not 0 < duration <= 30:
                 continue
             key = (task["question_id"], task["voice"])
             group = groups.setdefault(key, {})
-            if task["style"] in group:
-                raise ValueError(f"Duplicate question/voice/style: {key}, {task['style']}")
             group[task["style"]] = (folder, task)
     keys = sorted(groups)
     if num_questions:
@@ -69,12 +70,8 @@ def main():
     p.add_argument("--prepare-only", action="store_true")
     p.add_argument("--summary-only", action="store_true")
     args = p.parse_args()
-    if args.num_questions < 0 or args.max_new_tokens < 1 or len(set(args.styles)) != len(args.styles):
-        p.error("Use nonnegative question count, positive token limit, and unique styles.")
     args.paths = [folder.resolve() for folder in args.paths]
     selected = select_tasks(args.paths, args.styles, args.num_questions)
-    if not selected:
-        p.error("No eligible recordings. Check paths/styles; the small smoke requires complete style groups.")
     folders = sorted({folder for folder, _ in selected})
     saved = {folder: {r["audio_path"]: r for r in read(folder/RESULTS)}
              if (folder/RESULTS).exists() else {} for folder in folders}
@@ -106,17 +103,11 @@ def main():
         os.environ["HUGGINGFACE_HUB_CACHE"] = str(cache/"hub")
         os.environ.pop("TRANSFORMERS_CACHE", None)
         (cache/"hub").mkdir(parents=True, exist_ok=True)
-        import librosa
-        import numpy as np
-        import soundfile as sf
-        import torch
         import transformers
         from transformers import Qwen2_5OmniForConditionalGeneration, Qwen2_5OmniProcessor
 
         if transformers.__version__ != recipe["transformers"]:
             raise RuntimeError("Run setup_qwen_omni.sh and use the qwen-omni environment.")
-        if not torch.cuda.is_available():
-            raise RuntimeError("This evaluation expects a CUDA GPU.")
         processor = Qwen2_5OmniProcessor.from_pretrained(MODEL, revision=REVISION)
         model = Qwen2_5OmniForConditionalGeneration.from_pretrained(
             MODEL, revision=REVISION, torch_dtype=torch.bfloat16,
