@@ -251,8 +251,7 @@ def audio_speed_data():
         batches.append(dict(title=title,n=500,rows=[dict(style=s,mean_seconds=mean,median_seconds=median,
                             duration_change=100*(mean/baseline-1),relative_rate=baseline/mean) for s,mean,median in items]))
     return dict(n=100,baseline=69,points=points,durations=batches,
-                source='DIFFA-2 answered the same 100 original Spoken GSM recordings at nine playback rates. Pitch is preserved, 1× uses unchanged audio, and seed 42 is reset before every answer. Only recordings up to 21 seconds long were selected so even the slowest rate, 0.7×, stays within the 30-second input limit without cropping.',
-                original_steering=dict(n=300,baseline=210,point=point('acoustic',1,212,300,13,11)))
+                source='DIFFA-2 answered the same 100 original Spoken GSM recordings at nine playback rates. Pitch is preserved, 1× uses unchanged audio, and seed 42 is reset before every answer. Only recordings up to 21 seconds long were selected so even the slowest rate, 0.7×, stays within the 30-second input limit without cropping.')
 
 
 def main():
