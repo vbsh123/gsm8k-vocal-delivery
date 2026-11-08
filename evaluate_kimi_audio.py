@@ -6,7 +6,6 @@ Saved answers are separate from Qwen/DIFFA/Omni and resumable per recording.
 """
 
 import argparse
-from contextlib import contextmanager
 from collections import Counter
 import json
 import os
@@ -31,37 +30,6 @@ RESULTS = "results-kimi-audio.jsonl"
 SETTINGS = "kimi-audio-settings.json"
 
 
-@contextmanager
-def pytorch_safetensors_metadata():
-    """Compat for Kimi's Whisper file, whose valid tensor data has no metadata.
-
-    Transformers 4.44.2 assumes f.metadata() is a dict. Supply its expected
-    PyTorch format hint only when absent; preserve tensors and existing metadata.
-    This patch is active only while loading the pinned Kimi checkpoints.
-    """
-    import transformers.modeling_utils as modeling_utils
-    original = modeling_utils.safe_open
-
-    class Reader:
-        def __init__(self, reader):
-            self.reader = reader
-
-        def metadata(self):
-            metadata = self.reader.metadata()
-            return {"format": "pt"} if metadata is None else metadata
-
-        def __getattr__(self, name):
-            return getattr(self.reader, name)
-
-    @contextmanager
-    def open_with_metadata(*args, **kwargs):
-        with original(*args, **kwargs) as reader:
-            yield Reader(reader)
-
-    with patch.object(modeling_utils, "safe_open", open_with_metadata):
-        yield
-
-
 def messages(audio_path):
     # Same user role for instruction + audio follows the official Kimi API.
     # Do not include the question transcript, reference answer, or style label.
@@ -82,7 +50,7 @@ def assets(source):
     os.environ.pop("TRANSFORMERS_CACHE", None)
     (cache/"hub").mkdir(parents=True, exist_ok=True)
     import transformers
-    if transformers.__version__ != "4.44.2":
+    if transformers.__version__ != "4.51.3":
         raise RuntimeError("Use the kimi-audio environment from setup_kimi_audio.sh")
     from huggingface_hub import snapshot_download
     from transformers import AutoConfig, AutoTokenizer
@@ -130,7 +98,7 @@ def main():
              if (folder/RESULTS).exists() else {} for folder in folders}
     recipe = dict(model=MODEL, revision=REVISION, source_revision=SOURCE_REVISION,
                   tokenizer_model=TOKENIZER_MODEL, tokenizer_revision=TOKENIZER_REVISION,
-                  transformers="4.44.2", prompt=PROMPT, max_new_tokens=args.max_new_tokens,
+                  transformers="4.51.3", prompt=PROMPT, max_new_tokens=args.max_new_tokens,
                   seed=args.seed, text_temperature=0.0, audio_temperature=0.0,
                   text_top_k=5, audio_top_k=5, text_repetition_penalty=1.0,
                   audio_repetition_penalty=1.0, output_type="text", load_detokenizer=False)
@@ -153,7 +121,7 @@ def main():
         from kimia_infer.api.prompt_manager import Glm4Tokenizer
         # Preserve the official tokenizer implementation; give its constructor
         # the pinned local snapshot instead of the upstream hardcoded main ID.
-        with pytorch_safetensors_metadata(), patch("kimia_infer.api.prompt_manager.Glm4Tokenizer",
+        with patch("kimia_infer.api.prompt_manager.Glm4Tokenizer",
                    side_effect=lambda _: Glm4Tokenizer(tokenizer_path)):
             model = KimiAudio(model_path=model_path, load_detokenizer=False)
         model.alm.eval()
