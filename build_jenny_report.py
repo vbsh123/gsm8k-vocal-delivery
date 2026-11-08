@@ -178,9 +178,46 @@ def render_report(steering, deliveries):
     steering=list(steering)
     seen={e.get('id') for e in steering}
     steering.extend(e for e in followup_steering() if e['id'] not in seen)
+    steering=[explain_experiment(e) for e in steering]
     template = Path(__file__).with_name('jenny_report.html').read_text()
     payload = json.dumps(dict(steering=steering, deliveries=deliveries, audio_speed=audio_speed_data()), ensure_ascii=True, allow_nan=False)
     return template.replace('__JENNY_REPORT_DATA__', payload.replace('<', '\\u003c'))
+
+
+def explain_experiment(experiment):
+    """Reader-facing descriptions; keep identifiers and numerical results intact."""
+    descriptions={
+        'initial-pilot-50':('Initial search: where to apply the anger direction?',
+            'An anger direction was learned from 425 matched angry/neutral pairs in recording set A. We then steered the neutral audio for 50 questions from the separate recording set B, testing layers0–25 and audio/answer representations separately at strength1. Each condition is compared with the same neutral recording without steering.'),
+        'batch1-neutral-487':('Transfer test: direction from 414 pairs → 487 different neutral recordings',
+            'We learned a new anger direction from 414 matched angry/neutral pairs in set B, then applied it to 487 neutral recordings in set A. L11 answer and L12 acoustic steering were tested separately at strength1. The reported percentage is math accuracy, compared with the same recordings without steering. These questions were not used to extract this direction.'),
+        'batch2-neutral-460':('Transfer test: direction from 425 pairs → 460 different neutral recordings',
+            'We learned an anger direction from 425 matched angry/neutral pairs in set A, then applied it to 460 neutral recordings in set B. Each question had evaluated neutral and angry deliveries; steering was applied only to neutral audio. The percentage is math accuracy against the same recordings without steering. Layer choices had been explored on subsets of this test set.'),
+        'recovery-74':('Can steering repair answers that angry delivery got right? — 74 questions',
+            'Using the direction learned from set A, we tested 74 questions in set B for which neutral delivery was incorrect and angry delivery was correct. These exclude the initial50-question search. All74 were also incorrect under the fresh unsteered baseline. Here the percentage means the fraction of these failures repaired by steering; it is not overall math accuracy.'),
+        'regressions-260':('Does steering damage answers that were already correct? — 260 questions',
+            'Using the direction learned from set A, we tested 260 questions in set B for which both neutral and angry delivery had been correct. The fresh unsteered baseline was correct on all260. Here the percentage means previously correct answers retained after steering; a drop from100% is a regression. This deliberately selected success set is not an overall accuracy test.'),
+        'six-question-combinations':('Small diagnostic: stronger, weaker and combined interventions — 6 questions',
+            'Six questions from the initial search were selected because neutral delivery failed while angry delivery succeeded. We tested individual layers and combinations using the set A direction. These same questions guided the settings, so this panel is a diagnostic rather than an independent evaluation. For a combination with different strengths, x=1 means the full list of strengths shown in its name.'),
+        'recovery74-promoted':('Expanded layer search: selected candidates on all74 recovery questions',
+            'We first screened previously untested layers on ten of the74 recovery questions. Thirteen layer/group choices repaired at least4/10 and were tested at strength1.25 on all74. This panel includes those ten selection questions. Every question originally failed with neutral delivery and succeeded with angry delivery; the percentage is failures repaired, not overall accuracy.'),
+        'recovery64-promoted':('Follow-up beyond the screen: selected candidates on the other64 questions',
+            'These are the same thirteen candidates selected on ten questions, now reported only on the other64. The ten screening questions are excluded. The direction is learned from set A and applied to neutral recordings in set B at strength1.25. The questions are still selected for neutral failure and angry success; the percentage measures recovery on that subset.'),
+        'recovery74-L16-L23-strengths':('How much steering? — layers16 and23 on the same74 failures',
+            'We compared strengths0.5,1 and1.25 for answer-token steering at layers16 and23, using the set A direction on the same74 recovery questions in set B. The percentage is the fraction of unsteered failures repaired. All74 include the ten screening questions. Benefits on this failure set must be weighed against losses on previously correct answers.'),
+    }
+    entry=descriptions.get(experiment.get('id'))
+    if entry is None:
+        return experiment
+    title,source=entry
+    # Keep spaces around counts/coefficients readable in prose.
+    for a,b in [('layers0','layers 0'),('strength1','strength 1'),('strengths0','strengths 0'),
+                ('all74','all 74'),('all260','all 260'),('initial50','initial 50'),
+                ('at least4','at least 4'),('other64','other 64'),('layers16','layers 16'),
+                ('and23','and 23'),('from100','from 100'),('the74','the 74'),
+                ('same74','same 74'),('0.5,1 and1.25','0.5, 1 and 1.25')]:
+        title,source=title.replace(a,b),source.replace(a,b)
+    return {**experiment,'title':title,'source':source}
 
 
 def followup_steering():
@@ -208,13 +245,13 @@ def audio_speed_data():
            (1.1,65,9,13),(1.2,69,11,11),(1.3,66,11,14),(1.4,62,7,14),(1.5,62,16,23)]
     points=[dict(rate=a,**point('speed',a,k,100,w,l)) for a,k,w,l in sweep]
     batches=[]
-    for title,items in [('First500', [('neutral',16.52,15.86),('angry',18.80,18.05),('happy',16.54,15.93),('sad',20.36,19.46)]),
-                        ('Second500',[('neutral',16.97,15.98),('angry',19.33,18.39),('happy',17.00,16.07),('sad',20.94,19.74),('terrified',14.97,14.21),('shouting',19.81,18.82)])]:
+    for title,items in [('Recording set A — four requested deliveries', [('neutral',16.52,15.86),('angry',18.80,18.05),('happy',16.54,15.93),('sad',20.36,19.46)]),
+                        ('Recording set B — six requested deliveries',[('neutral',16.97,15.98),('angry',19.33,18.39),('happy',17.00,16.07),('sad',20.94,19.74),('terrified',14.97,14.21),('shouting',19.81,18.82)])]:
         baseline=items[0][1]
         batches.append(dict(title=title,n=500,rows=[dict(style=s,mean_seconds=mean,median_seconds=median,
                             duration_change=100*(mean/baseline-1),relative_rate=baseline/mean) for s,mean,median in items]))
     return dict(n=100,baseline=69,points=points,durations=batches,
-                source='Completed pasted DIFFA speed experiment: same100 original Spoken GSM recordings at every rate; seed42, librosa pitch-preserving time stretch, unchanged1x, no cropping. Sources <=21s so0.7x remains <=30s.',
+                source='DIFFA-2 answered the same 100 original Spoken GSM recordings at nine playback rates. Pitch is preserved, 1× uses unchanged audio, and seed 42 is reset before every answer. Only recordings up to 21 seconds long were selected so even the slowest rate, 0.7×, stays within the 30-second input limit without cropping.',
                 original_steering=dict(n=300,baseline=210,point=point('acoustic',1,212,300,13,11)))
 
 
