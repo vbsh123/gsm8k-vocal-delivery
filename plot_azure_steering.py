@@ -9,6 +9,7 @@ The chart retains only cohorts with more than 50 paired questions.
 
 import argparse
 from collections import defaultdict
+from html import escape
 import json
 from math import comb
 from pathlib import Path
@@ -37,9 +38,9 @@ def diagnostic_data():
     for layer,group,strength,lost in regressions:
         other.setdefault(str(layer),dict(n=260,baseline=260,points=[]))["points"].append(
             point(group,strength,260-lost,260,0,lost))
-    return [dict(title="Recovery diagnostic · 74 baseline failures",layers=layers,
+    return [dict(id="recovery-74",title="Recovery diagnostic · 74 baseline failures",layers=layers,
                  source="Outcome-selected: angry succeeded and neutral failed; these 74 also failed the fresh baseline. Accuracy here is recovery, not overall model accuracy. P-values are conditional diagnostics."),
-            dict(title="Regression diagnostic · 260 baseline successes",layers=other,
+            dict(id="regressions-260",title="Regression diagnostic · 260 baseline successes",layers=other,
                  source="Outcome-selected: neutral and angry both succeeded, and all 260 succeeded under the fresh baseline. Accuracy here measures retention of successes, not overall model accuracy. Do not combine directly with the recovery cohort.")]
 
 
@@ -57,10 +58,10 @@ def pasted_data():
         for layer in range(26)}
     return [dict(title="Batch 1 vector → batch 2 neutrals · L0–25 pilot", layers=sweep,
                  source="Pasted full Azure sweep: the same 50 neutral recordings, baseline 37/50, acoustic and answer steering at +1 on layers 0–25. Distinct from the larger follow-ups."),
-            dict(title="Batch 2 vector → batch 1 neutrals · partial", source="Pasted Azure table; 373 completed neutral pairs. Other deliveries excluded.",
-                 layers={"11":dict(n=373, baseline=238, points=[point("answer",1,251,373,28,15)]),
-                         "12":dict(n=373, baseline=238, points=[point("acoustic",1,247,373,22,13)])}),
-            dict(title="Batch 1 vector → batch 2 neutrals · complete", source="Pasted Azure table; all 460 matched neutral–angry questions. Steering is applied to neutral audio.",
+            dict(id="batch1-neutral-487",title="Batch 2 vector → batch 1 neutrals · 487 pairs", source="Latest pasted Azure table; 487 completed neutral pairs. Replaces the earlier 373-pair snapshot. Other deliveries excluded.",
+                 layers={"11":dict(n=487, baseline=319, points=[point("answer",1,330,487,30,19)]),
+                         "12":dict(n=487, baseline=319, points=[point("acoustic",1,327,487,25,17)])}),
+            dict(id="batch2-neutral-460",title="Batch 1 vector → batch 2 neutrals · complete", source="Pasted Azure table; all 460 matched neutral–angry questions. Steering is applied to neutral audio.",
                  layers={"11":dict(n=460, baseline=304, points=[point("answer",1,313,460,30,21)]),
                          "12":dict(n=460, baseline=304, points=[point("acoustic",1,316,460,29,17)])})]+diagnostic_data()
 
@@ -141,6 +142,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--runs",type=Path,nargs="+")
     p.add_argument("--output",type=Path,default=Path("outputs/azure-steering-coefficients.html"))
+    p.add_argument("--split-output",type=Path,help="Write a separate standalone HTML per cohort into this directory.")
     args=p.parse_args()
     data=from_runs(args.runs) if args.runs else pasted_data()
     data=[{**e,"layers":{k:v for k,v in e["layers"].items() if v["n"]>50}}
@@ -149,6 +151,19 @@ def main():
     if not data:
         p.error("No Azure cohorts with more than 50 paired questions")
     template=Path(__file__).with_name("azure_steering_graph.html").read_text()
+    if args.split_output:
+        args.split_output.mkdir(parents=True,exist_ok=True)
+        for index,e in enumerate(data,1):
+            payload=json.dumps([e],ensure_ascii=True).replace("<","\\u003c")
+            html=template.replace("__AZURE_STEERING_DATA__",payload)
+            html=html.replace('<div class="field"><label for="experiment">',
+                              '<div class="field" style="display:none"><label for="experiment">')
+            html=html.replace("Anger steering: strength vs accuracy",escape(e["title"]))
+            html=html.replace("Azure anger steering — accuracy by coefficient",escape(e["title"]))
+            path=args.split_output/(e.get("id",f"azure-experiment-{index}")+".html")
+            path.write_text(html)
+            print(f"Saved {path.resolve()}")
+        return
     payload=json.dumps(data,ensure_ascii=True).replace("<","\\u003c")
     html=template.replace("__AZURE_STEERING_DATA__",payload)
     args.output.parent.mkdir(parents=True,exist_ok=True)
