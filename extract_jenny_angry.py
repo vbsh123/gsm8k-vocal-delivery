@@ -1,7 +1,6 @@
 """Extract angry-minus-neutral directions from matched emotion2vec-agreed Jenny audio."""
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 import random
@@ -36,6 +35,8 @@ def recordings(paths):
 
 
 def select_pairs(records, predictions, seed):
+    if seed != 42:
+        raise ValueError("Azure extraction seed is fixed at 42")
     pairs = []
     for (qid, voice, style), neutral in sorted(records.items()):
         if style != "neutral":
@@ -45,9 +46,8 @@ def select_pairs(records, predictions, seed):
             continue
         if predictions.get(neutral["clip_id"]) != "neutral" or predictions.get(angry["clip_id"]) != "angry":
             continue
-        pair_seed = int.from_bytes(hashlib.sha256(f"{seed}:{qid}:{voice}".encode()).digest()[:4], "big")
         pairs.append({"question_id": qid, "speaker": voice, "neutral_id": neutral["clip_id"],
-                      "angry_id": angry["clip_id"], "seed": pair_seed})
+                      "angry_id": angry["clip_id"], "seed": 42})
     return pairs
 
 
@@ -62,7 +62,7 @@ def main(argv=None):
     p.add_argument("--paths", type=Path, nargs="+", default=[
         Path("outputs/azure-jenny500-extra"), Path("outputs/azure-jenny500-neutral")])
     p.add_argument("--output", type=Path, default=Path("outputs/jenny-angry-vectors"))
-    p.add_argument("--seed", type=int, default=42)
+    p.add_argument("--seed", type=int, choices=[42], default=42, help="Generation seed is fixed at 42.")
     p.add_argument("--max-new-tokens", type=int, default=512)
     p.add_argument("--limit", type=int, help="Process only the first N pairs, for a smoke test.")
     p.add_argument("--save-every", type=int, default=25)
@@ -146,10 +146,10 @@ def main(argv=None):
         audio, rate = sf.read(manifest[clip_id]["audio_path"], dtype="float32")
         if len(audio) / rate > 30:
             raise ValueError(f"Clip exceeds 30 seconds: {clip_id}")
-        random.seed(seed)
-        np.random.seed(seed)
-        torch.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
+        random.seed(42)
+        np.random.seed(42)
+        torch.manual_seed(42)
+        torch.cuda.manual_seed_all(42)
         response = gen(audio, rate, model, tokenizer, feature_extractor, PROMPT, args.max_new_tokens)
         summary = torch.stack([torch.stack(passes) for passes in captured])
         captured = []
