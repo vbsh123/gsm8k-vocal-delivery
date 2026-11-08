@@ -4,7 +4,8 @@ Without --runs, uses the Azure neutral-input tables pasted in this conversation:
 the 50-question L0–25 sweep, 460-pair follow-up, and partial reverse test on 373.
 With --runs, reads actual saved configurations/results and intersects completed
 questions across plotted strengths/groups at each layer. Older TTS is rejected.
-The chart retains only cohorts with more than 50 paired questions.
+By default the chart retains cohorts with more than 50 paired questions.
+Use --include-pilot to also export the initial 50-question sweep.
 """
 
 import argparse
@@ -56,7 +57,7 @@ def pasted_data():
         point(group,1,37+w-l,50,w,l)
         for group,(w,l) in [("acoustic",acoustic[layer]),("answer",answer[layer])]])
         for layer in range(26)}
-    return [dict(title="Batch 1 vector → batch 2 neutrals · L0–25 pilot", layers=sweep,
+    return [dict(id="initial-pilot-50",title="Batch 1 vector → batch 2 neutrals · L0–25 pilot · 50 questions", layers=sweep,
                  source="Pasted full Azure sweep: the same 50 neutral recordings, baseline 37/50, acoustic and answer steering at +1 on layers 0–25. Distinct from the larger follow-ups."),
             dict(id="batch1-neutral-487",title="Batch 2 vector → batch 1 neutrals · 487 pairs", source="Latest pasted Azure table; 487 completed neutral pairs. Replaces the earlier 373-pair snapshot. Other deliveries excluded.",
                  layers={"11":dict(n=487, baseline=319, points=[point("answer",1,330,487,30,19)]),
@@ -143,13 +144,15 @@ def main():
     p.add_argument("--runs",type=Path,nargs="+")
     p.add_argument("--output",type=Path,default=Path("outputs/azure-steering-coefficients.html"))
     p.add_argument("--split-output",type=Path,help="Write a separate standalone HTML per cohort into this directory.")
+    p.add_argument("--include-pilot",action="store_true",help="Include the initial 50-question Azure sweep.")
     args=p.parse_args()
     data=from_runs(args.runs) if args.runs else pasted_data()
-    data=[{**e,"layers":{k:v for k,v in e["layers"].items() if v["n"]>50}}
+    minimum=50 if args.include_pilot else 51
+    data=[{**e,"layers":{k:v for k,v in e["layers"].items() if v["n"]>=minimum}}
           for e in data]
     data=[e for e in data if e["layers"]]
     if not data:
-        p.error("No Azure cohorts with more than 50 paired questions")
+        p.error(f"No Azure cohorts with at least {minimum} paired questions")
     template=Path(__file__).with_name("azure_steering_graph.html").read_text()
     if args.split_output:
         args.split_output.mkdir(parents=True,exist_ok=True)
