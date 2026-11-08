@@ -21,9 +21,9 @@ CONDITIONS=[dict(name="baseline",interventions=[]),
             dict(name="L16-answer-a1.25",interventions=[dict(layer=16,group="answer",strength=1.25)])]
 
 
-def merge_cache(runs,records,vectors):
+def merge_cache(runs,records,vectors,conditions=None):
     selected={r["clip_id"]:r for r in records}
-    expected={c["name"]:c["interventions"] for c in CONDITIONS}
+    expected={c["name"]:c["interventions"] for c in (conditions or CONDITIONS)}
     stat=vectors.stat()
     cached={}
     for folder in runs:
@@ -63,14 +63,15 @@ def merge_cache(runs,records,vectors):
 
 def report(output):
     config=json.loads((output/"run_config.json").read_text())
+    conditions=config["settings"]["conditions"]
     rows={(r["clip_id"],r["condition"]):r for r in read_rows(output/"results.jsonl")}
-    common=[r["clip_id"] for r in config["recordings"] if all((r["clip_id"],c["name"]) in rows for c in CONDITIONS)]
-    print(f"Completed generations: {len(rows)}/{len(config['recordings'])*3}")
-    print(f"Same questions completed in all three conditions: {len(common)}/{len(config['recordings'])}")
+    common=[r["clip_id"] for r in config["recordings"] if all((r["clip_id"],c["name"]) in rows for c in conditions)]
+    print(f"Completed generations: {len(rows)}/{len(config['recordings'])*len(conditions)}")
+    print(f"Same questions completed in every requested condition: {len(common)}/{len(config['recordings'])}")
     selected=[{**rows[cid,c["name"]],**score_response(rows[cid,c["name"]]["response"],rows[cid,c["name"]]["reference_answer"])}
-              for cid in common for c in CONDITIONS]
-    summary=summarize(selected,CONDITIONS)
-    if common:
+              for cid in common for c in conditions]
+    summary=summarize(selected,conditions)
+    if common and any(c["name"]=="L12-acoustic-a1" for c in conditions):
         answers={(r["clip_id"],r["condition"]):r["correct"] for r in selected}
         w=sum(answers[cid,"L16-answer-a1.25"] and not answers[cid,"L12-acoustic-a1"] for cid in common)
         l=sum(answers[cid,"L12-acoustic-a1"] and not answers[cid,"L16-answer-a1.25"] for cid in common)
@@ -87,14 +88,18 @@ def main():
     p.add_argument("--vectors",type=Path,default=Path("outputs/jenny-angry-vectors/style-vectors.pt"))
     p.add_argument("--reuse-runs",type=Path,nargs="*",default=[
         Path("outputs/steer-jenny-recovery74-promoted-a1.25-seed42"),
-        Path("outputs/steer-jenny-L16-L23-followup-seed42/regressions")])
-    p.add_argument("--output",type=Path,default=Path("outputs/steer-jenny-L12-vs-L16-full460-seed42"))
+        Path("outputs/steer-jenny-L16-L23-followup-seed42/regressions"),
+        Path("outputs/steer-jenny-L12-vs-L16-full460-seed42")])
+    p.add_argument("--l16-only",action="store_true",help="Complete only L16 plus its baseline; reuse the already tested subsets.")
+    p.add_argument("--output",type=Path)
     p.add_argument("--prepare-only",action="store_true")
     p.add_argument("--summary-only",action="store_true")
     args=p.parse_args()
+    args.output=args.output or Path("outputs/steer-jenny-L16-full460-seed42" if args.l16_only else "outputs/steer-jenny-L12-vs-L16-full460-seed42")
     if args.summary_only:
         report(args.output)
         return
+    conditions=[c for c in CONDITIONS if c["name"]!="L12-acoustic-a1"] if args.l16_only else CONDITIONS
     source=json.loads((args.source_run/"run_config.json").read_text())
     records=source["recordings"]
     if len(records)!=460 or len({r["question_id"] for r in records})!=460:
@@ -108,10 +113,10 @@ def main():
            or not Path(r["audio_path"]).is_file() for r in records):
         p.error("Expected neutral audio at its saved absolute paths")
     try:
-        cached=merge_cache(args.reuse_runs,records,args.vectors)
+        cached=merge_cache(args.reuse_runs,records,args.vectors,conditions)
     except ValueError as exc:
         p.error(str(exc))
-    plan=dict(recordings=records,conditions=CONDITIONS,seed=42,
+    plan=dict(recordings=records,conditions=conditions,seed=42,
               selection="Full original460 cohort, without selection by answer correctness or classifier emotion",
               source_run=str(args.source_run.resolve()))
     args.output.mkdir(parents=True,exist_ok=True)
