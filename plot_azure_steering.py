@@ -1,7 +1,7 @@
 """Build a standalone interactive Azure steering graph (standard library only).
 
 Without --runs, uses the Azure neutral-input tables pasted in this conversation:
-batch-one vector on 460 batch-two pairs, and the partial reverse test on 373.
+the 50-question L0–25 sweep, 460-pair follow-up, and partial reverse test on 373.
 With --runs, reads actual saved configurations/results and intersects completed
 questions across plotted strengths/groups at each layer. Older TTS is rejected.
 """
@@ -22,7 +22,20 @@ def point(group, strength, correct, n, wins, losses):
 
 
 def pasted_data():
-    return [dict(title="Batch 2 vector → batch 1 neutrals · partial", source="Pasted Azure table; 373 completed neutral pairs. Other deliveries excluded.",
+    # Full Azure pilot table supplied by the user: same 50 recordings at every layer.
+    acoustic = [(1,3),(0,1),(1,1),(0,1),(0,1),(2,1),(0,1),(0,2),(0,1),(1,3),
+                (0,4),(0,2),(1,2),(0,3),(0,2),(0,2),(1,2),(0,1),(0,2),(0,4),
+                (1,2),(0,1),(0,1),(1,1),(1,2),(0,1)]
+    answer = [(1,3),(0,2),(0,0),(1,0),(1,2),(0,1),(0,0),(0,2),(1,3),(1,2),
+              (0,3),(1,3),(0,3),(0,1),(1,2),(0,2),(0,3),(0,4),(0,4),(0,2),
+              (0,1),(0,2),(0,2),(0,3),(0,1),(0,3)]
+    sweep = {str(layer):dict(n=50,baseline=37,points=[
+        point(group,1,37+w-l,50,w,l)
+        for group,(w,l) in [("acoustic",acoustic[layer]),("answer",answer[layer])]])
+        for layer in range(26)}
+    return [dict(title="Batch 1 vector → batch 2 neutrals · L0–25 pilot", layers=sweep,
+                 source="Pasted full Azure sweep: the same 50 neutral recordings, baseline 37/50, acoustic and answer steering at +1 on layers 0–25. Distinct from the larger follow-ups."),
+            dict(title="Batch 2 vector → batch 1 neutrals · partial", source="Pasted Azure table; 373 completed neutral pairs. Other deliveries excluded.",
                  layers={"11":dict(n=373, baseline=238, points=[point("answer",1,251,373,28,15)]),
                          "12":dict(n=373, baseline=238, points=[point("acoustic",1,247,373,22,13)])}),
             dict(title="Batch 1 vector → batch 2 neutrals · complete", source="Pasted Azure table; all 460 matched neutral–angry questions. Steering is applied to neutral audio.",
