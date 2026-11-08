@@ -45,6 +45,34 @@ def diagnostic_data():
                  source="Outcome-selected: neutral and angry both succeeded, and all 260 succeeded under the fresh baseline. Accuracy here measures retention of successes, not overall model accuracy. Do not combine directly with the recovery cohort.")]
 
 
+def six_question_data():
+    layers={}
+    def add(targets,k):
+        mixed=len({t[2] for t in targets})>1
+        group=targets[0][1] if len({t[1] for t in targets})==1 else "combo"
+        layer=" + ".join(str(t[0]) for t in targets)
+        p=point(group,1 if mixed else targets[0][2],k,6,k,0)
+        p.update(interventions=[dict(layer=l,group=g,strength=a) for l,g,a in targets],mixed_strengths=mixed)
+        layers.setdefault(layer,dict(n=6,baseline=0,points=[]))["points"].append(p)
+    for layer,group,k in [(5,"acoustic",0),(0,"acoustic",0),(0,"answer",0),(2,"acoustic",0),
+                         (3,"answer",2),(4,"answer",0),(8,"answer",1),(9,"answer",0),
+                         (11,"answer",0),(12,"acoustic",0),(14,"answer",1),(16,"acoustic",0),
+                         (20,"acoustic",0),(23,"acoustic",0),(24,"acoustic",0)]:
+        add([(layer,group,2)],k)
+    for layer,group,k in [(0,"acoustic",0),(0,"answer",1),(2,"acoustic",0),(4,"answer",0),
+                         (8,"answer",0),(9,"answer",0),(12,"acoustic",0),(14,"answer",0),
+                         (16,"acoustic",0),(20,"acoustic",0),(23,"acoustic",1),(24,"acoustic",1)]:
+        add([(layer,group,.5)],k)
+    for targets,k in [([(5,"acoustic",1),(0,"acoustic",1)],0),
+                      ([(5,"acoustic",1),(0,"acoustic",.5)],1),
+                      ([(5,"acoustic",1),(11,"answer",1)],1),
+                      ([(5,"acoustic",1),(11,"answer",.5)],0),
+                      ([(5,"acoustic",1),(11,"answer",1),(3,"answer",2)],1)]:
+        add(targets,k)
+    return dict(id="six-question-combinations",title="Six-question diagnostic · strengths and combinations",layers=layers,
+                source="Pasted six-question follow-ups, selected because neutral failed and angry succeeded. Baseline 0/6. These are outcome-selected diagnostics, not estimates of overall benefit. For mixed strengths, x=1 means the full combination listed in the selector; it is not one shared coefficient.")
+
+
 def pasted_data():
     # Full Azure pilot table supplied by the user: same 50 recordings at every layer.
     acoustic = [(1,3),(0,1),(1,1),(0,1),(0,1),(2,1),(0,1),(0,2),(0,1),(1,3),
@@ -89,10 +117,7 @@ def from_runs(paths):
             targets = c.get("interventions")
             if targets is None:
                 targets = [] if c["name"]=="baseline" else [{k:c[k] for k in ("layer","group","strength")}]
-            # A coefficient curve is defined for combinations with the same
-            # coefficient at every intervention. Mixed strengths need a separate plot.
-            if not targets or len({t["strength"] for t in targets})==1:
-                exp["conditions"][c["name"]] = targets
+            exp["conditions"][c["name"]] = targets
         latest = {(r["clip_id"],r["condition"]):r for r in read_rows(path/"results.jsonl")}
         for k, r in latest.items():
             if k[0] not in records or k[1] not in exp["conditions"]:
@@ -107,10 +132,11 @@ def from_runs(paths):
         rows, conditions = exp["rows"], exp["conditions"]
         by_layer = defaultdict(list)
         for name, targets in conditions.items():
-            if targets and -2 <= targets[0]["strength"] <= 2:
+            if targets and all(-2 <= t["strength"] <= 2 for t in targets):
                 layer=" + ".join(str(v) for v in sorted({t["layer"] for t in targets}))
-                for group in sorted({t["group"] for t in targets}):
-                    by_layer[layer].append((name,dict(layer=layer,group=group,strength=targets[0]["strength"],label=name)))
+                mixed=len({t["strength"] for t in targets})>1
+                group=targets[0]["group"] if len({t["group"] for t in targets})==1 else "combo"
+                by_layer[layer].append((name,dict(layer=layer,group=group,strength=1 if mixed else targets[0]["strength"],interventions=targets,mixed_strengths=mixed)))
         layers = {}
         for layer, targets in sorted(by_layer.items()):
             common = {cid for cid,c in rows if c=="baseline"}
@@ -128,7 +154,7 @@ def from_runs(paths):
                         raise ValueError(f"Nonmatching baseline recipe at {cid}: {name}")
                 wins=sum(rows[cid,name]["ok"] and not b[cid]["ok"] for cid in common)
                 losses=sum(b[cid]["ok"] and not rows[cid,name]["ok"] for cid in common)
-                points.append({**point(t["group"],t["strength"],sum(rows[cid,name]["ok"] for cid in common),len(common),wins,losses),"label":name})
+                points.append({**point(t["group"],t["strength"],sum(rows[cid,name]["ok"] for cid in common),len(common),wins,losses),"label":name,"interventions":t["interventions"],"mixed_strengths":t["mixed_strengths"]})
             layers[str(layer)] = dict(n=len(common),baseline=sum(r["ok"] for r in b.values()),points=points)
         if layers:
             vector=Path(exp["settings"]["vectors"]).parent.name
@@ -145,12 +171,15 @@ def main():
     p.add_argument("--output",type=Path,default=Path("outputs/azure-steering-coefficients.html"))
     p.add_argument("--split-output",type=Path,help="Write a separate standalone HTML per cohort into this directory.")
     p.add_argument("--include-pilot",action="store_true",help="Include the initial 50-question Azure sweep.")
+    p.add_argument("--include-small-diagnostics",action="store_true",help="Also export six-question strength and combination diagnostics separately.")
     args=p.parse_args()
     data=from_runs(args.runs) if args.runs else pasted_data()
     minimum=50 if args.include_pilot else 51
     data=[{**e,"layers":{k:v for k,v in e["layers"].items() if v["n"]>=minimum}}
           for e in data]
     data=[e for e in data if e["layers"]]
+    if args.include_small_diagnostics and not args.runs:
+        data.append(six_question_data())
     if not data:
         p.error(f"No Azure cohorts with at least {minimum} paired questions")
     template=Path(__file__).with_name("azure_steering_graph.html").read_text()

@@ -6,11 +6,10 @@
 </style></head><body><main>
 <div class="eyebrow">Azure Jenny · DIFFA-2 · Neutral input audio</div>
 <h1>Anger steering: strength vs accuracy</h1>
-<p>Angry-minus-neutral directions, applied to neutral recordings. Choose a layer to inspect its measured coefficients.</p>
+<p>Angry-minus-neutral directions, applied to neutral recordings. Choose a measured condition, including its layer, token group and strength.</p>
 <div class="card"><div class="controls">
 <div class="field"><label for="experiment">Experiment — vectors and test batches stay separate</label><select id="experiment"></select></div>
-<div class="field"><label for="layer">Layer</label><select id="layer"></select></div>
-<div class="field"><label for="group">Token group</label><select id="group"><option value="answer">Answer</option><option value="acoustic">Acoustic</option><option value="semantic">Semantic</option></select></div>
+<div class="field"><label for="layer">Layer / group / strength</label><select id="layer"></select></div>
 </div>
 <div class="toggles"><label><input id="intervals" type="checkbox">Show 95% accuracy intervals</label><label><input id="zoom" type="checkbox">Zoom accuracy axis</label></div>
 <div class="summary"><div class="metric"><small>Matched questions</small><strong id="sample"></strong></div><div class="metric"><small>Unsteered baseline</small><strong id="baseline"></strong></div><div class="metric"><small>Best measured steering</small><strong id="best"></strong> <span id="gain"></span></div></div>
@@ -25,17 +24,19 @@
 'use strict';
 const DATA=__AZURE_STEERING_DATA__;
 const $=id=>document.getElementById(id);
-const COLORS={answer:'#7160d5',acoustic:'#168e9b',semantic:'#cd7d31',combined:'#b74d8b',baseline:'#66758b'};
+const COLORS={answer:'#7160d5',acoustic:'#168e9b',semantic:'#cd7d31',combined:'#b74d8b',combo:'#b74d8b',baseline:'#66758b'};
 const NAMES={answer:'Answer tokens',acoustic:'Acoustic tokens',semantic:'Semantic tokens',combined:'Acoustic + semantic'};
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const percent=(k,n)=>(100*k/n).toFixed(1)+'%';
 function ci(k,n){const p=k/n,m=1.96*Math.sqrt(p*(1-p)/n);return [Math.max(0,100*(p-m)),Math.min(100,100*(p+m))]}
 function sign(x){return (x>0?'+':'')+x.toFixed(1)}
 function coefficient(x){return x>0?'+'+x:String(x)}
-function chooseLayers(){const e=DATA[Number($('experiment').value)];const previous=$('layer').value;const layers=Object.keys(e.layers).filter(k=>e.layers[k].points.some(p=>p.group===$('group').value)).sort((a,b)=>Number(a)-Number(b));$('layer').innerHTML=layers.map(x=>'<option value="'+x+'">Layer '+x+'</option>').join('');$('layer').value=layers.includes(previous)?previous:(layers[0]||'');if(!layers.length){$('sample').textContent='—';$('baseline').textContent='—';$('best').textContent='—';$('gain').textContent='';$('plot').innerHTML='<p>No measured '+escape($('group').value)+' steering in this experiment.</p>';$('rows').innerHTML='';$('legend').innerHTML='';$('source').textContent=e.source;return}render()}
+function conditionName(layer,p){return p.interventions?p.interventions.map(t=>'L'+t.layer+' — '+t.group+' — ×'+t.strength).join(' + '):'L'+layer+' — '+p.group+' — ×'+p.strength}
+function options(e){return Object.keys(e.layers).sort((a,b)=>parseInt(a)-parseInt(b)).flatMap(layer=>e.layers[layer].points.map((p,i)=>({key:layer+':'+i,layer,p,label:conditionName(layer,p)})))}
+function chooseLayers(){const e=DATA[Number($('experiment').value)],previous=$('layer').value,items=options(e);$('layer').innerHTML=items.map(v=>'<option value="'+v.key+'">'+escape(v.label)+'</option>').join('');$('layer').value=items.some(v=>v.key===previous)?previous:items[0].key;render()}
 function render(){
- const e=DATA[Number($('experiment').value)],d=e.layers[$('layer').value],filter=$('group').value;
- const points=d.points.filter(p=>p.group===filter&&p.strength>=-2&&p.strength<=2).sort((a,b)=>a.strength-b.strength);
+ const e=DATA[Number($('experiment').value)],selected=options(e).find(v=>v.key===$('layer').value),d=e.layers[selected.layer];
+ const points=[{...selected.p,label:selected.label}];
  const baseline=100*d.baseline/d.n,best=points.length?points.reduce((a,b)=>a.correct/a.n>b.correct/b.n?a:b):null;
  $('sample').textContent=d.n;$('baseline').textContent=percent(d.baseline,d.n);
  $('best').textContent=best?percent(best.correct,best.n):'—';$('gain').textContent=best?'('+sign(100*best.correct/best.n-baseline)+' pp)':'';
@@ -52,20 +53,19 @@ function render(){
  for(let i=0;i<=5;i++){const v=low+(high-low)*i/5,y=Y(v);svg+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'" stroke="#edf0f5"/>'+text(L-12,y+4,v.toFixed(0)+'%','text-anchor="end"')}
  for(let a=-2;a<=2.01;a+=.5){svg+=text(X(a),H-B+25,coefficient(a),'text-anchor="middle"')}
  svg+='<line x1="'+X(0)+'" x2="'+X(0)+'" y1="'+T+'" y2="'+(H-B)+'" stroke="#cbd4e1" stroke-dasharray="4 5"/>';
- svg+=text(L+PW/2,H-13,'Steering coefficient α','text-anchor="middle"');
+ svg+=text(L+PW/2,H-13,selected.p.mixed_strengths?'Multiplier of the selected combination (1 = listed strengths)':'Steering coefficient α','text-anchor="middle"');
  svg+='<text transform="translate(17 '+(T+PH/2)+') rotate(-90)" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-size="12" fill="#728099">Accuracy (%)</text>';
  svg+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(baseline)+'" y2="'+Y(baseline)+'" stroke="#a8b4c5" stroke-dasharray="5 5"/>';
  const groups=[...new Set(points.map(p=>p.group))];
  for(const group of groups){const series=[{strength:0,correct:d.baseline,n:d.n},...points.filter(p=>p.group===group)].sort((a,b)=>a.strength-b.strength);svg+='<polyline points="'+series.map(p=>X(p.strength)+','+Y(100*p.correct/p.n)).join(' ')+'" fill="none" stroke="'+COLORS[group]+'" stroke-width="2.5"/>'}
  const all=[{group:'baseline',strength:0,correct:d.baseline,n:d.n},...points];
- for(const p of all){const x=X(p.strength),y=Y(100*p.correct/p.n),color=COLORS[p.group];if(showCI){const c=ci(p.correct,p.n);svg+='<path d="M '+x+' '+Y(c[0])+' V '+Y(c[1])+' M '+(x-5)+' '+Y(c[0])+' h 10 M '+(x-5)+' '+Y(c[1])+' h 10" stroke="'+color+'" stroke-opacity=".55" fill="none"/>'}svg+='<circle cx="'+x+'" cy="'+y+'" r="6" fill="'+color+'" stroke="white" stroke-width="2"><title>'+escape((p.group==='baseline'?'Baseline':NAMES[p.group])+'; α='+p.strength+'; '+p.correct+'/'+p.n+' = '+percent(p.correct,p.n))+'</title></circle>';svg+='<text x="'+x+'" y="'+(y-13)+'" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="'+color+'">'+percent(p.correct,p.n)+'</text>'}
+ for(const p of all){const x=X(p.strength),y=Y(100*p.correct/p.n),color=COLORS[p.group];if(showCI){const c=ci(p.correct,p.n);svg+='<path d="M '+x+' '+Y(c[0])+' V '+Y(c[1])+' M '+(x-5)+' '+Y(c[0])+' h 10 M '+(x-5)+' '+Y(c[1])+' h 10" stroke="'+color+'" stroke-opacity=".55" fill="none"/>'}svg+='<circle cx="'+x+'" cy="'+y+'" r="6" fill="'+color+'" stroke="white" stroke-width="2"><title>'+escape((p.group==='baseline'?'Baseline':p.label)+'; α='+p.strength+'; '+p.correct+'/'+p.n+' = '+percent(p.correct,p.n))+'</title></circle>';svg+='<text x="'+x+'" y="'+(y-13)+'" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="'+color+'">'+percent(p.correct,p.n)+'</text>'}
  svg+='</svg>';$('plot').innerHTML=svg;
- $('legend').innerHTML='<span><i class="dot" style="background:'+COLORS.baseline+'"></i>Unsteered baseline</span>'+groups.map(g=>'<span><i class="dot" style="background:'+COLORS[g]+'"></i>'+NAMES[g]+'</span>').join('');
- $('rows').innerHTML=all.map(p=>{const c=ci(p.correct,p.n);return '<tr><td>'+escape(p.group==='baseline'?'Baseline':NAMES[p.group])+'</td><td>'+coefficient(p.strength)+'</td><td>'+p.correct+' / '+p.n+'</td><td>'+percent(p.correct,p.n)+'</td><td>'+c[0].toFixed(1)+'–'+c[1].toFixed(1)+'%</td><td>'+sign(100*p.correct/p.n-baseline)+'</td><td>'+(p.wins===undefined?'—':p.wins+' / '+p.losses)+'</td><td>'+(p.p===undefined?'—':p.p.toFixed(4))+'</td></tr>'}).join('');
+ $('legend').innerHTML='<span><i class="dot" style="background:'+COLORS.baseline+'"></i>Unsteered baseline</span><span><i class="dot" style="background:'+COLORS[selected.p.group]+'"></i>'+escape(selected.label)+'</span>';
+ $('rows').innerHTML=all.map(p=>{const c=ci(p.correct,p.n);return '<tr><td>'+escape(p.group==='baseline'?'Baseline':p.label)+'</td><td>'+coefficient(p.strength)+'</td><td>'+p.correct+' / '+p.n+'</td><td>'+percent(p.correct,p.n)+'</td><td>'+c[0].toFixed(1)+'–'+c[1].toFixed(1)+'%</td><td>'+sign(100*p.correct/p.n-baseline)+'</td><td>'+(p.wins===undefined?'—':p.wins+' / '+p.losses)+'</td><td>'+(p.p===undefined?'—':p.p.toFixed(4))+'</td></tr>'}).join('');
 }
-$('experiment').innerHTML=DATA.map((e,i)=>'<option value="'+i+'">'+escape(e.title)+'</option>').join('');$('experiment').value='0';$('group').value='answer';
+$('experiment').innerHTML=DATA.map((e,i)=>'<option value="'+i+'">'+escape(e.title)+'</option>').join('');$('experiment').value='0';
 $('experiment').addEventListener('change',chooseLayers);
-$('group').addEventListener('change',chooseLayers);
 for(const id of ['layer','intervals','zoom'])$(id).addEventListener('change',()=>{if($('layer').value)render()});
 $('export').addEventListener('click',()=>{const a=document.createElement('a');const url=URL.createObjectURL(new Blob([$('chart').outerHTML],{type:'image/svg+xml'}));a.href=url;a.download='azure-steering-layer-'+$('layer').value+'.svg';a.click();URL.revokeObjectURL(url)});
 chooseLayers();
