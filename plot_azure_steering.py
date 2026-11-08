@@ -4,6 +4,7 @@ Without --runs, uses the Azure neutral-input tables pasted in this conversation:
 the 50-question L0–25 sweep, 460-pair follow-up, and partial reverse test on 373.
 With --runs, reads actual saved configurations/results and intersects completed
 questions across plotted strengths/groups at each layer. Older TTS is rejected.
+The chart retains only cohorts with more than 50 paired questions.
 """
 
 import argparse
@@ -117,6 +118,11 @@ def main():
     p.add_argument("--output",type=Path,default=Path("outputs/azure-steering-coefficients.html"))
     args=p.parse_args()
     data=from_runs(args.runs) if args.runs else pasted_data()
+    data=[{**e,"layers":{k:v for k,v in e["layers"].items() if v["n"]>50}}
+          for e in data]
+    data=[e for e in data if e["layers"]]
+    if not data:
+        p.error("No Azure cohorts with more than 50 paired questions")
     template=Path(__file__).with_name("azure_steering_graph.html").read_text()
     payload=json.dumps(data,ensure_ascii=True).replace("<","\\u003c")
     html=template.replace("__AZURE_STEERING_DATA__",payload)
