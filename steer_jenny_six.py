@@ -79,9 +79,12 @@ def main(argv=None):
     p.add_argument("--output", type=Path)
     p.add_argument("--prepare-only", action="store_true")
     p.add_argument("--summary-only", action="store_true")
+    p.add_argument("--fixed-seed", type=int, help="Reset exactly this seed before every generation; default preserves per-clip derived seeds.")
     p.add_argument("--allow-extraction-overlap", action="store_true",
                    help="Explicit in-sample diagnostic only; otherwise extraction overlap is rejected.")
     args = p.parse_args(argv)
+    if args.fixed_seed is not None and not 0 <= args.fixed_seed < 2**32:
+        p.error("--fixed-seed must be in 0..2**32-1")
     args.output = args.output or Path("outputs/steer-jenny-angry-six-" + (
         "half" if args.plan == "lower-strength" else "followup"))
     config_path = args.output / "run_config.json"
@@ -113,6 +116,8 @@ def main(argv=None):
                 "vector_bytes": stat.st_size, "vector_mtime_ns": stat.st_mtime_ns,
                 "seed": previous["settings"]["seed"], "conditions": conditions,
                 "style": "angry", "mode": "fixed", "selection": "outcome-selected diagnostic"}
+    if args.fixed_seed is not None:
+        settings.update(seed=args.fixed_seed, seed_policy="constant_before_every_generation")
     if args.plan != "original":
         settings["plan"] = args.plan
     if args.allow_extraction_overlap:
@@ -199,7 +204,7 @@ def main(argv=None):
             for c_index, c in enumerate(conditions, 1):
                 if (recording["clip_id"], c["name"]) in completed:
                     continue
-                seed = int.from_bytes(hashlib.sha256(
+                seed = args.fixed_seed if args.fixed_seed is not None else int.from_bytes(hashlib.sha256(
                     f'{settings["seed"]}:{recording["clip_id"]}'.encode()).digest()[:4], "big")
                 random.seed(seed)
                 np.random.seed(seed)
