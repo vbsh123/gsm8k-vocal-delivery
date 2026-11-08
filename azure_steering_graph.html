@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Azure anger steering — accuracy by coefficient</title>
+<style>
+:root{font-family:Inter,Segoe UI,Arial,sans-serif;color:#182337;background:#f3f5f9}*{box-sizing:border-box}body{margin:0;padding:40px 24px}main{max-width:1120px;margin:auto}.eyebrow{font-size:12px;font-weight:700;letter-spacing:1.8px;color:#596a85;text-transform:uppercase}h1{font-size:30px;letter-spacing:-.8px;margin:10px 0}p{color:#627089;line-height:1.6;margin:8px 0}.card{background:#fff;border:1px solid #e2e7ef;border-radius:16px;padding:24px;margin-top:22px;box-shadow:0 6px 24px #22324c05}.controls{display:flex;gap:16px;align-items:end;flex-wrap:wrap}.field{display:flex;flex-direction:column;gap:7px}.field:first-child{flex:1;min-width:270px}label{font-size:12px;font-weight:600;color:#627089}select{font:inherit;font-size:14px;background:#fff;border:1px solid #d4dce8;border-radius:8px;padding:11px 36px 11px 12px;color:#182337;max-width:100%}.toggles{display:flex;gap:16px;margin:18px 0 0;flex-wrap:wrap}.toggles label{display:flex;align-items:center;gap:6px;font-weight:400}.summary{display:flex;gap:30px;flex-wrap:wrap;margin:22px 0 4px}.metric small{display:block;color:#728099;font-size:12px;margin-bottom:6px}.metric strong{font-size:25px;letter-spacing:-.6px}.metric span{font-size:13px;color:#627089}.plot{width:100%;overflow:hidden}svg{width:100%;height:auto;display:block}table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;color:#728099;font-size:11px;letter-spacing:.4px;font-weight:600;padding:12px 8px;border-bottom:1px solid #dce3ed}td{padding:13px 8px;border-bottom:1px solid #edf0f5;font-variant-numeric:tabular-nums}td:not(:first-child),th:not(:first-child){text-align:right}.note{font-size:12px;color:#728099}.badge{display:inline-block;border-radius:20px;background:#eef2fa;color:#596a85;padding:5px 10px;font-size:12px}.legend{display:flex;gap:18px;align-items:center;font-size:12px;color:#627089;margin-top:16px}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}.footer{display:flex;justify-content:space-between;gap:14px;align-items:center;margin-top:14px}button{border:1px solid #d4dce8;background:white;padding:8px 12px;border-radius:7px;color:#435472;cursor:pointer;font:inherit;font-size:12px}.scroll{overflow-x:auto}#tooltip{display:none;position:fixed;pointer-events:none;background:#172238;color:white;border-radius:8px;padding:10px 13px;white-space:pre-line;font-size:12px;line-height:1.6;box-shadow:0 4px 16px #0002;z-index:3}@media(max-width:650px){body{padding:22px 12px}.card{padding:16px}h1{font-size:25px}.summary{gap:20px}select{width:100%}.field{width:100%}.metric strong{font-size:21px}}
+</style></head><body><main>
+<div class="eyebrow">Azure Jenny · DIFFA-2 · Neutral input audio</div>
+<h1>Anger steering: strength vs accuracy</h1>
+<p>Angry-minus-neutral directions, applied to neutral recordings. Choose a layer to inspect its measured coefficients.</p>
+<div class="card"><div class="controls">
+<div class="field"><label for="experiment">Experiment — vectors and test batches stay separate</label><select id="experiment"></select></div>
+<div class="field"><label for="layer">Layer</label><select id="layer"></select></div>
+<div class="field"><label for="group">Token group</label><select id="group"><option value="all">All available</option><option value="answer">Answer</option><option value="acoustic">Acoustic</option><option value="semantic">Semantic</option><option value="combined">Acoustic + semantic</option></select></div>
+</div>
+<div class="toggles"><label><input id="intervals" type="checkbox">Show 95% accuracy intervals</label><label><input id="zoom" type="checkbox">Zoom accuracy axis</label></div>
+<div class="summary"><div class="metric"><small>Matched questions</small><strong id="sample"></strong></div><div class="metric"><small>Unsteered baseline</small><strong id="baseline"></strong></div><div class="metric"><small>Best measured steering</small><strong id="best"></strong> <span id="gain"></span></div></div>
+<div id="plot" class="plot"></div><div id="legend" class="legend"></div>
+<p class="note">Only measured points are plotted. Lines are visual guides; missing coefficients are not estimated.</p>
+<div class="scroll"><table><thead><tr><th>Condition</th><th>Coefficient</th><th>Correct / N</th><th>Accuracy</th><th>95% CI</th><th>Gain (pp)</th><th>Wins / losses</th><th>McNemar p</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="footer"><span class="badge">Strict scoring · exploratory results</span><button id="export">Save chart as SVG</button></div>
+</div><p id="source" class="note"></p>
+<p class="note">Confidence intervals describe accuracy (normal approximation), not the change against baseline. McNemar tests are paired and unadjusted. Layers were selected using earlier results.</p>
+</main><div id="tooltip"></div>
+<script>
+'use strict';
+const DATA=__AZURE_STEERING_DATA__;
+const $=id=>document.getElementById(id);
+const COLORS={answer:'#7160d5',acoustic:'#168e9b',semantic:'#cd7d31',combined:'#b74d8b',baseline:'#66758b'};
+const NAMES={answer:'Answer tokens',acoustic:'Acoustic tokens',semantic:'Semantic tokens',combined:'Acoustic + semantic'};
+const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const percent=(k,n)=>(100*k/n).toFixed(1)+'%';
+function ci(k,n){const p=k/n,m=1.96*Math.sqrt(p*(1-p)/n);return [Math.max(0,100*(p-m)),Math.min(100,100*(p+m))]}
+function sign(x){return (x>0?'+':'')+x.toFixed(1)}
+function coefficient(x){return x>0?'+'+x:String(x)}
+function chooseLayers(){const e=DATA[Number($('experiment').value)];const previous=$('layer').value;const layers=Object.keys(e.layers).sort((a,b)=>Number(a)-Number(b));$('layer').innerHTML=layers.map(x=>'<option value="'+x+'">Layer '+x+'</option>').join('');$('layer').value=layers.includes(previous)?previous:layers[0];render()}
+function render(){
+ const e=DATA[Number($('experiment').value)],d=e.layers[$('layer').value],filter=$('group').value;
+ const points=d.points.filter(p=>(filter==='all'||p.group===filter)&&p.strength>=-2&&p.strength<=2).sort((a,b)=>a.strength-b.strength);
+ const baseline=100*d.baseline/d.n,best=points.length?points.reduce((a,b)=>a.correct/a.n>b.correct/b.n?a:b):null;
+ $('sample').textContent=d.n;$('baseline').textContent=percent(d.baseline,d.n);
+ $('best').textContent=best?percent(best.correct,best.n):'—';$('gain').textContent=best?'('+sign(100*best.correct/best.n-baseline)+' pp)':'';
+ $('source').textContent=e.source;
+ const showCI=$('intervals').checked,zoom=$('zoom').checked;
+ const values=[baseline,...points.map(p=>100*p.correct/p.n)];
+ const bounds=showCI?[...ci(d.baseline,d.n),...points.flatMap(p=>ci(p.correct,p.n))]:values;
+ let low=zoom?Math.max(0,Math.floor((Math.min(...bounds)-3)/5)*5):0;
+ let high=zoom?Math.min(100,Math.ceil((Math.max(...bounds)+3)/5)*5):100;if(high<=low)high=low+5;
+ const W=1040,H=425,L=68,R=30,T=25,B=65,PW=W-L-R,PH=H-T-B;
+ const X=a=>L+(a+2)/4*PW,Y=a=>T+(high-a)/(high-low)*PH;
+ let svg='<svg id="chart" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Accuracy by steering coefficient"><rect width="'+W+'" height="'+H+'" fill="white"/>';
+ const text=(x,y,s,opts='')=>'<text x="'+x+'" y="'+y+'" font-family="Segoe UI,Arial,sans-serif" font-size="12" fill="#728099" '+opts+'>'+escape(s)+'</text>';
+ for(let i=0;i<=5;i++){const v=low+(high-low)*i/5,y=Y(v);svg+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'" stroke="#edf0f5"/>'+text(L-12,y+4,v.toFixed(0)+'%','text-anchor="end"')}
+ for(let a=-2;a<=2.01;a+=.5){svg+=text(X(a),H-B+25,coefficient(a),'text-anchor="middle"')}
+ svg+='<line x1="'+X(0)+'" x2="'+X(0)+'" y1="'+T+'" y2="'+(H-B)+'" stroke="#cbd4e1" stroke-dasharray="4 5"/>';
+ svg+=text(L+PW/2,H-13,'Steering coefficient α','text-anchor="middle"');
+ svg+='<text transform="translate(17 '+(T+PH/2)+') rotate(-90)" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-size="12" fill="#728099">Accuracy (%)</text>';
+ svg+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(baseline)+'" y2="'+Y(baseline)+'" stroke="#a8b4c5" stroke-dasharray="5 5"/>';
+ const groups=[...new Set(points.map(p=>p.group))];
+ for(const group of groups){const series=[{strength:0,correct:d.baseline,n:d.n},...points.filter(p=>p.group===group)].sort((a,b)=>a.strength-b.strength);svg+='<polyline points="'+series.map(p=>X(p.strength)+','+Y(100*p.correct/p.n)).join(' ')+'" fill="none" stroke="'+COLORS[group]+'" stroke-width="2.5"/>'}
+ const all=[{group:'baseline',strength:0,correct:d.baseline,n:d.n},...points];
+ for(const p of all){const x=X(p.strength),y=Y(100*p.correct/p.n),color=COLORS[p.group];if(showCI){const c=ci(p.correct,p.n);svg+='<path d="M '+x+' '+Y(c[0])+' V '+Y(c[1])+' M '+(x-5)+' '+Y(c[0])+' h 10 M '+(x-5)+' '+Y(c[1])+' h 10" stroke="'+color+'" stroke-opacity=".55" fill="none"/>'}svg+='<circle cx="'+x+'" cy="'+y+'" r="6" fill="'+color+'" stroke="white" stroke-width="2"><title>'+escape((p.group==='baseline'?'Baseline':NAMES[p.group])+'; α='+p.strength+'; '+p.correct+'/'+p.n+' = '+percent(p.correct,p.n))+'</title></circle>';svg+='<text x="'+x+'" y="'+(y-13)+'" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="'+color+'">'+percent(p.correct,p.n)+'</text>'}
+ svg+='</svg>';$('plot').innerHTML=svg;
+ $('legend').innerHTML='<span><i class="dot" style="background:'+COLORS.baseline+'"></i>Unsteered baseline</span>'+groups.map(g=>'<span><i class="dot" style="background:'+COLORS[g]+'"></i>'+NAMES[g]+'</span>').join('');
+ $('rows').innerHTML=all.map(p=>{const c=ci(p.correct,p.n);return '<tr><td>'+escape(p.group==='baseline'?'Baseline':NAMES[p.group])+'</td><td>'+coefficient(p.strength)+'</td><td>'+p.correct+' / '+p.n+'</td><td>'+percent(p.correct,p.n)+'</td><td>'+c[0].toFixed(1)+'–'+c[1].toFixed(1)+'%</td><td>'+sign(100*p.correct/p.n-baseline)+'</td><td>'+(p.wins===undefined?'—':p.wins+' / '+p.losses)+'</td><td>'+(p.p===undefined?'—':p.p.toFixed(4))+'</td></tr>'}).join('');
+}
+$('experiment').innerHTML=DATA.map((e,i)=>'<option value="'+i+'">'+escape(e.title)+'</option>').join('');$('experiment').value='0';$('group').value='all';
+$('experiment').addEventListener('change',chooseLayers);
+for(const id of ['layer','group','intervals','zoom'])$(id).addEventListener('change',render);
+$('export').addEventListener('click',()=>{const a=document.createElement('a');const url=URL.createObjectURL(new Blob([$('chart').outerHTML],{type:'image/svg+xml'}));a.href=url;a.download='azure-steering-layer-'+$('layer').value+'.svg';a.click();URL.revokeObjectURL(url)});
+chooseLayers();
+</script></body></html>
