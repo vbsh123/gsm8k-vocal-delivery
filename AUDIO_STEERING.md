@@ -73,3 +73,21 @@ Historical launchers are in [`archive/steering/`](archive/steering/README.md). T
 ```
 
 `python steer.py` remains a compatibility entry for the historical CLI. New experiments use `steer_audio.py`, which resets seed42 before every generation.
+
+## Outcome-filtered and answer-trained vectors
+
+`extract_benefit_vectors.py` reads a completed first-set collection and averages only pairs where angry solved the question and neutral failed. It uses the saved seed42 responses and activations, without another model run. Run it once with `outputs/jenny-svd-probe` (matched forwards), and once with `outputs/jenny-all-forwards` (all forwards).
+
+`train_answer_vectors.py` freezes DIFFA and independently trains a vector for L11 answer ×1, L12 acoustic ×1, and L16 answer ×1.25. It uses only the first-set neutral audio and reference answers. The target text is `Final answer: <reference>` plus EOS. Randomly masked target positions are predicted with same-position cross-entropy; this is a masked diffusion objective, not causal next-token loss or backpropagation through greedy generation. Only the vector is optimized, with L2 regularization and activation checkpointing. Defaults are two epochs, Adam learning rate0.001, L2 coefficient0.01, seed42. Progress is saved every25 updates and after each target.
+
+For answer training, **matched/all describe the initialization** from the respective mean checkpoints. The answer loss and training data are identical. There is no min-forward truncation during training and no post-training norm rescaling. Only the three listed layer/group vectors are trained; other entries retain their initialization.
+
+`run_task_vectors_after_current.sh` waits for `run_jenny_all_forwards.sh` (or an explicit launcher PID), tests the gradient path on two questions, prepares all four method/averaging variants, then evaluates each on the same460 second-set recordings. A lock prevents duplicate follow-up queues. Each GPU stage runs sequentially. Results are under `outputs/steer-jenny-task-vectors/{matched,all}/{benefit_mean,answer_trained}`. All first-set question IDs are excluded from evaluation, including training pairs that the benefit filter discarded.
+
+```bash
+nohup bash run_task_vectors_after_current.sh \
+  > outputs/jenny-task-vectors-night.log 2>&1 < /dev/null &
+tail -f outputs/jenny-task-vectors-night.log
+```
+
+If needed, pass the current **bash launcher PID**, not just one Python child, as the script's first argument. Pass0 only when the GPU is already free. If the new GPU training path fails its smoke, the queue still extracts and evaluates both benefit-filtered variants. A partially trained checkpoint is not evaluated. The old `evaluate_jenny_svd_probe.py` name is a thin compatibility entry so already-started launchers can finish after an update.

@@ -38,7 +38,7 @@ def main():
     p.add_argument('--vectors-root',type=Path,default=Path('outputs/jenny-svd-probe'))
     p.add_argument('--source-run',type=Path,default=Path('outputs/steer-jenny-angry-complete'))
     p.add_argument('--output',type=Path,default=Path('outputs/steer-jenny-svd-probe-second460'))
-    p.add_argument('--methods',nargs='+',choices=['mean','svd1','svd_mean','probe'],default=['svd_mean','probe'])
+    p.add_argument('--methods',nargs='+',default=['svd_mean','probe'],help='Checkpoint subfolder names under --vectors-root')
     p.add_argument('--baseline-source',type=Path,default=Path('outputs/steer-jenny-L16-full460-seed42'))
     p.add_argument('--num-examples',type=int,default=460)
     p.add_argument('--include-l11',action='store_true')
