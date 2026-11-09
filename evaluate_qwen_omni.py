@@ -157,7 +157,7 @@ def main():
     tasks = [{**task, "audio_path": str(folder/task["audio_path"])} for folder, task in selected]
     answers = {str(folder/name): row for folder in folders for name, row in saved[folder].items()}
     summarize_deliveries(tasks, answers, args.styles)
-    print(f"Saved answers: {RESULTS} in each source folder. Existing DIFFA/Dynin answers are separate.")
+    print(f"Saved answers: {RESULTS} in each source folder. Existing DIFFA answers are separate.")
 
 
 if __name__ == "__main__":
