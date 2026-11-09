@@ -3,7 +3,7 @@
 import unittest
 from types import SimpleNamespace
 
-from run_steering_followup import build_stages, install_interventions
+from archive.steering.run_steering_followup import build_stages, install_interventions
 from test_steering import Hidden, Vector
 
 

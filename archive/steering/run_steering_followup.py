@@ -9,7 +9,7 @@ import random
 import time
 
 from scoring import score_response
-from steer import make_steering_hook, read_rows, reuse_questions, summarize
+from steer import install_interventions, read_rows, reuse_questions, summarize
 
 
 def build_stages(semantic_layers, plan="original"):
@@ -36,22 +36,6 @@ def build_stages(semantic_layers, plan="original"):
             dict(name="semantic", conditions=semantic)]
 
 
-@contextmanager
-def install_interventions(layers, directions, interventions, bounds, answer_tokens):
-    """Keep all hooks for a combination active during the SAME generation."""
-    handles, states = [], []
-    targets = interventions or [dict(layer=0, group="answer", strength=0)]
-    try:
-        for target in targets:
-            vector = directions[target["layer"], target["group"]] if target["strength"] else None
-            hook, state = make_steering_hook(vector, None, "fixed", target["group"],
-                                             target["strength"], bounds, answer_tokens)
-            handles.append(layers[target["layer"]].register_forward_hook(hook))
-            states.append(dict(target=target, state=state))
-        yield states
-    finally:
-        for handle in handles:
-            handle.remove()
 
 
 def main():

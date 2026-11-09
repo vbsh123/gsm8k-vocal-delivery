@@ -1,24 +1,69 @@
-"""Collect paired activations once; fit per-layer SVD and linear-head directions.
-
-Rows are question-level angry-minus-neutral differences, averaged over matched
-forwards. Fits mean, uncentered SVD rank1, projected mean, and a linear head.
-All fitted directions have the raw mean's norm. No evaluation answers are used.
-"""
+"""Extract paired audio directions using matched or independently averaged forwards."""
 
 import argparse
 import gc
 import json
 from pathlib import Path
 import random
+import wave
 
-from compare_cloud_accuracy import PROMPT
-from extract_jenny_angry import GROUPS, recordings, select_pairs
+from compare_cloud_accuracy import PROMPT, read
+
+GROUPS = ["acoustic", "semantic", "combined", "answer"]
+
+def recordings(paths):
+    records, predictions = {}, {}
+    for folder in paths:
+        labels = {r["audio_path"]: r for r in read(folder / "results-emotion2vec.jsonl")}
+        for task in read(folder / "plan.jsonl"):
+            if task["provider"] != "azure" or task["style"] not in ("neutral", "angry"):
+                continue
+            key = (task["question_id"], task["voice"], task["style"])
+            audio_path = (folder / task["audio_path"]).resolve()
+            with wave.open(str(audio_path), "rb") as audio:
+                duration = audio.getnframes() / audio.getframerate()
+            clip_id = f'{task["question_id"]}__{task["voice"]}__{task["style"]}__r00'
+            records[key] = {"clip_id": clip_id, "question_id": task["question_id"],
+                            "style": task["style"], "speaker": task["voice"], "repeat": 0,
+                            "audio_path": str(audio_path), "duration_seconds": duration,
+                            "answer": str(task["answer"]).rsplit("####", 1)[-1].strip()}
+            predictions[clip_id] = labels.get(task["audio_path"], {}).get("emotion")
+    return records, predictions
+
+
+def select_pairs(records, predictions, seed):
+    if seed != 42:
+        raise ValueError("Azure extraction seed is fixed at 42")
+    pairs = []
+    for (qid, voice, style), neutral in sorted(records.items()):
+        if style != "neutral":
+            continue
+        angry = records.get((qid, voice, "angry"))
+        if not angry or max(neutral["duration_seconds"], angry["duration_seconds"]) > 30:
+            continue
+        if predictions.get(neutral["clip_id"]) != "neutral" or predictions.get(angry["clip_id"]) != "angry":
+            continue
+        pairs.append({"question_id": qid, "speaker": voice, "neutral_id": neutral["clip_id"],
+                      "angry_id": angry["clip_id"], "seed": 42})
+    return pairs
 
 
 def save_tensor(torch, value, path):
     temporary=path.with_suffix('.tmp')
     torch.save(value,temporary)
     temporary.replace(path)
+
+
+
+def average_pair(neutral, angry, averaging):
+    if averaging == "all":
+        neutral_mean = neutral.mean(1)
+        angry_mean = angry.mean(1)
+        return neutral_mean, angry_mean, angry_mean - neutral_mean, None
+    steps = min(neutral.shape[1], angry.shape[1])
+    neutral = neutral[:, :steps]
+    angry = angry[:, :steps]
+    return neutral.mean(1), angry.mean(1), (angry - neutral).mean(1), steps
 
 
 def collect(args, pairs, manifest, torch, np, sf):
@@ -70,11 +115,12 @@ def collect(args, pairs, manifest, torch, np, sf):
             print(f'[{i+1}/{len(pairs)}] {pair["question_id"]} neutral + angry',flush=True)
             nr,n=capture(pair['neutral_id'])
             ar,a=capture(pair['angry_id'])
-            steps=min(n.shape[1],a.shape[1])
-            row=dict(pair=pair,neutral=n[:,:steps].mean(1),angry=a[:,:steps].mean(1),
-                     neutral_response=nr,angry_response=ar,matched_forwards=steps)
+            nm, am, difference, steps = average_pair(n, a, args.averaging)
+            row=dict(pair=pair,neutral=nm,angry=am,difference=difference,
+                     neutral_response=nr,angry_response=ar,matched_forwards=steps,
+                     neutral_forwards=n.shape[1],angry_forwards=a.shape[1],averaging=args.averaging)
             save_tensor(torch,row,folder/f'{i:05d}.pt')
-            print(f'  matched forwards={steps}; saved question-level means.',flush=True)
+            print(f'  neutral={n.shape[1]} angry={a.shape[1]} averaging={args.averaging}; saved.',flush=True)
             del n,a,row
     finally:
         for handle in handles:
@@ -126,28 +172,35 @@ def fit(args,pairs,excluded,torch):
     values=[torch.load(args.output/'pairs'/f'{i:05d}.pt',map_location='cpu',weights_only=True) for i in range(len(pairs))]
     neutral=torch.stack([v['neutral'] for v in values])
     angry=torch.stack([v['angry'] for v in values])
+    raw_sum = torch.zeros_like(values[0]['neutral'])
+    for value in values:
+        raw_sum += value['difference'] if 'difference' in value else value['angry'] - value['neutral']
+    raw_mean = raw_sum / len(values)
     del values
     difference=angry-neutral
     del neutral,angry
     n,layers,groups,width=difference.shape
-    methods={name:torch.zeros(layers,groups,width) for name in ['mean','svd1','svd_mean','probe']}
+    methods={name:torch.zeros(layers,groups,width) for name in args.methods}
     metrics=[]
     for layer in range(layers):
         for group in range(groups):
+            if args.methods == ['mean']:
+                methods['mean'][layer,group] = raw_mean[layer,group]
+                continue
             vectors,info=fit_one(difference[:,layer,group],args.rank,args.probe_iterations,args.l2,torch)
-            for name,v in vectors.items():
-                methods[name][layer,group]=v
+            for name in args.methods:
+                methods[name][layer,group] = raw_mean[layer,group] if name == 'mean' else vectors[name]
             metrics.append(dict(layer=layer,group=GROUPS[group],**info))
             print(f'Fit L{layer} {GROUPS[group]}: top1 energy={info["energy_rank1"]:.1%}; probe train accuracy={info["probe_training_accuracy"]:.1%}',flush=True)
     for name,vectors in methods.items():
         folder=args.output/name
         folder.mkdir(exist_ok=True)
-        state=dict(pair_mean_sums={'angry':vectors*n},pair_counts={'angry':torch.full((layers,),n,dtype=torch.long)},
+        state=dict(pair_mean_sums={'angry':raw_sum if name == 'mean' else vectors*n},pair_counts={'angry':torch.full((layers,),n,dtype=torch.long)},
                    groups=GROUPS,styles=['angry'],prompt=PROMPT,max_new_tokens=512,steps=128,
                    sign='style minus neutral',seed=42,seed_policy='constant_before_every_generation',
                    extraction_question_ids=excluded,pairs=pairs,method=name,supported_modes=['fixed'],
                    classifier='emotion2vec',norm='matched to raw mean per layer/group',
-                   rank=args.rank,probe_l2=args.l2,probe_iterations=args.probe_iterations)
+                   rank=args.rank,probe_l2=args.l2,probe_iterations=args.probe_iterations,averaging=args.averaging)
         save_tensor(torch,state,folder/'style-vectors.pt')
         (folder/'extraction-questions.jsonl').write_text(''.join(json.dumps(dict(question_id=q))+'\n' for q in excluded))
         print('Saved:',folder/'style-vectors.pt',flush=True)
@@ -157,7 +210,9 @@ def fit(args,pairs,excluded,torch):
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--paths',type=Path,nargs='+',default=[Path('outputs/azure-jenny500-extra'),Path('outputs/azure-jenny500-neutral')])
-    p.add_argument('--output',type=Path,default=Path('outputs/jenny-svd-probe'))
+    p.add_argument('--output',type=Path,default=Path('outputs/audio-vectors'))
+    p.add_argument('--averaging',choices=['matched','all'],default='matched')
+    p.add_argument('--methods',nargs='+',choices=['mean','svd1','svd_mean','probe'],default=['mean'])
     p.add_argument('--rank',type=int,default=5)
     p.add_argument('--probe-iterations',type=int,default=50)
     p.add_argument('--l2',type=float,default=.01)
@@ -173,13 +228,16 @@ def main():
         p.error('Need matched pairs, positive rank/iterations and positive L2')
     manifest={r['clip_id']:r for r in records.values()}
     excluded=sorted({r['question_id'] for r in records.values()})
-    plan=dict(pairs=pairs,manifest=manifest,seed=42,prompt=PROMPT,max_new_tokens=512,groups=GROUPS)
+    plan=dict(pairs=pairs,manifest=manifest,seed=42,prompt=PROMPT,max_new_tokens=512,groups=GROUPS,averaging=args.averaging)
     args.output.mkdir(parents=True,exist_ok=True)
     path=args.output/'collection-config.json'
-    if path.exists() and json.loads(path.read_text())!=plan:
-        p.error('Collection changed; use another output folder')
+    if path.exists():
+        saved = json.loads(path.read_text())
+        saved.setdefault('averaging', 'matched')
+        if saved != plan:
+            p.error('Collection changed; use another output folder')
     path.write_text(json.dumps(plan,indent=2)+'\n')
-    print(f'{len(pairs)} pairs; one shared collection for mean, SVD and linear-head methods.',flush=True)
+    print(f'{len(pairs)} pairs; averaging={args.averaging}; methods={args.methods}.',flush=True)
     if args.prepare_only:
         return
     import numpy as np

@@ -10,7 +10,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from steer import read_rows, summarize
-from steer_jenny_six import main as run
+from archive.steering.steer_jenny_six import main as run
 
 
 def main():
@@ -57,7 +57,7 @@ def main():
     if args.prepare_only:
         command.append("--prepare-only")
     # Reuse the inference runner, but not its outcome-selected six-question report.
-    with patch("steer_jenny_six.report",side_effect=lambda rows,cs,records:summarize(rows,cs)):
+    with patch("archive.steering.steer_jenny_six.report",side_effect=lambda rows,cs,records:summarize(rows,cs)):
         run(command)
 
 

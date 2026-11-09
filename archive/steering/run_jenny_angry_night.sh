@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Sequential evaluation -> vector extraction -> held-out steering, one DIFFA at a time.
 set -euo pipefail
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/../.."
 
 WAIT_PID="${1:-auto}"
 N_NEUTRALS="${2:-50}"
@@ -75,10 +75,10 @@ python analyze_jenny_deliveries.py --paths outputs/azure-jenny-next500 \
   --styles neutral angry happy sad terrified shouting
 
 echo "$(date -Is) Extracting angry-minus-neutral from the first Jenny batch."
-.venv-diffa/bin/python -u extract_jenny_angry.py
+.venv-diffa/bin/python -u -m archive.steering.extract_jenny_angry
 
 echo "$(date -Is) Steering held-out new Jenny neutrals, L0-25, acoustic and answer separately."
-.venv-diffa/bin/python -u steer_jenny_angry.py \
+.venv-diffa/bin/python -u -m archive.steering.steer_jenny_angry \
   --num-examples "$N_NEUTRALS" --output "outputs/steer-jenny-angry-L0-25-n${N_NEUTRALS}"
 
 echo "$(date -Is) Jenny evaluation, extraction, and steering finished."

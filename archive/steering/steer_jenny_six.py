@@ -7,7 +7,7 @@ from pathlib import Path
 import random
 import time
 
-from run_steering_followup import install_interventions
+from steer_audio import run_experiment
 from scoring import score_response
 from steer import read_rows, summarize
 
@@ -142,87 +142,9 @@ def main(argv=None):
         report(results, conditions, selected)
         return
 
-    import librosa
-    import numpy as np
-    import soundfile as sf
-    import torch
-    import src.fast_dllm.diffa_generate as decoder
-    from extract_vectors import load_model
-
-    data = torch.load(args.vectors, map_location="cpu", weights_only=True, mmap=True)
-    if set(data.get("extraction_question_ids", [])) & selected_ids and not args.allow_extraction_overlap:
-        raise ValueError("Diagnostic questions overlap extraction metadata")
-    prompt, answer_tokens = data["prompt"], data["max_new_tokens"]
-    directions = {}
-    for layer, group in {(t["layer"], t["group"]) for c in conditions for t in c["interventions"]}:
-        count = int(data["pair_counts"]["angry"][layer])
-        vector = data["pair_mean_sums"]["angry"][layer, data["groups"].index(group)] / count
-        directions[layer, group] = vector.to(device="cuda", dtype=torch.bfloat16)
-    del data
-    model, tokenizer, feature_extractor = load_model()
-    layers = model.llm_model.model.transformer.blocks
-    bounds = {}
-    original_insert = decoder.insert_audio_embedding
-
-    def capture_insert(text_embeds, speech_embeds, audio_info_lengths):
-        start = int(audio_info_lengths[0].item())
-        bounds.update(start=start, acoustic_end=start+model.config.prompt_size,
-                      end=start+speech_embeds.shape[1])
-        return original_insert(text_embeds, speech_embeds, audio_info_lengths)
-
-    decoder.insert_audio_embedding = capture_insert
-    try:
-        for index, recording in enumerate(selected, 1):
-            if all((recording["clip_id"], c["name"]) in completed for c in conditions):
-                continue
-            audio_path = Path(recording["audio_path"])
-            if not audio_path.is_absolute():
-                audio_path = Path(previous["settings"]["path"]) / audio_path
-            audio, rate = sf.read(audio_path, dtype="float32")
-            if audio.ndim == 2:
-                audio = audio.mean(axis=1)
-            if rate != 16000:
-                audio = librosa.resample(audio, orig_sr=rate, target_sr=16000)
-            inputs = feature_extractor(audio, sampling_rate=16000, truncation=False,
-                                       return_tensors="pt", return_attention_mask=True).to("cuda")
-            for c_index, c in enumerate(conditions, 1):
-                if (recording["clip_id"], c["name"]) in completed:
-                    continue
-                seed = 42
-                random.seed(seed)
-                np.random.seed(seed)
-                torch.manual_seed(seed)
-                torch.cuda.manual_seed_all(seed)
-                bounds.clear()
-                print(f'[{index}/{len(selected)}] [{c_index}/{len(conditions)}] '
-                      f'{recording["question_id"]} {c["name"]}', flush=True)
-                started = time.monotonic()
-                with install_interventions(layers, directions, c["interventions"], bounds, answer_tokens) as states:
-                    with torch.inference_mode():
-                        response = model.generate(
-                            tokenizer, input_audio_features=inputs.input_features,
-                            input_audio_mask=inputs.attention_mask, system_prompt="",
-                            input_texts=[prompt], steps=128, block_length=32,
-                            max_new_tokens=answer_tokens, temperature=0.0, accelerate="fast_dllm")
-                diagnostics = [dict(**s["target"], **s["state"]) for s in states]
-                row = {"clip_id": recording["clip_id"], "question_id": recording["question_id"],
-                       "condition": c["name"], "interventions": c["interventions"],
-                       "vector_style": "angry", "mode": "fixed", "seed": seed,
-                       "response": response, "prompt": prompt, "max_new_tokens": answer_tokens,
-                       "decoder": "fast_dllm", "generation_seconds": time.monotonic()-started,
-                       "forwards": diagnostics[0]["forwards"],
-                       "steered_forwards": max(s["steered"] for s in diagnostics),
-                       "intervention_forwards": diagnostics,
-                       **score_response(response, recording["answer"])}
-                with results_path.open("a") as stream:
-                    stream.write(json.dumps(row) + "\n")
-                results.append(row)
-                completed.add((recording["clip_id"], c["name"]))
-                print(f'  correct={row["correct"]} answer={row["predicted_answer"]}', flush=True)
-    finally:
-        decoder.insert_audio_embedding = original_insert
-    summary = report(results, conditions, selected)
-    (args.output / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
+    return run_experiment(selected, conditions, args.vectors, args.output,
+                          Path(previous["settings"].get("path", ".")),
+                          args.allow_extraction_overlap, report)
 
 
 if __name__ == "__main__":

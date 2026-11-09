@@ -1,6 +1,6 @@
 import unittest
 
-from steer_jenny_recovery74_promoted import select_conditions
+from archive.steering.steer_jenny_recovery74_promoted import select_conditions
 
 
 class PromotionTests(unittest.TestCase):

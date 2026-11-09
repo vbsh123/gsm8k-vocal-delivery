@@ -9,7 +9,7 @@ import random
 
 from scoring import score_response
 from steer import make_conditions, read_rows, summarize
-from run_steering_followup import install_interventions
+from steer import install_interventions
 
 
 def select_neutrals(records, labels, excluded, seed, limit=None, original=False, all_originals=False):

@@ -7,7 +7,7 @@ import wave
 
 from scoring import score_response
 from steer import read_rows
-from steer_jenny_six import main as run_diagnostic
+from archive.steering.steer_jenny_six import main as run_diagnostic
 
 
 def correct(row):

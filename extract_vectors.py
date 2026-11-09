@@ -1,17 +1,10 @@
-"""Extract per-layer delivery directions from DIFFA's first denoising pass."""
+"""Shared DIFFA-2 model loading and audio generation."""
 
-import argparse
-import hashlib
 import json
 from pathlib import Path
-import argparse
-import json
-from pathlib import Path
-import soundfile as sf
-import torch
+
 import librosa
-
-import src.fast_dllm.diffa_generate as decoder
+import torch
 
 def load_model():
     import torch
@@ -96,7 +89,6 @@ def load_model():
     return model, tokenizer, feature_extractor
 
 
-
 def gen(audio,sample_rate, model, tokenizer, fextractor, prompt, max_new_tokens):
     if audio.ndim == 2:
             audio = audio.mean(axis=1)
@@ -122,171 +114,3 @@ def gen(audio,sample_rate, model, tokenizer, fextractor, prompt, max_new_tokens)
             accelerate="fast_dllm",
             )
     return response
-
-
-
-
-def main(argv=None):
-    p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--path', type=Path)
-    p.add_argument('--results-file', default='results.jsonl')
-    p.add_argument('--max-new-tokens', type=int, default=512)
-    args = p.parse_args(argv)
-
-    model, tokenizer, fextractor = load_model()
-    path = args.path / "results-neutral-binary.jsonl"
-
-    with path.open() as f:
-        results = [json.loads(line) for line in f if line.strip()]
-    classifications = {
-        r["clip_id"]: r["predicted_style"] for r in results
-    }
-
-    passed = [result for result in results if result["style"] in ["angry","confident", "happy"] and result["predicted_style"]== "no"]
-    prompt = ("Solve the math problem in the audio. Give concise step-by-step reasoning "
-                "with only the necessary calculations. If the question asks for a total, "
-                "compute that total. End with one plain-text line in exactly this format: "
-                "Final answer: <number>. Put a single numeric answer on that line, "
-                "without Markdown, units, or separate component counts.")
-
-    def make_hook(layer_index):
-        def hook(module, inputs, output):
-            if len(captured[layer_index]) >= 512:
-                return
-
-            hidden = output[0]
-            acoustic = hidden[0, bounds["start"]:bounds["acoustic_end"]]
-            semantic = hidden[0, bounds["acoustic_end"]:bounds["end"]]
-            combined = hidden[0, bounds["start"]:bounds["end"]]
-            answer = hidden[0, -args.max_new_tokens:]
-
-            summaries = torch.stack([
-                acoustic.float().mean(dim=0),
-                semantic.float().mean(dim=0),
-                combined.float().mean(dim=0),
-                answer.float().mean(dim=0)
-            ])
-            captured[layer_index].append(summaries.cpu())
-        return hook
-
-    layers = model.llm_model.model.transformer.blocks
-
-    for i in range(len(layers)):
-        layer = model.llm_model.model.transformer.blocks[i]
-        layer.register_forward_hook(make_hook(i))
-    
-    with (args.path / "manifest.jsonl").open() as f:
-        recordings = {
-            row["clip_id"]: row
-            for line in f if line.strip()
-            for row in [json.loads(line)]
-        }
-    neutrals = {
-        (r["question_id"], r["speaker"], r["repeat"]): r
-        for r in recordings.values()
-        if r["style"] == "neutral"
-    }
-    bounds = {}
-    
-    def capture_insert(text_embeds, speech_embeds, audio_info_lengths):
-        start = int(audio_info_lengths[0].item())
-
-        bounds["start"] = start
-        bounds["acoustic_end"] = start + model.config.prompt_size
-        bounds["end"] = start + speech_embeds.shape[1]
-
-        return original_insert(
-            text_embeds, speech_embeds, audio_info_lengths
-    )
-    
-    original_insert = decoder.insert_audio_embedding
-    decoder.insert_audio_embedding = capture_insert
-    styles = ["angry", "happy", "confident"]
-    groups = ["acoustic", "semantic", "combined", "answer"]
-    max_passes = 512
-    hidden_size = model.llm_model.get_input_embeddings().weight.shape[1]
-    sums = {
-    s: torch.zeros(len(layers), max_passes, len(groups), hidden_size)
-    for s in styles
-    }
-    counts = {
-        s: torch.zeros(len(layers), max_passes, dtype=torch.long)
-        for s in styles
-    }
-    pair_mean_sums = {
-        s: torch.zeros(len(layers), len(groups), hidden_size)
-        for s in styles
-    }
-    pair_counts = {
-        s: torch.zeros(len(layers), dtype=torch.long)
-        for s in styles
-    }
-    for passedResult in passed:
-        recording = recordings[passedResult["clip_id"]]
-
-        key = (
-            recording["question_id"],
-            recording["speaker"],
-            recording["repeat"],
-        )
-        neutral = neutrals[key]
-        if classifications.get(neutral["clip_id"]) != "yes":
-            continue
-        audio_path = args.path / recording['audio_path']
-        audio, sample_rate = sf.read(audio_path, dtype="float32")
-   
-        neutral_path = args.path / neutral['audio_path']
-        neutral_audio, neutral_sample_rate = sf.read(neutral_path, dtype="float32")
-
-        style = recording["style"]
-
-        
-        
-        captured = [[] for _ in layers]
-        styled_response = gen(audio,sample_rate,model,tokenizer,fextractor,prompt,args.max_new_tokens)
-        styled_captured = captured
-        captured = [[] for _ in layers]
-        bounds = {}
-        neutral_response = gen(neutral_audio,neutral_sample_rate,model,tokenizer,fextractor,prompt,args.max_new_tokens)
-        neutral_captured = captured
-        print(recording["clip_id"], styled_response, neutral_response, flush=True)
-        for layer_index in range(len(layers)):
-            n = min(
-                len(styled_captured[layer_index]),
-                len(neutral_captured[layer_index]),
-            )
-            if n == 0:
-                continue
-
-            styled = torch.stack(styled_captured[layer_index][:n])
-            neutral = torch.stack(neutral_captured[layer_index][:n])
-
-            difference = styled - neutral
-
-            sums[style][layer_index, :n] += difference
-            counts[style][layer_index, :n] += 1
-
-            pair_mean_sums[style][layer_index] += difference.mean(dim=0)
-            pair_counts[style][layer_index] += 1
-
-    output_path = args.path.parent / "style_vectors.pt"
-
-    torch.save({
-        "sums": sums,
-        "counts": counts,
-        "pair_mean_sums": pair_mean_sums,
-        "pair_counts": pair_counts,
-        "groups": groups,
-        "styles": styles,
-        "max_passes": max_passes,
-        "prompt": prompt,
-        "max_new_tokens": args.max_new_tokens,
-        "sign": "style minus neutral",
-    }, output_path)
-
-    print("Saved:", output_path)
-
-        
-
-if __name__ == "__main__":
-    main()

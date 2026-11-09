@@ -67,7 +67,7 @@ def main():
         if path.exists() and json.loads(path.read_text())!=plan:
             p.error('Saved evaluation cohort changed; use another output')
         path.write_text(json.dumps(plan,indent=2)+'\n')
-        command=[sys.executable,'-u',str(Path(__file__).with_name('steer_jenny_six.py')),
+        command=[sys.executable,'-u','-m','archive.steering.steer_jenny_six',
                  '--previous',str(args.source_run),'--vectors',str(vector),
                  '--prepared-plan',str(path),'--output',str(folder)]
         subprocess.run(command+['--prepare-only'],check=True)

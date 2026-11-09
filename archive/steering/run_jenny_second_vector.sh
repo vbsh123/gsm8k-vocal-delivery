@@ -2,7 +2,7 @@
 # Extract on batch two, then test neutral/sad/happy from batch one.
 # Saved audio only; sequential DIFFA processes; no Azure calls or credentials.
 set -euo pipefail
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/../.."
 
 PYTHON=.venv-diffa/bin/python
 VECTOR_DIR=outputs/jenny-angry-vectors-second500
@@ -13,8 +13,8 @@ echo "$(date -Is) Checking saved audio, classifications, and question separation
 "$PYTHON" -u - <<'PY'
 import json
 from pathlib import Path
-from extract_jenny_angry import recordings, select_pairs
-from steer_jenny_deliveries import select_recordings
+from archive.steering.extract_jenny_angry import recordings, select_pairs
+from archive.steering.steer_jenny_deliveries import select_recordings
 
 source = Path("outputs/azure-jenny-next500")
 targets = [Path("outputs/azure-jenny500-neutral"), Path("outputs/azure-jenny500-extra")]
@@ -39,12 +39,12 @@ print("Extraction/test questions are disjoint. This reverse-split comparison rem
 PY
 
 echo "$(date -Is) Extracting second-batch angry-minus-neutral directions."
-"$PYTHON" -u extract_jenny_angry.py \
+"$PYTHON" -u -m archive.steering.extract_jenny_angry \
   --paths outputs/azure-jenny-next500 \
   --output "$VECTOR_DIR" --seed 42
 
 echo "$(date -Is) Testing new vector on first-batch neutral, sad, and happy audio."
-"$PYTHON" -u steer_jenny_deliveries.py \
+"$PYTHON" -u -m archive.steering.steer_jenny_deliveries \
   --paths outputs/azure-jenny500-neutral outputs/azure-jenny500-extra \
   --styles neutral sad happy \
   --vectors "$VECTOR_DIR/style-vectors.pt" \

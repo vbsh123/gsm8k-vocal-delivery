@@ -6,8 +6,8 @@ from pathlib import Path
 import wave
 
 from steer import read_rows
-from steer_jenny_recovery import correct
-from steer_jenny_six import main as run_diagnostic
+from archive.steering.steer_jenny_recovery import correct
+from archive.steering.steer_jenny_six import main as run_diagnostic
 
 
 TARGETS = [(11, "answer", 1), (12, "acoustic", 1), (11, "answer", 1.5), (0, "answer", 1)]

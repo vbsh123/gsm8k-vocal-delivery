@@ -12,7 +12,7 @@ import wave
 
 from scoring import score_response
 from steer import read_rows, summarize
-from steer_jenny_six import main as run_diagnostic
+from archive.steering.steer_jenny_six import main as run_diagnostic
 
 
 CONDITIONS = [{"name": "baseline", "interventions": []}] + [

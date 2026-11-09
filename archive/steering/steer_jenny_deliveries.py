@@ -13,8 +13,8 @@ import wave
 from cloud_tts_smoke import STYLES, AZURE_EXTRA_STYLES
 from scoring import score_response
 from steer import read_rows, summarize
-from steer_jenny_complete import CONDITIONS
-from steer_jenny_six import main as run_diagnostic
+from archive.steering.steer_jenny_complete import CONDITIONS
+from archive.steering.steer_jenny_six import main as run_diagnostic
 
 
 def select_recordings(paths, styles):

@@ -8,8 +8,8 @@ import random
 from unittest.mock import patch
 
 from steer import read_rows, summarize
-from steer_jenny_recovery import recovery_summary
-from steer_jenny_six import main as run
+from archive.steering.steer_jenny_recovery import recovery_summary
+from archive.steering.steer_jenny_six import main as run
 
 
 def prepare(source, pilot):
@@ -85,7 +85,7 @@ def main():
              "--prepared-plan",str(path),"--output",str(args.output)]
     if args.prepare_only:
         command.append("--prepare-only")
-    with patch("steer_jenny_six.report",side_effect=lambda rows,cs,rs:summarize(rows,cs)):
+    with patch("archive.steering.steer_jenny_six.report",side_effect=lambda rows,cs,rs:summarize(rows,cs)):
         run(command)
     if not args.prepare_only:
         recovery_summary(args.output)

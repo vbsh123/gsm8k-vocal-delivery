@@ -6,8 +6,8 @@ import json
 from pathlib import Path
 
 from steer import read_rows
-from steer_jenny_recovery import recovery_summary
-from steer_jenny_six import main as run_diagnostic
+from archive.steering.steer_jenny_recovery import recovery_summary
+from archive.steering.steer_jenny_six import main as run_diagnostic
 
 
 TARGETS = [(0, "answer", 1), (2, "acoustic", 1), (3, "answer", 1),
