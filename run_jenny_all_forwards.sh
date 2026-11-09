@@ -6,6 +6,6 @@ cd "$(dirname "$0")"
   --averaging all --methods mean \
   --output outputs/jenny-all-forwards
 
-.venv-diffa/bin/python -u evaluate_jenny_svd_probe.py \
+.venv-diffa/bin/python -u evaluate_audio_steering.py \
   --vectors-root outputs/jenny-all-forwards --methods mean --include-l11 \
   --output outputs/steer-jenny-all-forwards-second460

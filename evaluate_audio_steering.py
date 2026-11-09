@@ -1,10 +1,11 @@
-"""Compare SVD-cleaned and linear-head directions on the same second-set audio.
+"""Compare extracted vector methods on the same audio recordings.
 
 Each method runs separately on one GPU. Seed42 baselines are shared between
 methods; directions never share a generation. The full460 cohort is exploratory.
 """
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -72,9 +73,21 @@ def main():
         if path.exists() and json.loads(path.read_text())!=plan:
             p.error('Saved evaluation cohort changed; use another output')
         path.write_text(json.dumps(plan,indent=2)+'\n')
-        command=[sys.executable,'-u','-m','archive.steering.steer_jenny_six',
-                 '--previous',str(args.source_run),'--vectors',str(vector),
-                 '--prepared-plan',str(path),'--output',str(folder)]
+        stat = vector.stat()
+        settings = dict(previous=str(args.source_run.resolve()), vectors=str(vector.resolve()),
+                        vector_bytes=stat.st_size, vector_mtime_ns=stat.st_mtime_ns,
+                        seed=42, conditions=conditions, style='angry', mode='fixed',
+                        selection='outcome-selected diagnostic',
+                        seed_policy='constant_before_every_generation',
+                        prepared_plan=str(path.resolve()),
+                        prepared_plan_sha256=hashlib.sha256(path.read_bytes()).hexdigest())
+        config = dict(settings=settings, recordings=records)
+        config_path = folder/'run_config.json'
+        if config_path.exists() and json.loads(config_path.read_text()) != config:
+            p.error('Saved run changed; use another output')
+        config_path.write_text(json.dumps(config, indent=2)+'\n')
+        command=[sys.executable,'-u',str(Path(__file__).with_name('steer_audio.py')),
+                 '--config',str(config_path),'--output',str(folder)]
         subprocess.run(command+['--prepare-only'],check=True)
         commands.append((method,folder,command))
     if args.prepare_only:
@@ -90,7 +103,7 @@ def main():
                 or str(row['reference_answer'])!=str(expected[row['clip_id']]['answer'])):
             continue
         shared[row['clip_id']]=row
-    print(f'Reusing {len(shared)} matching seed42 baselines; raw mean is not evaluated by default.',flush=True)
+    print(f'Reusing {len(shared)} matching seed42 baselines.',flush=True)
     for method,folder,command in commands:
         path=folder/'results.jsonl'
         saved={(r['clip_id'],r['condition']):r for r in read_rows(path)}

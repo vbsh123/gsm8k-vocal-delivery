@@ -9,6 +9,8 @@ from types import ModuleType, SimpleNamespace
 import unittest
 from unittest.mock import patch
 
+import evaluate_audio_steering
+from archive.steering.steer_jenny_six import main as historical_plan
 from extract_audio_vectors import average_pair
 from steer_audio import main, run_experiment
 from test_steering import Hidden, Vector
@@ -133,6 +135,40 @@ class SharedAudioTests(unittest.TestCase):
             self.assertEqual(saved["settings"]["conditions"], source["conditions"])
             self.assertEqual(saved["settings"]["seed"], 42)
             self.assertEqual((folder/"run/run_config.json").read_text(), before)
+
+    def test_evaluator_calls_shared_runner_and_preserves_existing_jenny_configs(self):
+        with tempfile.TemporaryDirectory() as directory, redirect_stdout(io.StringIO()):
+            root = Path(directory)
+            source = root/"source"
+            source.mkdir()
+            records = [dict(clip_id="clip", question_id="q", audio_path="audio.wav", answer="1")]
+            (source/"run_config.json").write_text(json.dumps(dict(settings=dict(seed=42), recordings=records)))
+            vector_folder = root/"vectors/mean"
+            vector_folder.mkdir(parents=True)
+            vector = vector_folder/"style-vectors.pt"
+            vector.write_bytes(b"fixture")
+            output = root/"results"
+            args = ["test", "--source-run", str(source), "--vectors-root", str(root/"vectors"),
+                    "--output", str(output), "--methods", "mean", "--include-l11",
+                    "--num-examples", "1", "--prepare-only"]
+            with patch("sys.argv", args), patch.object(evaluate_audio_steering.subprocess, "run") as execute:
+                evaluate_audio_steering.main()
+            command = execute.call_args.args[0]
+            self.assertEqual(Path(command[2]).name, "steer_audio.py")
+            self.assertNotIn("archive.steering.steer_jenny_six", command)
+            folder = output/"mean"
+            config_path = folder/"run_config.json"
+            original = config_path.read_text()
+            historical_plan(["--previous", str(source), "--vectors", str(vector),
+                             "--prepared-plan", str(folder/"selected-plan.json"),
+                             "--output", str(folder), "--prepare-only"])
+            self.assertEqual(json.loads(config_path.read_text()), json.loads(original))
+            with patch("steer_audio.run_experiment") as run:
+                main(command[3:-1])
+                run.assert_called_once()
+                self.assertEqual(run.call_args.args[0], records)
+                self.assertEqual([c["name"] for c in run.call_args.args[1]],
+                                 ["baseline", "L11-answer-a1", "L12-acoustic-a1", "L16-answer-a1.25"])
 
 
 if __name__ == "__main__":

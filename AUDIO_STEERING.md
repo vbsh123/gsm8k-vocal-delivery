@@ -64,7 +64,7 @@ Use a new output folder for a new experiment. Relative audio paths use `--audio-
 
 ## Existing experiments
 
-`evaluate_jenny_svd_probe.py` and `run_jenny_svd_probe.sh` retain the existing sequential SVD/probe evaluation. The evaluator uses the archived plan adapter so existing run configurations and cached baseline rules stay compatible; generation uses the shared runner.
+`evaluate_audio_steering.py` selects the vector methods and conditions, reuses compatible baselines, and calls `steer_audio.py` directly. Generation and accuracy scoring happen in that shared runner. Each method runs in a separate process, sequentially. Existing run configurations and cached baseline rules stay compatible. `run_jenny_svd_probe.sh` launches the SVD/probe experiment; `run_jenny_all_forwards.sh` launches the all-forwards mean experiment.
 
 Historical launchers are in [`archive/steering/`](archive/steering/README.md). Their selection rules and old seed policies are preserved. Run them as modules from the repository root, for example:
 
