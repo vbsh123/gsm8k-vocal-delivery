@@ -40,12 +40,17 @@ def main():
     p.add_argument('--methods',nargs='+',choices=['mean','svd1','svd_mean','probe'],default=['svd_mean','probe'])
     p.add_argument('--baseline-source',type=Path,default=Path('outputs/steer-jenny-L16-full460-seed42'))
     p.add_argument('--num-examples',type=int,default=460)
+    p.add_argument('--include-l11',action='store_true')
     p.add_argument('--prepare-only',action='store_true')
     p.add_argument('--summary-only',action='store_true')
     args=p.parse_args()
     if args.summary_only:
         report(args.output,args.methods)
         return
+    conditions = list(CONDITIONS)
+    if args.include_l11:
+        conditions.insert(1, dict(name='L11-answer-a1', interventions=[
+            dict(layer=11, group='answer', strength=1)]))
     source=json.loads((args.source_run/'run_config.json').read_text())
     records=source['recordings'][:args.num_examples]
     if not records or args.num_examples<1 or len(records)!=args.num_examples:
@@ -61,7 +66,7 @@ def main():
             p.error('Extraction and evaluation questions overlap')
         folder=args.output/method
         folder.mkdir(parents=True,exist_ok=True)
-        plan=dict(recordings=records,conditions=CONDITIONS,method=method,seed=42,
+        plan=dict(recordings=records,conditions=conditions,method=method,seed=42,
                   selection='Same original full460 second-set cohort; no correctness or classifier filter')
         path=folder/'selected-plan.json'
         if path.exists() and json.loads(path.read_text())!=plan:

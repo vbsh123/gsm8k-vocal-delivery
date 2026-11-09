@@ -7,5 +7,5 @@ cd "$(dirname "$0")"
   --output outputs/jenny-all-forwards
 
 .venv-diffa/bin/python -u evaluate_jenny_svd_probe.py \
-  --vectors-root outputs/jenny-all-forwards --methods mean \
+  --vectors-root outputs/jenny-all-forwards --methods mean --include-l11 \
   --output outputs/steer-jenny-all-forwards-second460
