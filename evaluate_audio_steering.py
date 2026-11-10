@@ -36,12 +36,14 @@ def report(root,methods):
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--vectors-root',type=Path,default=Path('outputs/jenny-svd-probe'))
+    p.add_argument('--vectors',type=Path,help='One checkpoint directly; supply one method label with --methods')
     p.add_argument('--source-run',type=Path,default=Path('outputs/steer-jenny-angry-complete'))
     p.add_argument('--output',type=Path,default=Path('outputs/steer-jenny-svd-probe-second460'))
     p.add_argument('--methods',nargs='+',default=['svd_mean','probe'],help='Checkpoint subfolder names under --vectors-root')
     p.add_argument('--baseline-source',type=Path,default=Path('outputs/steer-jenny-L16-full460-seed42'))
     p.add_argument('--num-examples',type=int,default=460)
     p.add_argument('--include-l11',action='store_true')
+    p.add_argument('--conditions',nargs='+',help='Run only these condition names, plus baseline')
     p.add_argument('--prepare-only',action='store_true')
     p.add_argument('--summary-only',action='store_true')
     args=p.parse_args()
@@ -52,6 +54,12 @@ def main():
     if args.include_l11:
         conditions.insert(1, dict(name='L11-answer-a1', interventions=[
             dict(layer=11, group='answer', strength=1)]))
+    if args.conditions:
+        if set(args.conditions) - {c['name'] for c in conditions}:
+            p.error('Unknown condition name')
+        conditions = [c for c in conditions if c['name'] == 'baseline' or c['name'] in args.conditions]
+    if args.vectors and len(args.methods) != 1:
+        p.error('--vectors requires one label in --methods')
     source=json.loads((args.source_run/'run_config.json').read_text())
     records=source['recordings'][:args.num_examples]
     if not records or args.num_examples<1 or len(records)!=args.num_examples:
@@ -59,7 +67,7 @@ def main():
     ids={r['question_id'] for r in records}
     commands=[]
     for method in args.methods:
-        vector=args.vectors_root/method/'style-vectors.pt'
+        vector=args.vectors or args.vectors_root/method/'style-vectors.pt'
         if not vector.is_file():
             p.error(f'Missing fitted vector: {vector}; finish collection/fitting first')
         excluded={r['question_id'] for r in read_rows(vector.parent/'extraction-questions.jsonl')}

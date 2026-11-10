@@ -170,6 +170,35 @@ class SharedAudioTests(unittest.TestCase):
                 self.assertEqual([c["name"] for c in run.call_args.args[1]],
                                  ["baseline", "L11-answer-a1", "L12-acoustic-a1", "L16-answer-a1.25"])
 
+    def test_original_checkpoint_can_be_evaluated_at_L12_only_with_seed42_baselines(self):
+        with tempfile.TemporaryDirectory() as directory, redirect_stdout(io.StringIO()):
+            root = Path(directory)
+            source, baselines = root/"source", root/"baselines"
+            source.mkdir()
+            baselines.mkdir()
+            records = [dict(clip_id=str(i), question_id=f"q{i}", audio_path=f"{i}.wav", answer="18") for i in range(2)]
+            (source/"run_config.json").write_text(json.dumps(dict(recordings=records)))
+            vectors = root/"original.pt"
+            vectors.write_bytes(b"original checkpoint fixture")
+            rows = [dict(clip_id=r["clip_id"], question_id=r["question_id"], condition="baseline",
+                         seed=42, prompt=evaluate_audio_steering.PROMPT, max_new_tokens=512,
+                         decoder="fast_dllm", steered_forwards=0, interventions=[], reference_answer="18",
+                         response="Final answer: 18", correct=True) for r in records]
+            (baselines/"results.jsonl").write_text("".join(json.dumps(r)+"\n" for r in rows))
+            output = root/"out"
+            args = ["test", "--source-run", str(source), "--vectors", str(vectors),
+                    "--methods", "original_mean", "--conditions", "L12-acoustic-a1",
+                    "--baseline-source", str(baselines), "--num-examples", "2", "--output", str(output)]
+            with patch("sys.argv", args), patch.object(evaluate_audio_steering.subprocess, "run"):
+                evaluate_audio_steering.main()
+            saved = json.loads((output/"original_mean/run_config.json").read_text())
+            self.assertEqual(saved["recordings"], records)
+            self.assertEqual(saved["settings"]["vectors"], str(vectors.resolve()))
+            self.assertEqual(saved["settings"]["seed_policy"], "constant_before_every_generation")
+            self.assertEqual([c["name"] for c in saved["settings"]["conditions"]], ["baseline", "L12-acoustic-a1"])
+            copied = [json.loads(line) for line in (output/"original_mean/results.jsonl").read_text().splitlines()]
+            self.assertEqual(copied, rows)
+
 
 if __name__ == "__main__":
     unittest.main()

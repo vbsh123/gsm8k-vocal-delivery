@@ -74,6 +74,8 @@ Historical launchers are in [`archive/steering/`](archive/steering/README.md). T
 
 `python steer.py` remains a compatibility entry for the historical CLI. New experiments use `steer_audio.py`, which resets seed42 before every generation.
 
+`run_jenny_original_L12_seed42.sh` reruns the original +2.6-point checkpoint at L12 acoustic ×1 on the same460 neutral recordings. It reads the original vector path from the old complete-run configuration, leaves that checkpoint unchanged, and reuses compatible literal42 baselines. This isolates the evaluation seed policy; it does not re-extract the vector. Results are saved separately under `outputs/steer-jenny-original-vector-L12-seed42/original_mean`. The launcher uses the shared GPU lock. The evaluator also accepts `--vectors CHECKPOINT --methods LABEL --conditions L12-acoustic-a1` for a direct single-condition comparison.
+
 ## Outcome-filtered and answer-trained vectors
 
 `extract_benefit_vectors.py` reads a completed first-set collection and averages only pairs where angry solved the question and neutral failed. It uses the saved seed42 responses and activations, without another model run. Run it once with `outputs/jenny-svd-probe` (matched forwards), and once with `outputs/jenny-all-forwards` (all forwards).
