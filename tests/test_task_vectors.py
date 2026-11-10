@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from extract_benefit_vectors import angry_helped, main as extract_benefit
+from extract_benefit_vectors import angry_helped, keep_pair, main as extract_benefit
 import evaluate_audio_steering
 from train_answer_vectors import masked_answer_loss, trainable_hook
 
@@ -27,6 +27,17 @@ class BenefitTests(unittest.TestCase):
             row = dict(pair=dict(neutral_id="neutral"), neutral_response="Final answer: " + neutral,
                        angry_response="Final answer: " + angry)
             self.assertEqual(angry_helped(row, manifest), expected)
+
+    def test_broad_filters_differ_only_on_both_wrong_pairs(self):
+        manifest = {"neutral": {"answer": "18"}}
+        for neutral, angry, with_wrong, without_wrong in [
+            ("17", "18", True, True), ("18", "18", True, True),
+            ("18", "17", False, False), ("17", "17", True, False),
+        ]:
+            row = dict(pair=dict(neutral_id="neutral"), neutral_response="Final answer: " + neutral,
+                       angry_response="Final answer: " + angry)
+            self.assertEqual(keep_pair(row, manifest, "exclude_losses"), with_wrong)
+            self.assertEqual(keep_pair(row, manifest, "angry_correct"), without_wrong)
 
     def test_both_methods_use_the_same_three_targets_and_questions(self):
         with tempfile.TemporaryDirectory() as directory, redirect_stdout(io.StringIO()):

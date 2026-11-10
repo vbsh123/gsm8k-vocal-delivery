@@ -91,3 +91,19 @@ tail -f outputs/jenny-task-vectors-night.log
 ```
 
 If needed, pass the current **bash launcher PID**, not just one Python child, as the script's first argument. Pass0 only when the GPU is already free. If the new GPU training path fails its smoke, the queue still extracts and evaluates both benefit-filtered variants. A partially trained checkpoint is not evaluated. The old `evaluate_jenny_svd_probe.py` name is a thin compatibility entry so already-started launchers can finish after an update.
+
+## Broader outcome filters
+
+`run_jenny_outcome_filters.sh` reuses the same first-set activations with two additional filters:
+
+| Method | Angry right, neutral wrong | Both right | Both wrong | Neutral right, angry wrong |
+|---|---|---|---|---|
+| `exclude_losses_mean` | Keep | Keep | Keep | Exclude |
+| `angry_correct_mean` | Keep | Keep | Exclude | Exclude |
+
+Both are extracted with matched and all-forward averaging, then tested on the same460 second-set neutral recordings at L11 answer ×1, L12 acoustic ×1, and L16 answer ×1.25. No gradient training or new activation collection is needed. The launcher waits on the existing task queue's lock before using the GPU. Saved vectors and evaluation results use separate `jenny-outcome-filters` folders.
+
+```bash
+nohup bash run_jenny_outcome_filters.sh \
+  > outputs/jenny-outcome-filters.log 2>&1 < /dev/null &
+```
