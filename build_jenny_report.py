@@ -1,4 +1,4 @@
-"""One offline HTML: separate steering charts plus matched delivery comparisons.
+"""One offline HTML: separate steering tables plus matched delivery comparisons.
 
 Reads saved answers only. Supports source folders, metadata archives, and loose
 Qwen/Kimi downloads whose browser-added filenames have lost their parent folders.
@@ -6,6 +6,7 @@ Qwen/Kimi downloads whose browser-added filenames have lost their parent folders
 import argparse
 from collections import defaultdict
 from fractions import Fraction
+from html import escape
 from itertools import combinations
 import json
 from math import comb
@@ -174,14 +175,52 @@ def delivery_data(files, loose_answers):
                 classifiers=list(CLASSIFIERS), filters=[dict(id=k, label=v) for k, v in FILTERS])
 
 
-def render_report(steering, deliveries):
+def steering_rows(experiment):
+    rows = []
+    for layer, values in sorted(experiment['layers'].items(), key=lambda item: int(item[0].split()[0])):
+        for p in sorted(values['points'], key=lambda p: (p['group'], p['strength'])):
+            targets = p.get('interventions', [dict(layer=layer, group=p['group'], strength=p['strength'])])
+            label = p.get('label') or ' + '.join(f'L{t["layer"]} {t["group"]} ×{t["strength"]:g}' for t in targets)
+            rows.append(dict(condition=label, n=p['n'], correct=p['correct'],
+                             baseline_correct=values['baseline'], baseline_n=values['n'],
+                             wins=p.get('wins'), losses=p.get('losses'), p=p.get('p')))
+    return rows
+
+
+def steering_table(experiment):
+    identity = experiment.get('id', '')
+    metric = ('Previously wrong answers repaired' if identity.startswith('recovery') or identity == 'six-question-combinations'
+              else 'Previously correct answers retained' if identity == 'regressions-260' else 'Math answer accuracy')
+    body = []
+    for row in steering_rows(experiment):
+        n, base_n = row['n'], row['baseline_n']
+        acc, base = 100*row['correct']/n, 100*row['baseline_correct']/base_n
+        gain = acc-base
+        style = 'positive' if gain > 0 else 'negative' if gain < 0 else ''
+        body.append(f'<tr><th scope="row">{escape(row["condition"])}</th><td>{n}</td>'
+                    f'<td>{row["baseline_correct"]}/{base_n}</td><td>{base:.1f}%</td>'
+                    f'<td>{row["correct"]}/{n}</td><td>{acc:.1f}%</td>'
+                    f'<td class="{style}">{gain:+.1f}</td>'
+                    f'<td>{row["wins"] if row["wins"] is not None else "—"}</td>'
+                    f'<td>{row["losses"] if row["losses"] is not None else "—"}</td>'
+                    f'<td>{format(row["p"], ".4f") if row["p"] is not None else "—"}</td></tr>')
+    return (f'<article class="card steering-card"><div class="head"><h3>{escape(experiment["title"])}</h3>'
+            f'<span class="badge">{metric}</span></div><p class="note">{escape(experiment["source"])}</p>'
+            '<div class="scroll"><table><thead><tr><th>Condition: layer · tokens · strength</th><th>Pairs</th>'
+            '<th>Baseline correct/N</th><th>Baseline</th><th>Steered correct/N</th><th>Steered</th>'
+            '<th>Gain pp</th><th>Wins</th><th>Losses</th><th>Exact p</th></tr></thead><tbody>'
+            + ''.join(body) + '</tbody></table></div>'
+            '<p class="note">Every tested condition is shown. Gains, wins and losses compare steering with the paired unsteered baseline. Tests are unadjusted.</p></article>')
+
+
+def render_report(steering, deliveries, audio_speed=None):
     steering=list(steering)
     seen={e.get('id') for e in steering}
     steering.extend(e for e in followup_steering() if e['id'] not in seen)
     steering=[explain_experiment(e) for e in steering]
     template = Path(__file__).with_name('jenny_report.html').read_text()
-    payload = json.dumps(dict(steering=steering, deliveries=deliveries, audio_speed=audio_speed_data()), ensure_ascii=True, allow_nan=False)
-    return template.replace('__JENNY_REPORT_DATA__', payload.replace('<', '\\u003c'))
+    payload = json.dumps(dict(steering=steering, deliveries=deliveries, audio_speed=audio_speed or audio_speed_data()), ensure_ascii=True, allow_nan=False)
+    return template.replace('__STEERING_TABLES__', ''.join(steering_table(e) for e in steering)).replace('__JENNY_REPORT_DATA__', payload.replace('<', '\\u003c'))
 
 
 def explain_experiment(experiment):
@@ -267,6 +306,7 @@ def main():
     if not args.paths and not args.archives:
         args.paths = [Path('outputs/azure-jenny500-extra'), Path('outputs/azure-jenny500-neutral'), Path('outputs/azure-jenny-next500')]
     loose = []
+    audio_speed = None
     for argument in args.answers:
         model, filename = argument.split('=', 1)
         if model not in MODELS:
@@ -276,12 +316,13 @@ def main():
         text=args.update_report.read_text().split('const DATA=',1)[1]
         previous,_=json.JSONDecoder().raw_decode(text.lstrip())
         deliveries,steering=previous['deliveries'],previous['steering']
+        audio_speed=previous.get('audio_speed')
     else:
         deliveries = delivery_data(read_metadata(args.paths, args.archives), loose)
         steering = from_runs(args.steering_runs) if args.steering_runs else pasted_data() + [six_question_data()]
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(render_report(steering, deliveries))
-    print(f'Saved {args.output}: steering panels, matched model tables, and audio-speed section')
+    args.output.write_text(render_report(steering, deliveries, audio_speed))
+    print(f'Saved {args.output}: steering tables, matched model tables, and audio-speed section')
     for model in deliveries['models']:
         print(f'{model["name"]}: {model["answer_count"]} saved answers, {len(model["cohorts"])} cohorts')
 

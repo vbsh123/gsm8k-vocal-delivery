@@ -1,9 +1,32 @@
 import unittest
 
-from build_jenny_report import agrees, paired_comparisons
+from build_jenny_report import agrees, paired_comparisons, steering_table, steering_rows, render_report
 
 
 class MatchedReportTests(unittest.TestCase):
+    def test_all_conditions_and_mixed_strength_combinations_are_visible_without_javascript(self):
+        experiment = dict(id='recovery-test', title='Repair <test>', source='Same selected questions.', layers={
+            '12': dict(n=10, baseline=4, points=[dict(group='acoustic',strength=1,correct=6,n=10,wins=3,losses=1,p=.625)]),
+            '5 + 11': dict(n=6, baseline=0, points=[dict(group='combo',strength=1,correct=1,n=6,wins=1,losses=0,p=1,
+                interventions=[dict(layer=5,group='acoustic',strength=1),dict(layer=11,group='answer',strength=.5)])])})
+        rows = steering_rows(experiment)
+        self.assertEqual([r['condition'] for r in rows], ['L5 acoustic ×1 + L11 answer ×0.5', 'L12 acoustic ×1'])
+        html = steering_table(experiment)
+        self.assertNotIn('<select', html)
+        self.assertIn('Repair &lt;test&gt;', html)
+        self.assertIn('L5 acoustic ×1 + L11 answer ×0.5', html)
+        self.assertIn('<td>4/10</td><td>40.0%</td><td>6/10</td><td>60.0%</td>', html)
+        self.assertIn('>+20.0</td>', html)
+        self.assertIn('Previously wrong answers repaired', html)
+
+    def test_render_preserves_existing_speed_data(self):
+        speed = dict(source='saved measurements', points=[])
+        html = render_report([], dict(models=[],scorer='test',filters=[]), speed)
+        self.assertIn('"source": "saved measurements"', html)
+        self.assertNotIn('__STEERING_TABLES__', html)
+        self.assertNotIn('class="layer"', html)
+        self.assertIn('L23 answer ×1.25', html)
+
     def test_union_is_per_recording_and_intersection_requires_both_classifiers(self):
         tasks = {('q', 'v', s): dict(question_id='q', voice='v', style=s)
                  for s in ('neutral', 'angry')}
