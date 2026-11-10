@@ -35,11 +35,16 @@ def main():
     import soundfile as sf
 
     adapter = importlib.import_module(f"{args.model}_agreement")
-    predict = adapter.load_predictor(args.device)
-    rows = []
-    with output.open("w") as stream:
+    saved = {r['audio_path']:r for r in (json.loads(line) for line in output.read_text().splitlines() if line.strip())} if output.exists() else {}
+    if any(r['model'] != adapter.MODEL for r in saved.values()):
+        parser.error('Saved predictions use another model')
+    pending = [t for t in tasks if t['audio_path'] not in saved]
+    rows = [saved[t['audio_path']] for t in tasks if t['audio_path'] in saved]
+    print(f'{len(tasks)} clips; {len(pending)} classification predictions pending.', flush=True)
+    predict = adapter.load_predictor(args.device) if pending else None
+    with output.open("a") as stream:
         print(f'{"Provider":12} {"Requested":12} {"Predicted":12} {"Top score":>10}', flush=True)
-        for task in tasks:
+        for task in pending:
             audio, sample_rate = sf.read(args.path / task["audio_path"], dtype="float32")
             if audio.ndim == 2:
                 audio = audio.mean(axis=1)

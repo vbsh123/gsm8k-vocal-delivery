@@ -17,7 +17,10 @@ def main():
                         default=["neutral", "angry", "happy", "sad"])
     parser.add_argument("--results-file", default="results-matched-accuracy.jsonl",
                         help="Answer JSONL filename inside each input folder; defaults to DIFFA results.")
+    parser.add_argument('--confidence-intervals',action='store_true')
     args = parser.parse_args()
+    def show(*values):
+        return summarize_deliveries(*values,confidence_intervals=args.confidence_intervals)
     tasks, results = [], {}
     labels = {name: {} for name in args.classifiers}
     for folder in args.paths:
@@ -50,20 +53,20 @@ def main():
                 print("  Predicted labels:", dict(Counter(row["emotion"] for row in selected)))
 
     print("\nALL EVALUATED CLIPS — PRIMARY; PAIRED ACCURACY ONLY")
-    summarize_deliveries(tasks, results, styles)
+    show(tasks, results, styles)
     for name, predictions in labels.items():
         if predictions:
-            summarize_deliveries(tasks, results, [s for s in styles if s in STYLES], predictions, name)
+            show(tasks, results, [s for s in styles if s in STYLES], predictions, name)
     if len(labels) > 1 and all(labels.values()):
         any_agreed = {t["audio_path"]: {"emotion": t["style"]} for t in tasks
                       if any(predictions.get(t["audio_path"], {}).get("emotion") == t["style"]
                              for predictions in labels.values())}
-        summarize_deliveries(tasks, results, [s for s in styles if s in STYLES],
+        show(tasks, results, [s for s in styles if s in STYLES],
                              any_agreed, "at least one classifier")
         agreed = {t["audio_path"]: {"emotion": t["style"]} for t in tasks
                   if all(predictions.get(t["audio_path"], {}).get("emotion") == t["style"]
                          for predictions in labels.values())}
-        summarize_deliveries(tasks, results, [s for s in styles if s in STYLES], agreed, "+".join(labels))
+        show(tasks, results, [s for s in styles if s in STYLES], agreed, "+".join(labels))
     print("Filtered comparisons require the requested emotion on both sides, including neutral.")
     if len(labels) > 1:
         print("At least one: each clip needs a matching classifier; the classifier may differ between the two clips.")

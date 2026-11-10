@@ -73,7 +73,7 @@ def summarize_all(tasks, results, older, styles):
     print("All available clips per style; this is an unpaired descriptive comparison.")
 
 
-def summarize_deliveries(tasks, results, styles, labels=None, filter_name="emotion2vec"):
+def summarize_deliveries(tasks, results, styles, labels=None, filter_name="emotion2vec", confidence_intervals=False):
     groups = {style: {} for style in styles}
     for task in tasks:
         if task["style"] not in groups or task["audio_path"] not in results:
@@ -86,7 +86,7 @@ def summarize_deliveries(tasks, results, styles, labels=None, filter_name="emoti
     subset = f"{filter_name}-agreed on both sides" if labels is not None else "all requested deliveries"
     print(f"\nWithin-Azure, same question and voice ({subset})")
     print(f'{"Reference":10} {"Test":10} {"Pairs":>6} {"Ref acc":>9} {"Test acc":>9} '
-          f'{"Gain pp":>9} {"Wins":>6} {"Losses":>7} {"Exact p":>9}')
+          f'{"Gain pp":>9} {"Wins":>6} {"Losses":>7} {"Exact p":>9}' + ('   95% CI gain pp' if confidence_intervals else ''))
     for reference, test in combinations(styles, 2):
         keys = groups[reference].keys() & groups[test].keys()
         n = len(keys)
@@ -98,9 +98,17 @@ def summarize_deliveries(tasks, results, styles, labels=None, filter_name="emoti
         d = wins + losses
         p = min(1.0, 2 * sum(comb(d, k) for k in range(min(wins, losses) + 1)) / 2**d)
         ref_acc, test_acc = sum(a[k] for k in keys)/n, sum(b[k] for k in keys)/n
+        interval=''
+        if confidence_intervals:
+            import numpy as np
+            draws=np.random.default_rng(42).multinomial(n,[wins/n,losses/n,1-(wins+losses)/n],size=200000)
+            low,high=np.percentile(100*(draws[:,0]-draws[:,1])/n,[2.5,97.5])
+            interval=f'   [{low:+.1f}, {high:+.1f}]'
         print(f'{reference:10} {test:10} {n:6} {ref_acc:9.1%} {test_acc:9.1%} '
-              f'{100*(test_acc-ref_acc):+9.1f} {wins:6} {losses:7} {p:9.4f}')
+              f'{100*(test_acc-ref_acc):+9.1f} {wins:6} {losses:7} {p:9.4f}'+interval)
     print("Gain and wins/losses refer to test versus reference. McNemar p-values are unadjusted.")
+    if confidence_intervals:
+        print('95% paired bootstrap percentile intervals for the accuracy difference; 200,000 resamples; no multiple-comparison adjustment.')
 
 
 def main():
@@ -118,7 +126,9 @@ def main():
                         default=Path("outputs/manual200-mixed/cropped/results-emotion2vec-evaluated.jsonl"))
     args = parser.parse_args()
     tasks = read(args.path / "plan.jsonl")
-    older = read(args.older_results)
+    older = read(args.older_results) if args.older_results.exists() else []
+    if not older and not args.all_cloud:
+        parser.error('Older TTS results are missing; use --all-cloud to evaluate Azure recordings independently.')
     if args.older_emotion_agreed:
         labels = {r["clip_id"]: r for r in read(args.older_labels)}
         older = [r for r in older if labels.get(r["clip_id"], {}).get("emotion") == r["style"]]
