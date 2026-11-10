@@ -44,15 +44,31 @@ This creates `speed-listen5.zip`, downloading public source audio if local origi
 Reuse the five listening recordings, with no dataset download or inference:
 
 ```bash
-.venv-listen/bin/pip install imageio-ffmpeg
+.venv-listen/bin/pip install imageio-ffmpeg==0.8.1 audiostretchy==1.3.14
 .venv-listen/bin/python -u compare_speed_methods.py
 ```
 
-Download `speed-method-comparison.zip`, extract it, and open `index.html`.
-Each question includes the unchanged 1× recording, existing librosa versions,
-and FFmpeg `atempo` at 0.9×, 1.1× and 1.3×. This is an alternative to compare by
-listening, not a guarantee of improved quality. The original is copied unchanged.
+Download `speed-method-comparison-v2.zip`, extract it, and open `index.html`.
+Each question includes the unchanged 1× recording and three methods: FFmpeg
+`atempo`, Rubber Band via FFmpeg (`pitch=1`), and AudioStretchy. Rates are
+0.5×, 0.7×, 0.9×, 1.1×, 1.5× and 2×. AudioStretchy's duration ratio is
+`1/rate`, including gaps; this avoids reversing fast and slow conditions.
+These are alternatives to compare by listening, not guarantees of improved
+quality. The original is copied unchanged. Add `--methods atempo rubberband
+audiostretchy librosa` to include the older librosa samples too.
 Use `--source outputs/speed-listen5` if that is where the samples were generated.
+
+## Separate 200-question atempo accuracy run
+
+`run_atempo_speed200.sh` extends the source pool and chooses the first 200
+original recordings no longer than 15 seconds, since the initial 300 contain
+only 138 eligible recordings. It renders all 16 rates from 0.5× to 2× on CPU,
+then waits for the shared GPU lock and an empty GPU before loading DIFFA.
+The total is 3,200 answers including the 1× baseline, with seed 42 before every
+generation. Saved WAVs are read directly for inference. Completed answers and
+audio resume; previous librosa answers are not reused. Results live separately
+in `outputs/spoken-gsm-atempo200`. This launcher is optional; comparing the
+listening samples does not run it.
 
 ## Listen to and measure the old speed experiment
 

@@ -9,6 +9,8 @@ import json
 from math import comb, isfinite
 from pathlib import Path
 import random
+import shutil
+import subprocess
 import time
 
 from compare_cloud_accuracy import PROMPT
@@ -17,6 +19,33 @@ from steer import read_rows
 
 
 RATES = [0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5]
+
+
+def prepare_atempo(selected, rates, output, ffmpeg, sf, librosa):
+    folder=output/'audio'
+    folder.mkdir(exist_ok=True)
+    for index,record in enumerate(selected,1):
+        paths={rate:folder/f"{record['clip_id']}__{rate:g}x.wav" for rate in rates}
+        if all(path.exists() for path in paths.values()):
+            continue
+        if not paths[1.].exists():
+            audio,sr=sf.read(record['audio_path'],dtype='float32')
+            if audio.ndim==2:
+                audio=audio.mean(axis=1)
+            if sr!=16000:
+                audio=librosa.resample(audio,orig_sr=sr,target_sr=16000)
+            temporary=paths[1.].with_suffix('.tmp.wav')
+            sf.write(temporary,audio,16000,subtype='FLOAT')
+            temporary.replace(paths[1.])
+        for rate,path in paths.items():
+            if path.exists():
+                continue
+            temporary=path.with_suffix('.tmp.wav')
+            subprocess.run([ffmpeg,'-hide_banner','-loglevel','error','-y',
+                            '-i',str(paths[1.]),'-af',f'atempo={rate:g}',
+                            '-c:a','pcm_f32le',str(temporary)],check=True)
+            temporary.replace(path)
+        print(f'Audio [{index}/{len(selected)}] {record["clip_id"]}: all {len(rates)} rates ready.',flush=True)
 
 
 def condition(rate):
@@ -49,8 +78,8 @@ def reusable_answers(source, plan):
         return []
     previous=json.loads((source/'run_config.json').read_text())
     keys=('seed','prompt','steps','block_length','max_new_tokens','temperature','decoder',
-          'sample_rate','transform','librosa','max_seconds')
-    if any(previous['settings'].get(k)!=plan['settings'][k] for k in keys):
+          'sample_rate','transform','librosa','max_seconds','ffmpeg_version')
+    if any(previous['settings'].get(k)!=plan['settings'].get(k) for k in keys):
         print('Previous speed recipe differs; no answers reused.',flush=True)
         return []
     old={r['clip_id']:r for r in previous['recordings']}
@@ -98,6 +127,7 @@ def main():
     p.add_argument("--output",type=Path,default=Path("outputs/spoken-gsm-speed100"))
     p.add_argument("--rates",type=float,nargs='+',default=RATES,help='Playback rates; 1x baseline is always included.')
     p.add_argument("--reuse-from",type=Path,help='Copy compatible completed answers for overlapping questions and rates.')
+    p.add_argument('--stretch-method',choices=['librosa','atempo'],default='librosa')
     p.add_argument("--prepare-only",action="store_true",help="Select/freeze questions without loading DIFFA.")
     p.add_argument("--summary-only",action="store_true")
     p.add_argument("--save-audio",action="store_true",help="Save the 16-kHz waveforms used for inference, for listening.")
@@ -111,6 +141,14 @@ def main():
     if args.num_examples<1 or any(not isfinite(r) or r<=0 for r in args.rates):
         p.error('Need a positive question count and finite positive playback rates')
     rates=sorted(set([1.0,*args.rates]))
+    ffmpeg=None
+    if args.stretch_method=='atempo':
+        if any(not .5<=rate<=2 for rate in rates):
+            p.error('This atempo experiment supports rates from 0.5 to 2.')
+        ffmpeg=shutil.which('ffmpeg')
+        if not ffmpeg:
+            import imageio_ffmpeg
+            ffmpeg=imageio_ffmpeg.get_ffmpeg_exe()
     records=read_rows(args.path/"manifest.jsonl")
     selected=select_recordings(records,args.path,args.num_examples,rates,sf)
     conditions=[dict(name="baseline")]+[dict(name=condition(r)) for r in rates if r!=1]
@@ -120,6 +158,9 @@ def main():
                             transform="librosa.effects.time_stretch; rate1 bypassed",
                             librosa=librosa.__version__,max_seconds=30,
                             selection=f"first N original recordings <={30*min(rates):g}s; no correctness or emotion filtering"))
+    if ffmpeg:
+        plan['settings'].update(transform='ffmpeg.atempo; rate1 bypassed',
+            ffmpeg_version=subprocess.check_output([ffmpeg,'-version'],text=True).splitlines()[0])
     args.output.mkdir(parents=True,exist_ok=True)
     config=args.output/"run_config.json"
     if config.exists() and json.loads(config.read_text())!=plan:
@@ -146,7 +187,9 @@ def main():
         print(f'Reused {reused} compatible saved answers; original results unchanged.',flush=True)
     pending=len(allowed)-len(completed)
     print(f"{len(selected)} matched questions x {len(rates)} speeds; {pending} generations pending.",flush=True)
-    print("Rates:",rates,"; seed always 42; pitch preserved; no truncation.",flush=True)
+    print("Rates:",rates,f"; method={args.stretch_method}; seed always 42; no truncation.",flush=True)
+    if ffmpeg:
+        prepare_atempo(selected,rates,args.output,ffmpeg,sf,librosa)
     if args.prepare_only:
         return
     if not pending:
@@ -168,10 +211,13 @@ def main():
             name=condition(rate)
             if (r["clip_id"],name) in completed:
                 continue
-            changed=audio if rate==1 else librosa.effects.time_stretch(audio,rate=rate)
+            if ffmpeg:
+                changed,_=sf.read(args.output/'audio'/f"{r['clip_id']}__{rate:g}x.wav",dtype='float32')
+            else:
+                changed=audio if rate==1 else librosa.effects.time_stretch(audio,rate=rate)
             if len(changed)>30*16000:
                 raise ValueError(f'{r["clip_id"]} at {rate:g}x exceeds 30 seconds; no audio was cropped')
-            if args.save_audio:
+            if args.save_audio and not ffmpeg:
                 folder=args.output/"audio"
                 folder.mkdir(exist_ok=True)
                 sf.write(folder/f"{r['clip_id']}__{rate:g}x.wav",changed,16000,subtype="FLOAT")
