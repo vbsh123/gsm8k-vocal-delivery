@@ -190,7 +190,7 @@ def steering_rows(experiment):
 def steering_table(experiment):
     identity = experiment.get('id', '')
     metric = ('Previously wrong answers repaired' if identity.startswith('recovery') or identity == 'six-question-combinations'
-              else 'Previously correct answers retained' if identity == 'regressions-260' else 'Math answer accuracy')
+              else 'Previously correct answers retained' if identity.startswith('regressions-260') else 'Math answer accuracy')
     body = []
     for row in steering_rows(experiment):
         n, base_n = row['n'], row['baseline_n']
@@ -213,14 +213,56 @@ def steering_table(experiment):
             '<p class="note">Every tested condition is shown. Gains, wins and losses compare steering with the paired unsteered baseline. Tests are unadjusted.</p></article>')
 
 
+def steering_story(experiments):
+    chapters = [
+        ('1. Start with a small layer search', ['initial-pilot-50'],
+         'We first tested where an angry-minus-neutral direction might help. The initial 50-question sweep was a search for candidates.'),
+        ('2. Check whether neutral failures can be repaired', ['recovery-74'],
+         'We then focused on 74 questions where angry delivery succeeded and neutral delivery failed. This measures recovery on selected failures, not overall accuracy.'),
+        ('3. Expand the search beyond the ten-question screen', ['recovery64-promoted'],
+         'A later ten-question screen selected additional layers at strength 1.25. The table below uses only the other 64 recovery questions, excluding those ten screening questions.'),
+        ('4. Check what steering breaks', ['regressions-260'],
+         'Recovering wrong answers is only half the picture. We also measured losses on 260 questions that neutral and angry delivery had both solved.'),
+        ('5. Measure the net effect on overall accuracy', ['batch2-neutral-460','batch1-neutral-487'],
+         'We next evaluated selected layers across complete cohorts containing successes and failures. Here 425 means the angry/neutral pairs used to learn the direction; 460 means different neutral recordings used for evaluation.'),
+        ('6. Follow up on layers 16 and 23', ['recovery74-L16-L23-strengths','regressions-260-L16-L23','batch2-neutral-460-seed42-followup'],
+         'Layers 16 and 23 led the expanded recovery search. We checked their strengths and regressions, then evaluated layer 16 across all 460 recordings. Layer 23 has no full-460 result here.'),
+    ]
+    by_id={e.get('id'):e for e in experiments if e.get('id') not in {'six-question-combinations','recovery74-promoted'}}
+    initial_recovery=by_id.get('recovery-74')
+    if initial_recovery and 'layers' in initial_recovery:
+        layers={layer:{**values,'points':[p for p in values['points'] if p['strength']==1]}
+                for layer,values in initial_recovery['layers'].items()}
+        by_id['recovery-74']={**initial_recovery,'layers':{k:v for k,v in layers.items() if v['points']}}
+    ordered=[]
+    for title, identities, transition in chapters:
+        for identity in identities:
+            if identity in by_id:
+                ordered.append({**by_id.pop(identity),'chapter':title,'transition':transition})
+    ordered.extend(by_id.values())
+    return ordered
+
+
+def render_steering_story(experiments):
+    html=[]
+    previous=None
+    for experiment in experiments:
+        chapter=experiment.get('chapter')
+        if chapter and chapter!=previous:
+            html.append(f'<div class="story-stage"><h3>{escape(chapter)}</h3><p>{escape(experiment["transition"])}</p></div>')
+            previous=chapter
+        html.append(steering_table(experiment))
+    return ''.join(html)
+
+
 def render_report(steering, deliveries, audio_speed=None):
     steering=list(steering)
     seen={e.get('id') for e in steering}
     steering.extend(e for e in followup_steering() if e['id'] not in seen)
-    steering=[explain_experiment(e) for e in steering]
+    steering=steering_story([explain_experiment(e) for e in steering])
     template = Path(__file__).with_name('jenny_report.html').read_text()
     payload = json.dumps(dict(steering=steering, deliveries=deliveries, audio_speed=audio_speed or audio_speed_data()), ensure_ascii=True, allow_nan=False)
-    return template.replace('__STEERING_TABLES__', ''.join(steering_table(e) for e in steering)).replace('__JENNY_REPORT_DATA__', payload.replace('<', '\\u003c'))
+    return template.replace('__STEERING_TABLES__', render_steering_story(steering)).replace('__JENNY_REPORT_DATA__', payload.replace('<', '\\u003c'))
 
 
 def explain_experiment(experiment):
@@ -228,12 +270,12 @@ def explain_experiment(experiment):
     descriptions={
         'initial-pilot-50':('Initial search: where to apply the anger direction?',
             'An anger direction was learned from 425 matched angry/neutral pairs in recording set A. We then steered the neutral audio for 50 questions from the separate recording set B, testing layers0–25 and audio/answer representations separately at strength1. Each condition is compared with the same neutral recording without steering.'),
-        'batch1-neutral-487':('Transfer test: direction from 414 pairs → 487 different neutral recordings',
+        'batch1-neutral-487':('Additional reverse-direction check: 414 extraction pairs → 487 neutral recordings',
             'We learned a new anger direction from 414 matched angry/neutral pairs in set B, then applied it to 487 neutral recordings in set A. L11 answer and L12 acoustic steering were tested separately at strength1. The reported percentage is math accuracy, compared with the same recordings without steering. These questions were not used to extract this direction.'),
-        'batch2-neutral-460':('Transfer test: direction from 425 pairs → 460 different neutral recordings',
+        'batch2-neutral-460':('Full-cohort test: direction from 425 pairs → 460 neutral recordings',
             'We learned an anger direction from 425 matched angry/neutral pairs in set A, then applied it to 460 neutral recordings in set B. Each question had evaluated neutral and angry deliveries; steering was applied only to neutral audio. The percentage is math accuracy against the same recordings without steering. Layer choices had been explored on subsets of this test set.'),
-        'recovery-74':('Can steering repair answers that angry delivery got right? — 74 questions',
-            'Using the direction learned from set A, we tested 74 questions in set B for which neutral delivery was incorrect and angry delivery was correct. These exclude the initial50-question search. All74 were also incorrect under the fresh unsteered baseline. Here the percentage means the fraction of these failures repaired by steering; it is not overall math accuracy.'),
+        'recovery-74':('74-question recovery test · strength 1',
+            'Using the direction learned from set A, we tested 74 questions in set B for which neutral delivery was incorrect and angry delivery was correct. These exclude the initial50-question search. This table shows the strength-1 conditions only. All74 were also incorrect under the fresh unsteered baseline. The percentage is the fraction repaired, not overall accuracy.'),
         'regressions-260':('Does steering damage answers that were already correct? — 260 questions',
             'Using the direction learned from set A, we tested 260 questions in set B for which both neutral and angry delivery had been correct. The fresh unsteered baseline was correct on all260. Here the percentage means previously correct answers retained after steering; a drop from100% is a regression. This deliberately selected success set is not an overall accuracy test.'),
         'six-question-combinations':('Small diagnostic: stronger, weaker and combined interventions — 6 questions',
@@ -244,6 +286,10 @@ def explain_experiment(experiment):
             'These are the same thirteen candidates selected on ten questions, now reported only on the other64. The ten screening questions are excluded. The direction is learned from set A and applied to neutral recordings in set B at strength1.25. The questions are still selected for neutral failure and angry success; the percentage measures recovery on that subset.'),
         'recovery74-L16-L23-strengths':('How much steering? — layers16 and23 on the same74 failures',
             'We compared strengths0.5,1 and1.25 for answer-token steering at layers16 and23, using the set A direction on the same74 recovery questions in set B. The percentage is the fraction of unsteered failures repaired. All74 include the ten screening questions. Benefits on this failure set must be weighed against losses on previously correct answers.'),
+        'regressions-260-L16-L23':('L16/L23 regression check · strength 1.25 · 260 previously correct answers',
+            'Both neutral and angry delivery had solved these questions, and the fresh baseline solved all 260. At strength 1.25, L16 answer steering lost 13 answers and L23 answer steering lost 20. The reported percentage is correct answers retained, not overall accuracy.'),
+        'batch2-neutral-460-seed42-followup':('Full 460-question follow-up · L16 versus the L12 control · literal seed42',
+            'The original direction learned from 425 set A pairs was applied to all 460 set B neutral recordings, with literal seed42 before each baseline and steered generation. L16 answer at strength 1.25 scored 313/460, compared with baseline 304/460. The unchanged original L12 acoustic direction at strength 1 reproduced 316/460 under literal seed42. No full-460 L23 result is available; its recovery percentage above must not be read as full-cohort accuracy.'),
     }
     entry=descriptions.get(experiment.get('id'))
     if entry is None:
@@ -275,7 +321,14 @@ def followup_steering():
             dict(id='recovery64-promoted',title='Promoted recovery layers ×1.25 · remaining64 · complete',layers=remaining,
                  source='Completed pasted remaining64 table. Excludes the ten screening questions used to choose these conditions. Still selected for angry success / neutral failure; this is recovery, not overall model accuracy. Baseline0/64.'),
             dict(id='recovery74-L16-L23-strengths',title='L16/L23 answer · strength comparison · 74 questions',layers=strength,
-                 source='Completed pasted results on the same74 outcome-selected neutral failures at ×0.5, ×1 and ×1.25. Includes the ten screening questions. Tiny paired p-values on this selected failure set do not establish general benefit.')]
+                 source='Completed pasted results on the same74 outcome-selected neutral failures at ×0.5, ×1 and ×1.25. Includes the ten screening questions. Tiny paired p-values on this selected failure set do not establish general benefit.'),
+            dict(id='regressions-260-L16-L23',title='L16/L23 regression check',source='Completed results supplied in the experiment log.',
+                 layers={'16':dict(n=260,baseline=260,points=[point('answer',1.25,247,260,0,13)]),
+                         '23':dict(n=260,baseline=260,points=[point('answer',1.25,240,260,0,20)])}),
+            dict(id='batch2-neutral-460-seed42-followup',title='Full 460-question follow-up under literal seed42',
+                 source='Completed full-cohort L16 result and confirmed original L12 seed42 rerun supplied in the experiment log.',
+                 layers={'12':dict(n=460,baseline=304,points=[point('acoustic',1,316,460,29,17)]),
+                         '16':dict(n=460,baseline=304,points=[point('answer',1.25,313,460,27,18)])})]
 
 
 def audio_speed_data():

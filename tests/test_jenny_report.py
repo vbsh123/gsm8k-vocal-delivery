@@ -1,9 +1,33 @@
 import unittest
 
-from build_jenny_report import agrees, paired_comparisons, steering_table, steering_rows, render_report
+from build_jenny_report import agrees, paired_comparisons, steering_table, steering_rows, render_report, steering_story, followup_steering
 
 
 class MatchedReportTests(unittest.TestCase):
+    def test_story_order_removes_six_question_and_redundant_all74_tables(self):
+        identities=['batch1-neutral-487','recovery74-promoted','six-question-combinations',
+                    'regressions-260','initial-pilot-50','recovery-74','batch2-neutral-460',
+                    'recovery64-promoted','recovery74-L16-L23-strengths']
+        inputs=[dict(id=identity) for identity in identities]
+        result=steering_story(inputs)
+        self.assertEqual([e['id'] for e in result],['initial-pilot-50','recovery-74','recovery64-promoted',
+            'regressions-260','batch2-neutral-460','batch1-neutral-487','recovery74-L16-L23-strengths'])
+        self.assertEqual(steering_story(result),result)
+        recovery=dict(id='recovery-74',layers={'11':dict(n=74,baseline=0,points=[
+            dict(strength=1,correct=24),dict(strength=1.5,correct=19)])})
+        focused=steering_story([recovery])[0]
+        self.assertEqual(focused['layers']['11']['points'],[dict(strength=1,correct=24)])
+        self.assertEqual(len(recovery['layers']['11']['points']),2)
+
+    def test_late_layer_results_keep_regressions_separate_from_full_accuracy(self):
+        entries={e['id']:e for e in followup_steering()}
+        regressions=steering_rows(entries['regressions-260-L16-L23'])
+        self.assertEqual([(r['n'],r['correct'],r['losses']) for r in regressions],[(260,247,13),(260,240,20)])
+        self.assertIn('Previously correct answers retained',steering_table(entries['regressions-260-L16-L23']))
+        full=entries['batch2-neutral-460-seed42-followup']
+        self.assertEqual(set(full['layers']),{'12','16'})
+        self.assertEqual([(r['correct'],r['baseline_correct']) for r in steering_rows(full)],[(316,304),(313,304)])
+
     def test_all_conditions_and_mixed_strength_combinations_are_visible_without_javascript(self):
         experiment = dict(id='recovery-test', title='Repair <test>', source='Same selected questions.', layers={
             '12': dict(n=10, baseline=4, points=[dict(group='acoustic',strength=1,correct=6,n=10,wins=3,losses=1,p=.625)]),
