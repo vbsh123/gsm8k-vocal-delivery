@@ -13,7 +13,7 @@ import sys
 
 from compare_cloud_accuracy import PROMPT
 from scoring import score_response
-from steer import read_rows,summarize
+from steer import read_rows,summarize,direction_settings
 
 
 CONDITIONS=[dict(name='baseline',interventions=[]),
@@ -44,6 +44,7 @@ def main():
     p.add_argument('--num-examples',type=int,default=460)
     p.add_argument('--include-l11',action='store_true')
     p.add_argument('--conditions',nargs='+',help='Run only these condition names, plus baseline')
+    p.add_argument('--conditions-file',type=Path,help='JSON list of conditions, including baseline')
     p.add_argument('--prepare-only',action='store_true')
     p.add_argument('--summary-only',action='store_true')
     args=p.parse_args()
@@ -54,6 +55,8 @@ def main():
     if args.include_l11:
         conditions.insert(1, dict(name='L11-answer-a1', interventions=[
             dict(layer=11, group='answer', strength=1)]))
+    if args.conditions_file:
+        conditions=json.loads(args.conditions_file.read_text())
     if args.conditions:
         if set(args.conditions) - {c['name'] for c in conditions}:
             p.error('Unknown condition name')
@@ -89,6 +92,7 @@ def main():
                         seed_policy='constant_before_every_generation',
                         prepared_plan=str(path.resolve()),
                         prepared_plan_sha256=hashlib.sha256(path.read_bytes()).hexdigest())
+        settings.update(direction_settings(vector))
         config = dict(settings=settings, recordings=records)
         config_path = folder/'run_config.json'
         if config_path.exists() and json.loads(config_path.read_text()) != config:

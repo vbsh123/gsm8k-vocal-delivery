@@ -6,7 +6,7 @@ from pathlib import Path
 import random
 import time
 
-from steer import install_interventions
+from steer import install_interventions, diffusion_progress, direction_settings
 from scoring import score_response
 from steer import read_rows, summarize
 
@@ -35,10 +35,22 @@ def run_experiment(recordings, conditions, vectors, output, audio_root=Path(".")
     if set(data.get("extraction_question_ids", [])) & selected_ids and not allow_extraction_overlap:
         raise ValueError("Evaluation questions overlap extraction metadata")
     prompt, answer_tokens = data["prompt"], data["max_new_tokens"]
+    mode = data.get("mode", "fixed")
+    window_size = data.get("window_size", 20)
     directions = {}
     for layer, group in {(t["layer"], t["group"]) for c in conditions for t in c["interventions"]}:
         count = int(data["pair_counts"]["angry"][layer])
+        if count == 0:
+            raise ValueError(f'No direction was collected for layer {layer}')
+        if "collected_targets" in data and (layer, group) not in map(tuple, data["collected_targets"]):
+            raise ValueError(f'No direction was collected for L{layer} {group}')
         vector = data["pair_mean_sums"]["angry"][layer, data["groups"].index(group)] / count
+        if mode in ("phase", "forward_windows"):
+            counts = data["temporal_counts"]["angry"][layer]
+            sums = data["temporal_sums"]["angry"][layer, :, data["groups"].index(group)]
+            bins = sums / counts.clamp_min(1)[:, None]
+            bins[counts == 0] = vector
+            vector = torch.cat([bins, vector[None]]) if mode == "forward_windows" else bins
         directions[layer, group] = vector.to(device="cuda", dtype=torch.bfloat16)
     del data
     model, tokenizer, feature_extractor = load_model()
@@ -79,7 +91,11 @@ def run_experiment(recordings, conditions, vectors, output, audio_root=Path(".")
                 print(f'[{index}/{len(recordings)}] [{c_index}/{len(conditions)}] '
                       f'{recording["question_id"]} {c["name"]}', flush=True)
                 started = time.monotonic()
-                with install_interventions(layers, directions, c["interventions"], bounds, answer_tokens) as states:
+                schedule = c.get("schedule", "always")
+                timed = mode != "fixed" or schedule != "always"
+                with diffusion_progress(model, answer_tokens, enabled=timed) as progress, install_interventions(
+                        layers, directions, c["interventions"], bounds, answer_tokens,
+                        mode, progress, schedule, window_size) as states:
                     with torch.inference_mode():
                         response = model.generate(
                             tokenizer, input_audio_features=inputs.input_features,
@@ -89,13 +105,15 @@ def run_experiment(recordings, conditions, vectors, output, audio_root=Path(".")
                 diagnostics = [dict(**s["target"], **s["state"]) for s in states]
                 row = {"clip_id": recording["clip_id"], "question_id": recording["question_id"],
                        "condition": c["name"], "interventions": c["interventions"],
-                       "vector_style": "angry", "mode": "fixed", "seed": seed,
+                       "vector_style": "angry", "mode": mode, "seed": seed,
                        "response": response, "prompt": prompt, "max_new_tokens": answer_tokens,
                        "decoder": "fast_dllm", "generation_seconds": time.monotonic()-started,
                        "forwards": diagnostics[0]["forwards"],
                        "steered_forwards": max(s["steered"] for s in diagnostics),
                        "intervention_forwards": diagnostics,
                        **score_response(response, recording["answer"])}
+                if timed:
+                    row.update(schedule=schedule, phase_forwards=progress["phase_counts"])
                 with results_path.open("a") as stream:
                     stream.write(json.dumps(row) + "\n")
                 results.append(row)
@@ -150,6 +168,7 @@ def main(argv=None):
                     seed_policy="constant_before_every_generation", style="angry", mode="fixed",
                     path=str(args.audio_root.resolve()), conditions=conditions,
                     allow_extraction_overlap=args.allow_extraction_overlap)
+    settings.update(direction_settings(args.vectors))
     config = dict(settings=settings, recordings=recordings)
     args.output.mkdir(parents=True, exist_ok=True)
     if config_path.exists() and json.loads(config_path.read_text()) != config:

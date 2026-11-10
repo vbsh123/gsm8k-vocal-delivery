@@ -56,7 +56,64 @@ def reuse_questions(previous, records, excluded, count):
     return previous
 
 
-def make_steering_hook(direction, valid_passes, mode, group, strength, bounds, answer_tokens):
+def schedule_active(schedule, progress):
+    if schedule == "always":
+        return True
+    if schedule == "first_forward":
+        return progress["forward"] == 1
+    if schedule == "periodic2":
+        return (progress["block_forward"] - 1) % 2 == 0
+    phase = progress["phase"]
+    return phase == {"early": 0, "middle": 1, "late": 2}[schedule]
+
+
+@contextmanager
+def diffusion_progress(model, answer_tokens=512, block_length=32, enabled=True, mask_id=126336):
+    """Observe committed token IDs and forwards without changing the decoder."""
+    progress, pending = {}, {}
+    if not enabled:
+        yield progress
+        return
+
+    def observe_tokens(module, inputs):
+        ids = inputs[0]
+        if ids.shape[1] < answer_tokens:
+            return
+        masked = (ids[0, -answer_tokens:] == mask_id).detach().cpu().tolist()
+        first = next((i for i, is_masked in enumerate(masked) if is_masked), None)
+        if first is None:
+            return
+        block = first // block_length
+        active = masked[block * block_length:(block + 1) * block_length]
+        filled = len(active) - sum(active)
+        phase = 0 if 3 * filled < len(active) else 1 if 3 * filled < 2 * len(active) else 2
+        pending.update(block=block, filled=filled, block_size=len(active), phase=phase)
+
+    def before_forward(module, inputs):
+        if not pending:
+            raise RuntimeError("No decoder token state was observed before a timed forward")
+        block_forward = progress.get("block_forward", 0) + 1 if progress.get("block") == pending["block"] else 1
+        number = progress.get("forward", 0) + 1
+        counts = progress.get("phase_counts", [0, 0, 0])
+        counts[pending["phase"]] += 1
+        progress.update(pending, forward=number, block_forward=block_forward, phase_counts=counts)
+
+    handles = [model.llm_model.get_input_embeddings().register_forward_pre_hook(observe_tokens),
+               model.llm_model.register_forward_pre_hook(before_forward)]
+    try:
+        yield progress
+    finally:
+        for handle in handles:
+            handle.remove()
+
+
+def direction_settings(path):
+    metadata = path.parent / "direction-settings.json"
+    return json.loads(metadata.read_text()) if metadata.exists() else {}
+
+
+def make_steering_hook(direction, valid_passes, mode, group, strength, bounds, answer_tokens,
+                       progress=None, schedule="always", window_size=20):
     """Modify only one chosen decoder block's output; count its forward calls."""
     state = {"forwards": 0, "steered": 0}
 
@@ -65,7 +122,14 @@ def make_steering_hook(direction, valid_passes, mode, group, strength, bounds, a
         state["forwards"] += 1
         if strength == 0:
             return None
-        if mode == "per-pass":
+        if not schedule_active(schedule, progress):
+            return None
+        if mode == "phase":
+            vector = direction[progress["phase"]]
+        elif mode == "forward_windows":
+            index = (progress["forward"] - 1) // window_size
+            vector = direction[min(index, len(direction) - 1)]
+        elif mode == "per-pass":
             if step >= len(valid_passes) or not bool(valid_passes[step]):
                 return None  # No measured direction: leave this pass unchanged.
             vector = direction[step]
@@ -82,6 +146,8 @@ def make_steering_hook(direction, valid_passes, mode, group, strength, bounds, a
         hidden = output[0].clone()
         hidden[:, positions, :] += strength * vector
         state["steered"] += 1
+        if progress:
+            state.setdefault("steered_by_phase", [0, 0, 0])[progress["phase"]] += 1
         return (hidden, *output[1:])
 
     return hook, state
@@ -120,15 +186,17 @@ def summarize(results, conditions):
 
 
 @contextmanager
-def install_interventions(layers, directions, interventions, bounds, answer_tokens):
+def install_interventions(layers, directions, interventions, bounds, answer_tokens,
+                          mode="fixed", progress=None, schedule="always", window_size=20):
     """Keep all hooks for a combination active during the SAME generation."""
     handles, states = [], []
     targets = interventions or [dict(layer=0, group="answer", strength=0)]
     try:
         for target in targets:
             vector = directions[target["layer"], target["group"]] if target["strength"] else None
-            hook, state = make_steering_hook(vector, None, "fixed", target["group"],
-                                             target["strength"], bounds, answer_tokens)
+            hook, state = make_steering_hook(vector, None, mode, target["group"],
+                                             target["strength"], bounds, answer_tokens,
+                                             progress, schedule, window_size)
             handles.append(layers[target["layer"]].register_forward_hook(hook))
             states.append(dict(target=target, state=state))
         yield states

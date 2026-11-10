@@ -1,5 +1,39 @@
 # Audio extraction and steering
 
+## Large matched-forward experiment
+
+```bash
+git pull --ff-only
+nohup bash run_large_steering.sh > outputs/jenny-large.log 2>&1 < /dev/null &
+tail -f outputs/jenny-large.log
+```
+
+See every stage's completed and partial results at any time, without loading a model:
+
+```bash
+.venv-diffa/bin/python run_large_steering.py --summary-only
+```
+
+The launcher waits for the shared GPU lock and for existing GPU workers to finish. It runs one model process at a time. Run the same command after an interruption to resume saved generations and extraction pairs. Keep only one copy of this launcher queued.
+
+All evaluations use the unchanged 460 second-set Jenny neutral recordings; extraction uses the same first-set 425 emotion2vec-agreed angry/neutral pairs as the original direction. Every new generation resets literal seed42. Existing checkpoints and result folders are preserved. Independent all-forward averaging and direct answer-loss training are excluded.
+
+The sequential stages are:
+
+1. Re-evaluate the original direction unchanged at L12 acoustic ×1 with literal seed42.
+2. Verify that the observational diffusion clock leaves two zero-steered responses and their forward counts exactly unchanged.
+3. Average cached first-set differences under two filters: all angry-correct pairs; and all pairs except neutral-correct/angry-wrong. Evaluate both independently at L11 answer ×1, L12 acoustic ×1, and L16 answer ×1.25.
+4. Collect the three target representations once for both temporal methods. Fit separate directions by within-decoding-block unmasking phase and by global 20-forward windows. Evaluate each method at all three targets.
+5. With the original unchanged checkpoint, compare always-on steering against early, middle, late, first-forward-only, and every-other-forward schedules at all three targets. Reuse always-on answers only when checkpoint identity, recording, and literal42 recipe agree; generate missing controls.
+
+Here **early/middle/late** mean the committed fraction of the current 32-token decoding block is below one third, from one third to below two thirds, or at least two thirds. They reset at each decoding block. Some generations jump over a phase. **Periodic2** steers the first, third, fifth… forward within each decoding block. **First-forward-only** steers once in the entire generation. These are our operational definitions, not a claim that one schedule is established as best for math reasoning.
+
+For temporal collection, keep only the shared forward prefix of each angry/neutral pair. Global windows use aligned forwards 1–20, 21–40, etc. For phase directions, select the two recordings' forwards in the same phase within that shared prefix, truncate to the smaller phase count, and average their differences. Average contributing questions equally. Save contributor counts per bin; empty or beyond-range bins fall back to the overall matched mean. Tail windows may have very few contributors.
+
+`collect_temporal_vectors.py` saves only the three target layer/group summaries per pair, rather than full token activations. `steer.py` observes token IDs through embedding hooks to select phase/window/schedule without changing the decoder. `run_large_steering.py` prepares the queue and reports its stages. Shared evaluation and scoring remain in `evaluate_audio_steering.py` and `steer_audio.py`.
+
+Results from this grid are exploratory: the layer/strength choices were previously explored on this evaluation set. A selected improvement still needs a separate validation cohort.
+
 Read these files in order:
 
 1. `extract_vectors.py`: load DIFFA-2 and generate an answer from audio.
