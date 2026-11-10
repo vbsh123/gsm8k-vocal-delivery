@@ -11,10 +11,27 @@ import random
 from scoring import score_response
 
 
-def read_rows(path):
+def read_rows(path, repair=False):
     if not path.exists():
         return []
-    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+    rows, offset = [], 0
+    lines = path.read_bytes().splitlines(keepends=True)
+    for index, line in enumerate(lines):
+        try:
+            if line.strip():
+                rows.append(json.loads(line))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            if index != len(lines)-1 or line.endswith(b'\n'):
+                raise
+            if repair:
+                with path.open('r+b') as stream:
+                    stream.truncate(offset)
+            break
+        offset += len(line)
+    if repair and lines and offset == sum(map(len, lines)) and not lines[-1].endswith(b'\n'):
+        with path.open('ab') as stream:
+            stream.write(b'\n')
+    return rows
 
 
 def select_neutrals(records, excluded, count, seed):

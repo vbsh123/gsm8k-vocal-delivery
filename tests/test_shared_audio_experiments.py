@@ -185,6 +185,7 @@ class SharedAudioTests(unittest.TestCase):
                          decoder="fast_dllm", steered_forwards=0, interventions=[], reference_answer="18",
                          response="Final answer: 18", correct=True) for r in records]
             (baselines/"results.jsonl").write_text("".join(json.dumps(r)+"\n" for r in rows))
+            (baselines/"run_config.json").write_text(json.dumps(dict(recordings=records)))
             output = root/"out"
             args = ["test", "--source-run", str(source), "--vectors", str(vectors),
                     "--methods", "original_mean", "--conditions", "L12-acoustic-a1",

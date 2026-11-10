@@ -10,7 +10,7 @@ import subprocess
 import sys
 
 from compare_cloud_accuracy import PROMPT
-from steer import summarize
+from steer import summarize, read_rows
 
 ROOT = Path('outputs/jenny-large')
 SOURCE = Path('outputs/steer-jenny-angry-complete')
@@ -46,20 +46,7 @@ def catalog():
 
 
 def live_rows(path):
-    if not path.exists():
-        return []
-    lines = path.read_text().splitlines(keepends=True)
-    rows = []
-    for index, line in enumerate(lines):
-        if not line.strip():
-            continue
-        try:
-            rows.append(json.loads(line))
-        except json.JSONDecodeError:
-            if index == len(lines)-1 and not line.endswith('\n'):
-                break
-            raise
-    return rows
+    return read_rows(path)
 
 
 def report():
@@ -114,7 +101,7 @@ def reuse_always(folder, vector, sources):
     destination = json.loads((folder/'run_config.json').read_text())
     expected = {r['clip_id']: r for r in destination['recordings']}
     stat = vector.stat()
-    saved = {(r['clip_id'], r['condition']): r for r in live_rows(folder/'results.jsonl')}
+    saved = {(r['clip_id'], r['condition']): r for r in read_rows(folder/'results.jsonl', repair=True)}
     added = 0
     with (folder/'results.jsonl').open('a') as stream:
         for source in sources:
@@ -200,6 +187,13 @@ def main():
     if ({r['question_id'] for r in original_config['recordings']} &
             {r['question_id'] for r in collection['manifest'].values()}):
         p.error('Extraction and evaluation questions overlap')
+    required = [COLLECTION/'pairs'/f'{i:05d}.pt' for i in range(len(collection['pairs']))]
+    required += [Path(collection['manifest'][pair[key]]['audio_path'])
+                 for pair in collection['pairs'] for key in ('neutral_id', 'angry_id')]
+    required += [Path(r['audio_path']) for r in original_config['recordings']]
+    missing = [str(path) for path in required if not path.is_file()]
+    if missing:
+        p.error('Required inputs missing: '+', '.join(missing[:5]))
     timing = ROOT/'timing-conditions.json'
     timing.write_text(json.dumps(conditions(['always', *SCHEDULES]), indent=2)+'\n')
     if args.prepare_only:
@@ -210,6 +204,9 @@ def main():
         return
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
     try:
+        run('Validate temporal collection inputs before starting', 'collect_temporal_vectors.py',
+            '--collection', COLLECTION, '--original-vector', vector,
+            '--output', ROOT/'temporal-vectors', '--prepare-only')
         run('Confirm original L12 with literal seed42', 'evaluate_audio_steering.py', '--vectors', vector,
             '--methods', 'original_mean', '--conditions', 'L12-acoustic-a1',
             '--output', 'outputs/steer-jenny-original-vector-L12-seed42')

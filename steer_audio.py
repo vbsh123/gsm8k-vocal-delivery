@@ -16,7 +16,7 @@ def run_experiment(recordings, conditions, vectors, output, audio_root=Path(".")
     if report is None:
         report = lambda rows, conditions, recordings: summarize(rows, conditions)
     results_path = output / "results.jsonl"
-    results = read_rows(results_path)
+    results = read_rows(results_path, repair=True)
     if any(row.get("seed") != 42 for row in results):
         raise ValueError("Cached answers use a different seed; use a new output folder")
     completed = {(r["clip_id"], r["condition"]) for r in results}

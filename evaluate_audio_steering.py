@@ -21,6 +21,28 @@ CONDITIONS=[dict(name='baseline',interventions=[]),
             dict(name='L16-answer-a1.25',interventions=[dict(layer=16,group='answer',strength=1.25)])]
 
 
+def valid_baseline(row, recording):
+    return (row.get('condition') == 'baseline' and row.get('seed') == 42
+            and row.get('prompt') == PROMPT and row.get('max_new_tokens') == 512
+            and row.get('decoder') == 'fast_dllm' and row.get('steered_forwards') == 0
+            and row.get('interventions') == []
+            and row.get('question_id') == recording['question_id']
+            and str(row['reference_answer']) == str(recording['answer']))
+
+
+def copy_baselines(path, shared, recordings):
+    saved = {(r['clip_id'], r['condition']): r for r in read_rows(path, repair=True)}
+    with path.open('a') as stream:
+        for cid, row in shared.items():
+            existing = saved.get((cid, 'baseline'))
+            if existing is not None:
+                if (not valid_baseline(existing, recordings[cid])
+                        or (existing['response'], existing['correct']) != (row['response'], row['correct'])):
+                    raise ValueError(f'Conflicting same-seed baseline answer: {cid}')
+                continue
+            stream.write(json.dumps(row)+'\n')
+
+
 def report(root,methods):
     for method in methods:
         folder=root/method
@@ -106,34 +128,24 @@ def main():
         return
     shared={}
     expected={r['clip_id']:r for r in records}
+    baseline_config = args.baseline_source/'run_config.json'
+    baseline_records = {r['clip_id']: r for r in json.loads(baseline_config.read_text())['recordings']} if baseline_config.exists() else {}
     for row in read_rows(args.baseline_source/'results.jsonl'):
         if row['condition']!='baseline' or row['clip_id'] not in expected:
             continue
-        if (row.get('seed')!=42 or row.get('prompt')!=PROMPT or row.get('max_new_tokens')!=512
-                or row.get('decoder')!='fast_dllm' or row.get('steered_forwards')!=0
-                or row.get('interventions')!=[]
-                or str(row['reference_answer'])!=str(expected[row['clip_id']]['answer'])):
+        if baseline_records.get(row['clip_id']) != expected[row['clip_id']] or not valid_baseline(row, expected[row['clip_id']]):
             continue
         shared[row['clip_id']]=row
     print(f'Reusing {len(shared)} matching seed42 baselines.',flush=True)
     for method,folder,command in commands:
         path=folder/'results.jsonl'
-        saved={(r['clip_id'],r['condition']):r for r in read_rows(path)}
-        with path.open('a') as stream:
-            for cid,row in shared.items():
-                key=(cid,'baseline')
-                if key in saved:
-                    if saved[key]!=row:
-                        p.error(f'Conflicting same-seed baseline: {cid}')
-                    continue
-                stream.write(json.dumps(row)+'\n')
+        copy_baselines(path, shared, expected)
         print('\nEvaluating direction method:',method,flush=True)
         subprocess.run(command,check=True)
         for row in read_rows(path):
             if row['condition']!='baseline':
                 continue
-            if (row['seed']!=42 or row['prompt']!=PROMPT or row['max_new_tokens']!=512
-                    or row['decoder']!='fast_dllm' or row['steered_forwards']!=0):
+            if row['clip_id'] not in expected or not valid_baseline(row, expected[row['clip_id']]):
                 p.error('Baseline recipe changed between methods')
             score=score_response(row['response'],row['reference_answer'])
             if row['correct']!=score['correct']:

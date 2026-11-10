@@ -5,14 +5,17 @@ import io
 import json
 from pathlib import Path
 import tempfile
+import sys
 from types import ModuleType, SimpleNamespace
 import unittest
 from unittest.mock import patch
 
 from collect_temporal_vectors import paired_bins, collect, fit
 from compare_cloud_accuracy import PROMPT
+from evaluate_audio_steering import copy_baselines
 from run_large_steering import conditions, live_rows, reuse_always
-from steer import diffusion_progress, make_steering_hook, schedule_active
+import run_large_steering as queue
+from steer import diffusion_progress, make_steering_hook, schedule_active, read_rows
 
 try:
     import torch
@@ -21,6 +24,68 @@ except ImportError:
 
 
 class ReportTests(unittest.TestCase):
+    def test_queue_wires_all_stages_in_order_without_all_forward_or_answer_training(self):
+        with tempfile.TemporaryDirectory() as directory, redirect_stdout(io.StringIO()):
+            root = Path(directory)
+            source, collection = root/'source', root/'collection'
+            source.mkdir()
+            (collection/'pairs').mkdir(parents=True)
+            audio, vector = root/'clip.wav', root/'vector.pt'
+            audio.touch()
+            vector.touch()
+            records = [dict(clip_id=f'c{i}', question_id=f'test{i}', audio_path=str(audio), answer='18') for i in range(460)]
+            (source/'run_config.json').write_text(json.dumps(dict(recordings=records, settings=dict(vectors=str(vector)))))
+            pairs = [dict(question_id=f'train{i}', neutral_id=f'n{i}', angry_id=f'a{i}') for i in range(425)]
+            manifest = {}
+            for i, pair in enumerate(pairs):
+                (collection/'pairs'/f'{i:05d}.pt').touch()
+                for key in ('neutral_id', 'angry_id'):
+                    manifest[pair[key]] = dict(question_id=pair['question_id'], audio_path=str(audio))
+            (collection/'collection-config.json').write_text(json.dumps(dict(pairs=pairs, manifest=manifest)))
+            with patch.object(queue, 'ROOT', root/'queue'), patch.object(queue, 'SOURCE', source), \
+                    patch.object(queue, 'COLLECTION', collection), patch.object(sys, 'argv', ['test']), \
+                    patch.object(queue, 'run') as execute, patch.object(queue, 'clock_smoke'), \
+                    patch.object(queue, 'reuse_always'), patch.object(queue, 'report'), patch.object(queue.signal, 'signal'):
+                queue.main()
+            calls = [list(call.args) for call in execute.call_args_list]
+            self.assertEqual(calls[0][1], 'collect_temporal_vectors.py')
+            self.assertIn('--prepare-only', calls[0])
+            self.assertEqual(calls[1][1], 'evaluate_audio_steering.py')
+            self.assertEqual(sum(c[1] == 'extract_benefit_vectors.py' for c in calls), 2)
+            self.assertEqual(sum(c[1] == 'collect_temporal_vectors.py' for c in calls), 2)
+            self.assertTrue(all('train_answer_vectors.py' not in c and 'all' not in c for c in calls))
+            self.assertEqual(json.loads((root/'queue/current-stage.json').read_text())['status'], 'finished')
+
+    def test_resume_repairs_only_incomplete_final_write(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)/'results.jsonl'
+            path.write_bytes(b'{"a":1}\n{"incomplete":"\xe2')
+            self.assertEqual(read_rows(path, repair=True), [{'a': 1}])
+            with path.open('a') as stream:
+                stream.write('{"b":2}\n')
+            self.assertEqual(read_rows(path), [{'a': 1}, {'b': 2}])
+            path.write_text('{"a":1}')
+            read_rows(path, repair=True)
+            with path.open('a') as stream:
+                stream.write('{"b":2}\n')
+            self.assertEqual(read_rows(path), [{'a': 1}, {'b': 2}])
+            path.write_text('{broken}\n{"a":1}\n')
+            with self.assertRaises(json.JSONDecodeError):
+                read_rows(path, repair=True)
+
+    def test_baseline_resume_ignores_timing_metadata_but_rejects_different_answer(self):
+        record = dict(clip_id='c', question_id='q', answer='18')
+        row = dict(clip_id='c', question_id='q', condition='baseline', seed=42, prompt=PROMPT,
+                   max_new_tokens=512, decoder='fast_dllm', steered_forwards=0, interventions=[],
+                   reference_answer='18', response='Final answer: 18', correct=True, generation_seconds=10)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)/'results.jsonl'
+            path.write_text(json.dumps(row)+'\n')
+            copy_baselines(path, {'c': dict(row, generation_seconds=20, mode='phase')}, {'c': record})
+            self.assertEqual(read_rows(path), [row])
+            with self.assertRaisesRegex(ValueError, 'Conflicting same-seed baseline'):
+                copy_baselines(path, {'c': dict(row, response='Final answer: 17', correct=False)}, {'c': record})
+
     def test_live_report_ignores_only_unfinished_last_row(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)/'results.jsonl'

@@ -16,6 +16,8 @@ See every stage's completed and partial results at any time, without loading a m
 
 The launcher waits for the shared GPU lock and for existing GPU workers to finish. It runs one model process at a time. Run the same command after an interruption to resume saved generations and extraction pairs. Keep only one copy of this launcher queued.
 
+Before starting, it checks the required saved pairs/audio files and validates the temporal collection against the original checkpoint. Resume tolerates an unfinished final JSON write while retaining complete answers; malformed completed rows still raise an error. Baseline reuse requires the same recording and generation recipe, but does not require identical timing metadata. Different baseline answers stop the run for review.
+
 All evaluations use the unchanged 460 second-set Jenny neutral recordings; extraction uses the same first-set 425 emotion2vec-agreed angry/neutral pairs as the original direction. Every new generation resets literal seed42. Existing checkpoints and result folders are preserved. Independent all-forward averaging and direct answer-loss training are excluded.
 
 The sequential stages are:
