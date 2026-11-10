@@ -6,6 +6,7 @@ Same questions at every rate, no cropping, and seed 42 before every generation.
 
 import argparse
 import json
+from importlib.metadata import version
 from math import comb, isfinite
 from pathlib import Path
 import random
@@ -21,7 +22,9 @@ from steer import read_rows
 RATES = [0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5]
 
 
-def prepare_atempo(selected, rates, output, ffmpeg, sf, librosa):
+def prepare_stretched(selected, rates, output, ffmpeg, sf, librosa, method):
+    if method=='audiostretchy':
+        from audiostretchy.core import stretch_audio
     folder=output/'audio'
     folder.mkdir(exist_ok=True)
     for index,record in enumerate(selected,1):
@@ -41,11 +44,20 @@ def prepare_atempo(selected, rates, output, ffmpeg, sf, librosa):
             if path.exists():
                 continue
             temporary=path.with_suffix('.tmp.wav')
-            subprocess.run([ffmpeg,'-hide_banner','-loglevel','error','-y',
-                            '-i',str(paths[1.]),'-af',f'atempo={rate:g}',
-                            '-c:a','pcm_f32le',str(temporary)],check=True)
+            if method=='audiostretchy':
+                stretch_audio(paths[1.],temporary,ratio=1/rate,gap_ratio=1/rate)
+            else:
+                subprocess.run([ffmpeg,'-hide_banner','-loglevel','error','-y',
+                                '-i',str(paths[1.]),'-af',f'atempo={rate:g}',
+                                '-c:a','pcm_f32le',str(temporary)],check=True)
             temporary.replace(path)
         print(f'Audio [{index}/{len(selected)}] {record["clip_id"]}: all {len(rates)} rates ready.',flush=True)
+    for record in selected:
+        for rate in rates:
+            path=folder/f"{record['clip_id']}__{rate:g}x.wav"
+            info=sf.info(path)
+            if info.samplerate!=16000 or not 0<info.frames<=30*16000:
+                raise ValueError(f'Prepared audio must be 16 kHz and at most 30 seconds: {path}')
 
 
 def condition(rate):
@@ -78,7 +90,7 @@ def reusable_answers(source, plan):
         return []
     previous=json.loads((source/'run_config.json').read_text())
     keys=('seed','prompt','steps','block_length','max_new_tokens','temperature','decoder',
-          'sample_rate','transform','librosa','max_seconds','ffmpeg_version')
+          'sample_rate','transform','librosa','max_seconds','ffmpeg_version','audiostretchy_version','gap_ratio')
     if any(previous['settings'].get(k)!=plan['settings'].get(k) for k in keys):
         print('Previous speed recipe differs; no answers reused.',flush=True)
         return []
@@ -127,7 +139,7 @@ def main():
     p.add_argument("--output",type=Path,default=Path("outputs/spoken-gsm-speed100"))
     p.add_argument("--rates",type=float,nargs='+',default=RATES,help='Playback rates; 1x baseline is always included.')
     p.add_argument("--reuse-from",type=Path,help='Copy compatible completed answers for overlapping questions and rates.')
-    p.add_argument('--stretch-method',choices=['librosa','atempo'],default='librosa')
+    p.add_argument('--stretch-method',choices=['librosa','atempo','audiostretchy'],default='librosa')
     p.add_argument("--prepare-only",action="store_true",help="Select/freeze questions without loading DIFFA.")
     p.add_argument("--summary-only",action="store_true")
     p.add_argument("--save-audio",action="store_true",help="Save the 16-kHz waveforms used for inference, for listening.")
@@ -161,6 +173,9 @@ def main():
     if ffmpeg:
         plan['settings'].update(transform='ffmpeg.atempo; rate1 bypassed',
             ffmpeg_version=subprocess.check_output([ffmpeg,'-version'],text=True).splitlines()[0])
+    if args.stretch_method=='audiostretchy':
+        plan['settings'].update(transform='audiostretchy.core.stretch_audio; ratio=1/rate; rate1 bypassed',
+                                audiostretchy_version=version('audiostretchy'),gap_ratio='1/rate')
     args.output.mkdir(parents=True,exist_ok=True)
     config=args.output/"run_config.json"
     if config.exists() and json.loads(config.read_text())!=plan:
@@ -188,8 +203,9 @@ def main():
     pending=len(allowed)-len(completed)
     print(f"{len(selected)} matched questions x {len(rates)} speeds; {pending} generations pending.",flush=True)
     print("Rates:",rates,f"; method={args.stretch_method}; seed always 42; no truncation.",flush=True)
-    if ffmpeg:
-        prepare_atempo(selected,rates,args.output,ffmpeg,sf,librosa)
+    prepared=args.stretch_method!='librosa'
+    if prepared:
+        prepare_stretched(selected,rates,args.output,ffmpeg,sf,librosa,args.stretch_method)
     if args.prepare_only:
         return
     if not pending:
@@ -211,13 +227,13 @@ def main():
             name=condition(rate)
             if (r["clip_id"],name) in completed:
                 continue
-            if ffmpeg:
+            if prepared:
                 changed,_=sf.read(args.output/'audio'/f"{r['clip_id']}__{rate:g}x.wav",dtype='float32')
             else:
                 changed=audio if rate==1 else librosa.effects.time_stretch(audio,rate=rate)
             if len(changed)>30*16000:
                 raise ValueError(f'{r["clip_id"]} at {rate:g}x exceeds 30 seconds; no audio was cropped')
-            if args.save_audio and not ffmpeg:
+            if args.save_audio and not prepared:
                 folder=args.output/"audio"
                 folder.mkdir(exist_ok=True)
                 sf.write(folder/f"{r['clip_id']}__{rate:g}x.wav",changed,16000,subtype="FLOAT")

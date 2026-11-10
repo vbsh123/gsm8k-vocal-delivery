@@ -70,6 +70,14 @@ audio resume; previous librosa answers are not reused. Results live separately
 in `outputs/spoken-gsm-atempo200`. This launcher is optional; comparing the
 listening samples does not run it.
 
+For the selected AudioStretchy method, use `run_audiostretchy_speed200.sh` instead.
+Install `audiostretchy==1.3.14` into `.venv-diffa` first. This uses the same
+selection, 16 rates, saved-input workflow and GPU wait, with a separate output
+folder `outputs/spoken-gsm-audiostretchy200`. The duration ratio and gap ratio are
+both `1/rate`, exactly as in the listening comparison; 1× bypasses the algorithm.
+All transformed inputs are checked against the 30-second limit before loading
+the model. It does not reuse results from another stretching method.
+
 ## Listen to and measure the old speed experiment
 
 Start with three questions and every speed from the original saved run:

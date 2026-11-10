@@ -53,6 +53,14 @@ class SpeedTests(unittest.TestCase):
             self.assertEqual(reusable_answers(root,changed),[])
             changed=dict(plan,settings=dict(settings,librosa='different'))
             self.assertEqual(reusable_answers(root,changed),[])
+            changed=dict(plan,settings=dict(settings,
+                transform='audiostretchy.core.stretch_audio; ratio=1/rate; rate1 bypassed',
+                audiostretchy_version='1.3.14',gap_ratio='1/rate'))
+            self.assertEqual(reusable_answers(root,changed),[])
+            config.write_text(json.dumps(changed))
+            self.assertEqual([r['condition'] for r in reusable_answers(root,changed)],['baseline'])
+            different_version=dict(changed,settings=dict(changed['settings'],audiostretchy_version='other'))
+            self.assertEqual(reusable_answers(root,different_version),[])
 
     def test_generation_bypasses_transform_at_1x_resets_seeds_and_resumes(self):
         class Audio:
