@@ -71,6 +71,27 @@ class PitchAlignmentTests(unittest.TestCase):
 
 @unittest.skipUnless(importlib.util.find_spec('librosa'),'Needs the audio libraries')
 class RealPitchTests(unittest.TestCase):
+    def test_listening_manifest_audit_detects_shift_and_resumes_without_accuracy_run(self):
+        import numpy as np
+        import soundfile as sf
+        from audit_speed_pitch import audit_listening
+        with tempfile.TemporaryDirectory() as directory, redirect_stdout(io.StringIO()):
+            folder=Path(directory)
+            t=np.arange(16000)/16000
+            records=[]
+            for rate,pitch in [(1.,220),(1.5,220*2**(3/12))]:
+                name=f'{rate}.wav'
+                sf.write(folder/name,.5*np.sin(2*np.pi*pitch*t),16000)
+                records.append(dict(question_id='q',rate=rate,audio_path=name))
+            (folder/'manifest.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in records))
+            output=folder/'audit'
+            audit_listening(folder,output)
+            summary=json.loads((output/'summary.json').read_text())
+            self.assertAlmostEqual(summary[1]['mean_median_pitch_change_semitones'],3,delta=.3)
+            saved=(output/'results-pitch.jsonl').read_text()
+            audit_listening(folder,output)
+            self.assertEqual((output/'results-pitch.jsonl').read_text(),saved)
+
     def test_time_stretch_preserves_a_known_tone_and_detects_pitch_shift(self):
         import librosa
         import numpy as np

@@ -39,6 +39,21 @@ python -m venv .venv-listen
 
 This creates `speed-listen5.zip`, downloading public source audio if local originals are absent. The preview consists of new demonstrations rather than archived old-run inputs.
 
+## Compare an alternative stretching method
+
+Reuse the five listening recordings, with no dataset download or inference:
+
+```bash
+.venv-listen/bin/pip install imageio-ffmpeg
+.venv-listen/bin/python -u compare_speed_methods.py
+```
+
+Download `speed-method-comparison.zip`, extract it, and open `index.html`.
+Each question includes the unchanged 1× recording, existing librosa versions,
+and FFmpeg `atempo` at 0.9×, 1.1× and 1.3×. This is an alternative to compare by
+listening, not a guarantee of improved quality. The original is copied unchanged.
+Use `--source outputs/speed-listen5` if that is where the samples were generated.
+
 ## Listen to and measure the old speed experiment
 
 Start with three questions and every speed from the original saved run:
@@ -62,6 +77,21 @@ OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMBA_NUM_THREADS=1 \
 It resumes completed measurements. `--summary-only` prints saved results. Use another `--output` with `--speed-run outputs/spoken-gsm-speed100-extended` to audit the new experiment separately.
 
 The report compares per-clip mean and median F0 against 1× and reports a time-aligned pitch-contour error. The alignment uses the known stretch factor and is approximate near phoneme/voicing boundaries. Small average changes do not exclude local distortions or pitch-tracking errors.
+
+## Check just the listening samples
+
+After `speed_listen5.py`, measure its actual WAV files without an accuracy experiment:
+
+```bash
+.venv-listen/bin/python -u audit_speed_pitch.py \
+  --listen-folder speed-listen5 --output outputs/listening-pitch
+```
+
+This runs on CPU, resumes completed files, and compares each speed with the same
+question at 1×. Results are saved in `outputs/listening-pitch/summary.json` and
+`results-pitch.jsonl`. Add `--summary-only` to reprint the table. Near-zero signed
+semitone changes support pitch preservation; also inspect the absolute contour
+changes and listen, since averages can hide artifacts and tracking errors.
 
 ## Compare emotional delivery against neutral
 
