@@ -1,4 +1,4 @@
-"""DIFFA accuracy on original Spoken GSM at nine pitch-preserving playback speeds.
+"""DIFFA accuracy on original Spoken GSM at pitch-preserving playback speeds.
 
 Same questions at every rate, no cropping, and seed 42 before every generation.
 1x bypasses time stretching. Saved answers resume; settings/cohort are frozen.
@@ -6,15 +6,10 @@ Same questions at every rate, no cropping, and seed 42 before every generation.
 
 import argparse
 import json
-from math import comb
+from math import comb, isfinite
 from pathlib import Path
 import random
 import time
-
-import librosa
-import numpy as np
-import soundfile as sf
-import torch
 
 from compare_cloud_accuracy import PROMPT
 from scoring import score_response
@@ -26,6 +21,50 @@ RATES = [0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5]
 
 def condition(rate):
     return "baseline" if rate==1 else f"speed-{rate:g}x"
+
+
+def select_recordings(records, root, count, rates, sf):
+    selected=[]
+    seen=set()
+    for r in records:
+        if r['style']!='original' or r['clip_id'] in seen:
+            continue
+        path=(root/r['audio_path']).resolve()
+        info=sf.info(path)
+        if not 0<info.frames/info.samplerate<=30*min(rates):
+            continue
+        selected.append({**r,'audio_path':str(path),'audio_bytes':path.stat().st_size,
+                         'audio_mtime_ns':path.stat().st_mtime_ns})
+        seen.add(r['clip_id'])
+        if len(selected)==count:
+            break
+    if len(selected)!=count:
+        raise ValueError(f'Need {count} original clips <= {30*min(rates):g}s; found {len(selected)}')
+    return selected
+
+
+def reusable_answers(source, plan):
+    if not (source/'run_config.json').exists():
+        print('No previous speed run found; generating the required answers.',flush=True)
+        return []
+    previous=json.loads((source/'run_config.json').read_text())
+    keys=('seed','prompt','steps','block_length','max_new_tokens','temperature','decoder',
+          'sample_rate','transform','librosa','max_seconds')
+    if any(previous['settings'].get(k)!=plan['settings'][k] for k in keys):
+        print('Previous speed recipe differs; no answers reused.',flush=True)
+        return []
+    old={r['clip_id']:r for r in previous['recordings']}
+    selected={r['clip_id']:r for r in plan['recordings']}
+    copied=[]
+    for row in read_rows(source/'results.jsonl'):
+        cid, rate=row['clip_id'],row['rate']
+        if cid not in selected or old.get(cid)!=selected[cid] or rate not in plan['rates']:
+            continue
+        if (row.get('seed')!=42 or row.get('prompt')!=PROMPT or row['condition']!=condition(rate)
+                or str(row['reference_answer'])!=str(selected[cid]['answer'])):
+            continue
+        copied.append(dict(row,reused_from=str(source.resolve())))
+    return copied
 
 
 def report(output):
@@ -57,6 +96,8 @@ def main():
     p.add_argument("--path",type=Path,default=Path("outputs/spoken-gsm-original"))
     p.add_argument("--num-examples",type=int,default=100)
     p.add_argument("--output",type=Path,default=Path("outputs/spoken-gsm-speed100"))
+    p.add_argument("--rates",type=float,nargs='+',default=RATES,help='Playback rates; 1x baseline is always included.')
+    p.add_argument("--reuse-from",type=Path,help='Copy compatible completed answers for overlapping questions and rates.')
     p.add_argument("--prepare-only",action="store_true",help="Select/freeze questions without loading DIFFA.")
     p.add_argument("--summary-only",action="store_true")
     p.add_argument("--save-audio",action="store_true",help="Save the 16-kHz waveforms used for inference, for listening.")
@@ -64,27 +105,21 @@ def main():
     if args.summary_only:
         report(args.output)
         return
+    import librosa
+    import soundfile as sf
+
+    if args.num_examples<1 or any(not isfinite(r) or r<=0 for r in args.rates):
+        p.error('Need a positive question count and finite positive playback rates')
+    rates=sorted(set([1.0,*args.rates]))
     records=read_rows(args.path/"manifest.jsonl")
-    selected=[]
-    for r in records:
-        if r["style"]!="original":
-            continue
-        path=(args.path/r["audio_path"]).resolve()
-        info=sf.info(path)
-        # At 0.7x, an original <=21 seconds remains within the shared 30s limit.
-        if not 0<info.frames/info.samplerate<=30*min(RATES):
-            continue
-        selected.append({**r,"audio_path":str(path),"audio_bytes":path.stat().st_size,
-                         "audio_mtime_ns":path.stat().st_mtime_ns})
-        if len(selected)==args.num_examples:
-            break
-    conditions=[dict(name="baseline")]+[dict(name=condition(r)) for r in RATES if r!=1]
-    plan=dict(recordings=selected,conditions=conditions,rates=RATES,
+    selected=select_recordings(records,args.path,args.num_examples,rates,sf)
+    conditions=[dict(name="baseline")]+[dict(name=condition(r)) for r in rates if r!=1]
+    plan=dict(recordings=selected,conditions=conditions,rates=rates,
               settings=dict(seed=42,prompt=PROMPT,steps=128,block_length=32,max_new_tokens=512,
                             temperature=0.0,decoder="fast_dllm",sample_rate=16000,
                             transform="librosa.effects.time_stretch; rate1 bypassed",
                             librosa=librosa.__version__,max_seconds=30,
-                            selection="first N original recordings <=21s; no correctness or emotion filtering"))
+                            selection=f"first N original recordings <={30*min(rates):g}s; no correctness or emotion filtering"))
     args.output.mkdir(parents=True,exist_ok=True)
     config=args.output/"run_config.json"
     if config.exists() and json.loads(config.read_text())!=plan:
@@ -92,20 +127,33 @@ def main():
     results_path=args.output/"results.jsonl"
     if results_path.exists() and not config.exists():
         p.error("Results exist without frozen settings; use another --output")
-    rows=read_rows(results_path)
+    rows=read_rows(results_path,repair=not args.prepare_only)
     allowed={(r["clip_id"],c["name"]) for r in selected for c in conditions}
     if any((r["clip_id"],r["condition"]) not in allowed or r.get("seed")!=42 for r in rows):
         p.error("Saved answers have a different cohort, condition or seed")
     config.write_text(json.dumps(plan,indent=2)+"\n")
     completed={(r["clip_id"],r["condition"]) for r in rows}
+    if args.reuse_from and not args.prepare_only:
+        reused=0
+        with results_path.open('a') as stream:
+            for row in reusable_answers(args.reuse_from,plan):
+                key=(row['clip_id'],row['condition'])
+                if key in completed:
+                    continue
+                stream.write(json.dumps(row)+'\n')
+                completed.add(key)
+                reused+=1
+        print(f'Reused {reused} compatible saved answers; original results unchanged.',flush=True)
     pending=len(allowed)-len(completed)
-    print(f"{len(selected)} matched questions x {len(RATES)} speeds; {pending} generations pending.",flush=True)
-    print("Rates:",RATES,"; seed always 42; pitch preserved; no truncation.",flush=True)
+    print(f"{len(selected)} matched questions x {len(rates)} speeds; {pending} generations pending.",flush=True)
+    print("Rates:",rates,"; seed always 42; pitch preserved; no truncation.",flush=True)
     if args.prepare_only:
         return
     if not pending:
         report(args.output)
         return
+    import numpy as np
+    import torch
     from extract_vectors import load_model,gen
     model,tokenizer,feature_extractor=load_model()
     for i,r in enumerate(selected,1):
@@ -116,11 +164,13 @@ def main():
             audio=audio.mean(axis=1)
         if sr!=16000:
             audio=librosa.resample(audio,orig_sr=sr,target_sr=16000)
-        for rate in [1.0]+[v for v in RATES if v!=1]:
+        for rate in [1.0]+[v for v in rates if v!=1]:
             name=condition(rate)
             if (r["clip_id"],name) in completed:
                 continue
             changed=audio if rate==1 else librosa.effects.time_stretch(audio,rate=rate)
+            if len(changed)>30*16000:
+                raise ValueError(f'{r["clip_id"]} at {rate:g}x exceeds 30 seconds; no audio was cropped')
             if args.save_audio:
                 folder=args.output/"audio"
                 folder.mkdir(exist_ok=True)

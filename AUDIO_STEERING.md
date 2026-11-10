@@ -1,5 +1,17 @@
 # Audio extraction and steering
 
+## Wider playback-speed sweep
+
+`run_spoken_gsm_speed_extended.sh` selects the first 100 exported original Spoken GSM recordings of at most 15 seconds and evaluates each at every rate from 0.5× through 2.0× in 0.1 increments. This is a new common cohort, not necessarily the same 100 questions as the earlier 0.7×–1.5× sweep. Even the slowest version fits within 30 seconds; nothing is cropped. Seed42, pitch-preserving time stretching, and the 1× bypass remain unchanged.
+
+```bash
+nohup bash run_spoken_gsm_speed_extended.sh > outputs/spoken-gsm-speed100-extended.log 2>&1 < /dev/null &
+tail -f outputs/spoken-gsm-speed100-extended.log
+.venv-diffa/bin/python evaluate_audio_speed.py --output outputs/spoken-gsm-speed100-extended --summary-only
+```
+
+The launcher waits for the shared GPU queue and existing GPU workers. It saves a separate run under `outputs/spoken-gsm-speed100-extended`, reusing old speed answers only where the exact recording fingerprint, playback rate, generation settings and librosa version agree. If the older output folder is absent, it generates the required answers. The upper bound is 1,600 answers, reduced by compatible cached answers. The previous speed report remains a separate completed experiment until new measurements are available.
+
 ## Large matched-forward experiment
 
 ```bash
