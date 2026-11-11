@@ -100,6 +100,51 @@ baseline, and is separate from the speed experiment. To inspect/freeze selection
 without running inference, call `.venv-diffa/bin/python steer_azure_holdout.py
 --prepare-only` with any required `--vectors` argument.
 
+## Expanded third-batch steering promotion after the completed large sweep
+
+`run_jenny_promoted_third.py` tests all four distinct configurations whose exact
+gain exceeded two percentage points on the completed second-set 460 questions:
+
+| Direction | L12 acoustic strength | Schedule | Second-set gain |
+|---|---:|---|---:|
+| Original angry-minus-neutral mean | 1 | Always | +2.61 pp |
+| Mean from angry-correct training pairs | 1 | Always | +2.17 pp |
+| Different directions in global 20-forward windows | 1 | Always | +2.39 pp |
+| Original mean | 1 | Every 2 forwards | +2.17 pp |
+
+The original confirmation and original always-on timing row are the same
+configuration and are counted once. No L11/L16 row in the completed large sweep
+reached two percentage points. A fifth, new configuration is original L12
+acoustic x1 every 3 forwards. Periodic schedules restart in each 32-token
+decoding block: periodic2 uses forwards 1/3/5/... and periodic3 uses 1/4/7/....
+
+Run on the original steering machine, where the completed big-run configs and
+all three vector checkpoints are present. All five interventions run separately
+on exactly the same third-batch neutral inputs. The default is every eligible
+neutral question in `azure-jenny-remaining-test` (up to 269), no correctness or
+classifier filtering. This is six answers per question including one shared
+baseline, minus compatible saved baselines or completed results. Pass
+`--num-examples 200` to restrict to the first 200 instead.
+
+The final stage tests periodic3 on all 460 old second-set questions; it reuses
+their compatible baseline answers. No vectors are re-extracted. The four
+promotions and the additional schedule are fixed before new-cohort evaluation.
+Checkpoint paths come from each completed experiment's `run_config.json`, so
+the mean/filter/window directions cannot accidentally be substituted for one
+another. The old 460-question periodic3 result remains exploratory.
+
+```bash
+nohup .venv-diffa/bin/python -u run_jenny_promoted_third.py \
+  > outputs/jenny-promoted-third.log 2>&1 < /dev/null &
+tail -f outputs/jenny-promoted-third.log
+
+.venv-diffa/bin/python run_jenny_promoted_third.py --summary-only
+```
+
+The launcher preflights all plans/checkpoints, then waits for the common GPU
+lock. Results are under `outputs/steer-jenny-third-promoted`: `original`,
+`angry_correct`, `forward20`, and a separate `second-set-periodic3` directory.
+
 ## Read completed Azure results anytime
 
 These read saved answers and classifier files and do not allocate a GPU:

@@ -9,6 +9,25 @@ import sys
 from steer import read_rows
 
 
+def select_recordings(folder, count, sf):
+    selected={}
+    for row in sorted(read_rows(folder/'plan.jsonl'),key=lambda r:r['question_id']):
+        if row['provider']!='azure' or row['style']!='neutral':
+            continue
+        path=(folder/row['audio_path']).resolve()
+        seconds=sf.info(path).duration
+        if not 0<seconds<=30:
+            continue
+        selected.setdefault(row['question_id'],dict(
+            clip_id=f"{row['question_id']}__{row['voice']}__neutral",question_id=row['question_id'],
+            audio_path=str(path),answer=str(row['answer']).rsplit('####',1)[-1].strip(),
+            style='neutral',speaker=row['voice'],repeat=0,duration_seconds=seconds))
+    records=list(selected.values())[:count] if count else list(selected.values())
+    if count<0 or not records or (count and len(records)!=count):
+        raise ValueError(f'Need {count or "all"} eligible neutral questions; found {len(records)}')
+    return records
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--path',type=Path,default=Path('outputs/azure-jenny-remaining-test'))
@@ -28,21 +47,7 @@ def main():
         vector=Path(previous['settings']['vectors'])
     if not vector.is_file():
         p.error('Original vector missing at its saved path. Pass --vectors /actual/path/style-vectors.pt')
-    selected={}
-    for row in sorted(read_rows(args.path/'plan.jsonl'),key=lambda r:r['question_id']):
-        if row['provider']!='azure' or row['style']!='neutral':
-            continue
-        path=(args.path/row['audio_path']).resolve()
-        seconds=sf.info(path).duration
-        if not 0<seconds<=30:
-            continue
-        selected.setdefault(row['question_id'],dict(
-            clip_id=f"{row['question_id']}__{row['voice']}__neutral",question_id=row['question_id'],
-            audio_path=str(path),answer=str(row['answer']).rsplit('####',1)[-1].strip(),
-            style='neutral',speaker=row['voice'],repeat=0,duration_seconds=seconds))
-    records=list(selected.values())[:args.num_examples]
-    if args.num_examples<1 or len(records)!=args.num_examples:
-        p.error(f'Need {args.num_examples} eligible neutral questions; found {len(records)}')
+    records=select_recordings(args.path,args.num_examples,sf)
     conditions=[dict(name='baseline',interventions=[]),dict(name='L12-acoustic-a1',
         interventions=[dict(layer=12,group='acoustic',strength=1)])]
     args.output.mkdir(parents=True,exist_ok=True)

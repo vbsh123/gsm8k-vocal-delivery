@@ -43,7 +43,7 @@ def copy_baselines(path, shared, recordings):
             stream.write(json.dumps(row)+'\n')
 
 
-def report(root,methods):
+def report(root,methods,cohort_label=None):
     for method in methods:
         folder=root/method
         if not (folder/'run_config.json').exists():
@@ -52,7 +52,7 @@ def report(root,methods):
         print('\nDirection method:',method,flush=True)
         config=json.loads((folder/'run_config.json').read_text())
         summarize(read_rows(folder/'results.jsonl'),config['settings']['conditions'])
-    print('Same second-set recordings across methods; layer/strength choices were explored previously.')
+    print(cohort_label or 'Same second-set recordings across methods; layer/strength choices were explored previously.')
 
 
 def main():
@@ -69,9 +69,10 @@ def main():
     p.add_argument('--conditions-file',type=Path,help='JSON list of conditions, including baseline')
     p.add_argument('--prepare-only',action='store_true')
     p.add_argument('--summary-only',action='store_true')
+    p.add_argument('--cohort-label',help='Description for a new evaluation cohort; default preserves existing experiment recipes.')
     args=p.parse_args()
     if args.summary_only:
-        report(args.output,args.methods)
+        report(args.output,args.methods,args.cohort_label)
         return
     conditions = list(CONDITIONS)
     if args.include_l11:
@@ -101,7 +102,7 @@ def main():
         folder=args.output/method
         folder.mkdir(parents=True,exist_ok=True)
         plan=dict(recordings=records,conditions=conditions,method=method,seed=42,
-                  selection='Same original full460 second-set cohort; no correctness or classifier filter')
+                  selection=args.cohort_label or 'Same original full460 second-set cohort; no correctness or classifier filter')
         path=folder/'selected-plan.json'
         if path.exists() and json.loads(path.read_text())!=plan:
             p.error('Saved evaluation cohort changed; use another output')
@@ -110,7 +111,7 @@ def main():
         settings = dict(previous=str(args.source_run.resolve()), vectors=str(vector.resolve()),
                         vector_bytes=stat.st_size, vector_mtime_ns=stat.st_mtime_ns,
                         seed=42, conditions=conditions, style='angry', mode='fixed',
-                        selection='outcome-selected diagnostic',
+                        selection=args.cohort_label or 'outcome-selected diagnostic',
                         seed_policy='constant_before_every_generation',
                         prepared_plan=str(path.resolve()),
                         prepared_plan_sha256=hashlib.sha256(path.read_bytes()).hexdigest())
@@ -151,7 +152,7 @@ def main():
             if row['correct']!=score['correct']:
                 p.error('Baseline scoring differs')
             shared[row['clip_id']]=row
-    report(args.output,args.methods)
+    report(args.output,args.methods,args.cohort_label)
 
 
 if __name__=='__main__':

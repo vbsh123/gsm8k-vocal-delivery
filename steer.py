@@ -78,8 +78,8 @@ def schedule_active(schedule, progress):
         return True
     if schedule == "first_forward":
         return progress["forward"] == 1
-    if schedule == "periodic2":
-        return (progress["block_forward"] - 1) % 2 == 0
+    if schedule in ("periodic2", "periodic3"):
+        return (progress["block_forward"] - 1) % int(schedule[-1]) == 0
     phase = progress["phase"]
     return phase == {"early": 0, "middle": 1, "late": 2}[schedule]
 
