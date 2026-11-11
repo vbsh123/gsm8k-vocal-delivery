@@ -76,3 +76,32 @@ have diverged. Semantic token lengths can differ. These limitations are included
 in the report: causal localization still requires a later intervention study.
 
 No activation-patching runs are added by this script.
+
+## Late-layer development sweep
+
+`run_jenny_late_layers.py` tests the original winning checkpoint on the same
+second-cohort neutrals used for the timing experiments. It uses each target
+layer's own direction, with acoustic and answer groups separately, layers
+29/30/31, strengths 0.5/1, and always/periodic2 schedules: 24 interventions.
+Periodic2 acts on forwards 1, 3, 5, ... within each decoding block. Compatible
+saved baselines are reused; every generation resets seed42. No extraction or
+correctness filtering is added. This is a development sweep, not independent
+confirmation. At 460 recordings there are 11,040 intervention generations.
+
+```bash
+nohup .venv-diffa/bin/python -u run_jenny_late_layers.py \
+  > outputs/jenny-late-layers.log 2>&1 < /dev/null &
+tail -f outputs/jenny-late-layers.log
+.venv-diffa/bin/python run_jenny_late_layers.py --summary-only
+```
+
+Use `--prepare-only` for preparation without loading DIFFA, or `--vectors PATH`
+if the original checkpoint moved. The launcher waits for the shared GPU lock
+and active GPU work before running one evaluation process. Existing completed
+answers in its own output folder are skipped on resume.
+
+Drift on other cohorts requires their own saved neutral/angry per-question
+activation means. Answer JSONL files and aggregate direction checkpoints cannot
+replace those tensors. Run each collection into a separate analysis output
+folder to preserve cohort comparisons; no new activation collection is launched
+by this late-layer sweep.
