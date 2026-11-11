@@ -42,6 +42,24 @@ requested style present in the plans; absent styles have no rows to evaluate.
 
 ## 2. Classify both later Azure cohorts
 
+For the final batch by itself, followed by a pooled report over all three cohorts:
+
+```bash
+nohup bash run_jenny_third_accuracy.sh \
+  > outputs/jenny-third-accuracy.log 2>&1 < /dev/null &
+tail -f outputs/jenny-third-accuracy.log
+```
+
+This classifies neutral/angry/happy/sad recordings with both emotion2vec and
+SenseVoice, then completes their DIFFA math answers, skipping existing results.
+The Azure classifiers use each complete recording. It prints the final-batch
+tables separately and then combines all four input folders (the earlier neutral
+folder is separate from its emotional recordings). Reports include matched
+unfiltered/filtered accuracy, exact McNemar p-values and paired confidence
+intervals. The final batch has 269 planned questions; the math comparison counts
+depend on the available clips within 30 seconds. Pass `cpu` to the shell script
+to run its classification stage on CPU; math inference still waits for the GPU.
+
 Use the existing emotion environment, or run `bash setup_emotion.sh` once.
 The classifier now resumes saved predictions instead of overwriting them.
 
