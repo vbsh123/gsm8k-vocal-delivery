@@ -84,6 +84,9 @@ def main():
         subprocess.run(queued + ['--prepare-only'], check=True)
     if args.prepare_only:
         return
+    print('Waiting for the existing Azure emotion/accuracy queue before taking the GPU lock.', flush=True)
+    subprocess.run([sys.executable, '-u', 'wait_for_experiments.py',
+                    '--kind', 'azure-emotions'], check=True)
     with Path('outputs/jenny-task-vectors.lock').open('w') as lock:
         print('Waiting for the shared GPU lock.', flush=True)
         fcntl.flock(lock, fcntl.LOCK_EX)

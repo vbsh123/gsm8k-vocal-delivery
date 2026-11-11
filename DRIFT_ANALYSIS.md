@@ -114,3 +114,7 @@ use `--forward20-vectors PATH` if it moved. This adds 460 interventions, for
 are unchanged. If the old launcher is already running, launch the updated one
 into a different log: it waits for the shared lock, skips completed late-layer
 answers, then runs the added combination. Both stages use the same recordings.
+The updated launcher first waits for `run_emotions_after_steering.sh`,
+`run_jenny_third_accuracy.sh`, and their classification/accuracy workers to exit,
+before acquiring the shared GPU lock. This lets that already-queued work take
+priority without a lock-order deadlock. Log viewers are ignored.

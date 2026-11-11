@@ -11,6 +11,8 @@ NAMES={
                       'run_dataset_emotions.sh','run_speeds_and_classification.sh'},
     'steering':{'run_jenny_promoted_third.py','evaluate_audio_steering.py','steer_audio.py',
                 'run_large_steering.py','run_large_steering.sh'},
+    'azure-emotions':{'run_emotions_after_steering.sh','run_jenny_third_accuracy.sh',
+                      'classify_cloud_smoke.py','compare_cloud_accuracy.py'},
 }
 
 
@@ -29,7 +31,9 @@ def active_jobs(kind, root, proc=Path('/proc')):
             names={Path(a).name for a in args}
             matches=bool(names & NAMES[kind])
             if 'run_azure_followups.py' in names and '--stage' in args:
-                matches |= args[args.index('--stage')+1] == ('classify' if kind=='classification' else 'steering')
+                stages={'classification':('classify',),'steering':('steering',),
+                        'azure-emotions':('classify','diffa')}
+                matches |= args[args.index('--stage')+1] in stages[kind]
             if matches:
                 active.append(int(entry.name))
         except (OSError,IndexError):
