@@ -15,6 +15,27 @@ from evaluate_audio_speed import main, reusable_answers, select_recordings
 
 
 class SpeedTests(unittest.TestCase):
+    def test_remaining_cohort_excludes_pilot_questions_and_clips_without_using_answers(self):
+        with tempfile.TemporaryDirectory() as directory,redirect_stdout(io.StringIO()):
+            root=Path(directory); pilot=root/'pilot'; pilot.mkdir()
+            records=[]
+            for cid,qid in [('pilot','q0'),('another-version','q0'),('pilot','other-q'),('new1','q1'),('new2','q2')]:
+                (root/f'{cid}.wav').touch()
+                records.append(dict(clip_id=cid,question_id=qid,style='original',audio_path=f'{cid}.wav',answer='18'))
+            (root/'manifest.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in records))
+            (pilot/'run_config.json').write_text(json.dumps(dict(recordings=[records[0]])))
+            modules={'librosa':SimpleNamespace(__version__='test'),
+                     'soundfile':SimpleNamespace(info=lambda path:SimpleNamespace(frames=20*16000,samplerate=16000,duration=20))}
+            argv=['test','--path',str(root),'--output',str(root/'run'),'--exclude-run',str(pilot),
+                  '--num-examples','0','--rates','1','1.2','1.3','--prepare-only']
+            with patch.dict(sys.modules,modules),patch.object(sys,'argv',argv):
+                main()
+            plan=json.loads((root/'run/run_config.json').read_text())
+            self.assertEqual([r['question_id'] for r in plan['recordings']],['q1','q2'])
+            self.assertEqual(plan['excluded_cohort']['question_ids'],['q0'])
+            self.assertEqual(plan['rates'],[1.,1.2,1.3])
+            self.assertEqual(plan['settings']['seed'],42)
+
     def test_same_selected_questions_fit_every_rate_and_insufficient_count_fails(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)
@@ -30,6 +51,8 @@ class SpeedTests(unittest.TestCase):
             rates=[i/10 for i in range(5,21)]
             selected=select_recordings(records,root,2,rates,sf)
             self.assertEqual([r['clip_id'] for r in selected],['0','2'])
+            all_selected=select_recordings(records,root,0,[1.,1.2,1.3],sf)
+            self.assertEqual([r['clip_id'] for r in all_selected],['0','1','2','3','4'])
             self.assertTrue(all(durations[r['audio_path']]/rate<=30 for r in selected for rate in rates))
             with self.assertRaisesRegex(ValueError,'found 3'):
                 select_recordings(records,root,4,rates,sf)

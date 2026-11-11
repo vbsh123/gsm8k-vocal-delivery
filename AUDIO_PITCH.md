@@ -117,6 +117,42 @@ question at 1×. Results are saved in `outputs/listening-pitch/summary.json` and
 semitone changes support pitch preservation; also inspect the absolute contour
 changes and listen, since averages can hide artifacts and tracking errors.
 
+## Follow up the selected 1.2x and 1.3x speeds on remaining questions
+
+`run_audiostretchy_speed_remaining.sh` uses all available original test recordings
+up to 30 seconds, excluding every question and clip ID in
+`outputs/spoken-gsm-audiostretchy200/run_config.json`. It tests only unchanged
+1x, 1.2x and 1.3x, with the same AudioStretchy settings, prompt and seed42.
+No answers from the initial 200-question sweep are pooled into the follow-up.
+The source pool is extended through the existing exporter, and the exact new
+question count is printed before inference. The remaining cohort can include
+15–30-second recordings, unlike the initial sweep's <=15-second cohort; its
+short/long counts are printed when prepared. There are three answers per new
+question. Audio and completed answers resume under
+`outputs/spoken-gsm-audiostretchy-remaining`.
+
+```bash
+nohup bash run_audiostretchy_speed_remaining.sh \
+  > outputs/audiostretchy-speed-remaining.log 2>&1 < /dev/null &
+.venv-diffa/bin/python evaluate_audio_speed.py \
+  --output outputs/spoken-gsm-audiostretchy-remaining --summary-only
+```
+
+`run_speed_and_azure_queue.sh` runs that DIFFA speed follow-up followed by Qwen
+and Kimi **Azure emotion** evaluations, sequentially. It does not run speed
+experiments on Qwen/Kimi. It checks both new Azure plans/audio and both conda
+environments before starting, so missing inputs do not waste a night. Copy the
+two Azure folders including any saved model outputs/settings and classifier
+JSONLs first. Older first-500 Qwen/Kimi outputs are not needed, because those
+questions are not selected. Answers computed elsewhere can only be skipped if
+their result files have been copied; the scripts cannot discover remote results.
+
+```bash
+nohup bash run_speed_and_azure_queue.sh \
+  > outputs/speed-and-azure-queue.log 2>&1 < /dev/null &
+tail -f outputs/speed-and-azure-queue.log
+```
+
 ## Compare emotional delivery against neutral
 
 Start with 20 question/voice groups to check runtime and estimator behavior:

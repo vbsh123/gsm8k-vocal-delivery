@@ -77,9 +77,9 @@ def select_recordings(records, root, count, rates, sf):
         selected.append({**r,'audio_path':str(path),'audio_bytes':path.stat().st_size,
                          'audio_mtime_ns':path.stat().st_mtime_ns})
         seen.add(r['clip_id'])
-        if len(selected)==count:
+        if count and len(selected)==count:
             break
-    if len(selected)!=count:
+    if (count and len(selected)!=count) or not selected:
         raise ValueError(f'Need {count} original clips <= {30*min(rates):g}s; found {len(selected)}')
     return selected
 
@@ -136,6 +136,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--path",type=Path,default=Path("outputs/spoken-gsm-original"))
     p.add_argument("--num-examples",type=int,default=100)
+    p.add_argument('--exclude-run',type=Path,help='Exclude all question/clip IDs in this earlier speed run, without using its answers.')
     p.add_argument("--output",type=Path,default=Path("outputs/spoken-gsm-speed100"))
     p.add_argument("--rates",type=float,nargs='+',default=RATES,help='Playback rates; 1x baseline is always included.')
     p.add_argument("--reuse-from",type=Path,help='Copy compatible completed answers for overlapping questions and rates.')
@@ -150,8 +151,8 @@ def main():
     import librosa
     import soundfile as sf
 
-    if args.num_examples<1 or any(not isfinite(r) or r<=0 for r in args.rates):
-        p.error('Need a positive question count and finite positive playback rates')
+    if args.num_examples<0 or any(not isfinite(r) or r<=0 for r in args.rates):
+        p.error('Need a nonnegative question count (0 means all) and finite positive playback rates')
     rates=sorted(set([1.0,*args.rates]))
     ffmpeg=None
     if args.stretch_method=='atempo':
@@ -162,6 +163,14 @@ def main():
             import imageio_ffmpeg
             ffmpeg=imageio_ffmpeg.get_ffmpeg_exe()
     records=read_rows(args.path/"manifest.jsonl")
+    exclusion=None
+    if args.exclude_run:
+        previous=json.loads((args.exclude_run/'run_config.json').read_text())
+        ids={r['question_id'] for r in previous['recordings']}
+        clips={r['clip_id'] for r in previous['recordings']}
+        records=[r for r in records if r['question_id'] not in ids and r['clip_id'] not in clips]
+        exclusion=dict(source=str(args.exclude_run.resolve()),question_ids=sorted(ids),clip_ids=sorted(clips))
+        print(f'Excluding all {len(ids)} questions from the earlier speed sweep.',flush=True)
     selected=select_recordings(records,args.path,args.num_examples,rates,sf)
     conditions=[dict(name="baseline")]+[dict(name=condition(r)) for r in rates if r!=1]
     plan=dict(recordings=selected,conditions=conditions,rates=rates,
@@ -176,6 +185,10 @@ def main():
     if args.stretch_method=='audiostretchy':
         plan['settings'].update(transform='audiostretchy.core.stretch_audio; ratio=1/rate; rate1 bypassed',
                                 audiostretchy_version=version('audiostretchy'),gap_ratio='1/rate')
+    if exclusion is not None:
+        plan['excluded_cohort']=exclusion
+        short=sum(sf.info(r['audio_path']).duration<=15 for r in selected)
+        print(f'Remaining cohort: {short} recordings <=15s and {len(selected)-short} recordings >15s (all <=30s).',flush=True)
     args.output.mkdir(parents=True,exist_ok=True)
     config=args.output/"run_config.json"
     if config.exists() and json.loads(config.read_text())!=plan:
