@@ -1,0 +1,78 @@
+# Drift from saved neutral/angry activation means
+
+This analysis reads existing per-question activation caches. It never imports
+the DIFFA loader, starts generation, installs hooks, or uses CUDA. PyTorch is
+needed only to read tensors and calculate statistics on CPU.
+
+On the original extraction/steering machine:
+
+```bash
+git pull --ff-only
+nohup env CUDA_VISIBLE_DEVICES='' OMP_NUM_THREADS=8 \
+  .venv-diffa/bin/python -u analyze_paired_drift.py \
+  --collection outputs/jenny-svd-probe \
+  --output outputs/jenny-drift-analysis \
+  > outputs/jenny-drift-analysis.log 2>&1 < /dev/null &
+tail -f outputs/jenny-drift-analysis.log
+```
+
+The input is `collection-config.json` plus `pairs/00000.pt`, etc., from the
+matched neutral/angry collection used for SVD/probe fitting. Each pair file must
+contain `neutral` and `angry` tensors of shape `[layers, groups, hidden_size]`
+and the saved answer responses. The manifest embedded in the config supplies
+reference answers; original WAV files are not needed. If the collection moved,
+change `--collection`. An alternative all-forward collection can be analyzed
+separately with another output folder; the script reports the averaging recipe.
+
+A fitted `style-vectors.pt` alone is not enough: it contains pooled directions,
+not the separate per-question neutral and angry means. Likewise, the temporal
+collection under `jenny-large/temporal-vectors` stores differences for selected
+targets and cannot reconstruct these neutral-to-angry norms and cosines. The
+script rejects difference-only caches rather than fabricating missing values.
+
+The outcome categories use the actual unsteered responses saved during collection:
+
+- `recovery`: neutral wrong, angry correct.
+- `regression`: neutral correct, angry wrong.
+- `both_correct` and `both_wrong`.
+
+These are natural-delivery outcomes, not steering outcomes. Parsing failures
+count as incorrect under the existing scorer. This extraction collection was
+filtered for emotion2vec agreement, so its own accuracy gap and outcome counts
+need not equal the unfiltered benchmark's approximately six-point difference.
+
+For each question, zero-based layer and group, the script measures:
+
+- Cosine similarity between the saved neutral and angry means.
+- Relative change: `100 * norm(angry - neutral) / norm(neutral)`.
+- Absolute shift norm.
+
+It then summarizes these within each outcome category. It also measures shift
+direction coherence (the norm of the average unit shift), mean pairwise shift
+cosine within each category, and the cosine between mean recovery and regression
+shifts. Nonzero-shift sample counts are retained. Zero-norm vectors have missing
+angles/relative changes rather than invented values.
+
+Outputs in `outputs/jenny-drift-analysis`:
+
+- `index.html`: self-contained layer tables for acoustic, semantic, combined
+  (acoustic + semantic) and answer groups. Download the folder and open it.
+- `pair-metrics.csv`: per-question/layer/group measurements and forward counts.
+- `layer-summary.csv`: all group/outcome summary statistics.
+- `outcome-comparison.csv`: recovery/regression contrasts and direction cosines.
+- `summary.json`: counts, missing files, averaging, forward lengths and source hash.
+
+Each pair contributes equally. Missing cache files are reported explicitly; a
+partial collection is never described as complete. Terminal rankings show the
+largest absolute recovery/regression drift contrasts, not established causal
+sites. No p-values or claims of statistical significance are attached to this
+exploratory layer ranking.
+
+The cached vectors already average tokens and forwards. Consequently, this is
+**drift of the pooled means**, not average token-level drift or the temporal
+course of drift. Cancellation can hide differences. Matched forward counts do
+not establish identical mask states, and neutral/angry generation may already
+have diverged. Semantic token lengths can differ. These limitations are included
+in the report: causal localization still requires a later intervention study.
+
+No activation-patching runs are added by this script.
