@@ -200,15 +200,14 @@ can instead be used with `--audio-root` in the direct command below.
 Recordings are deduplicated by source audio path, retaining all referring question
 IDs. The reports count audio files, not questions, and break down source speech,
 music, sound or mixed categories. Classifier labels on music and environmental
-sound do not establish speaker emotion. Long recordings use every 30-second
-chunk, aggregating emotion2vec scores or SenseVoice label votes by chunk duration;
-individual chunk predictions are saved too. These aggregates differ from one
-whole-utterance classifier call. The models' outputs are predictions, not emotion
+sound do not establish speaker emotion. Whole recordings now use one classifier
+call by default. Explicit `--chunked` enables the older duration-weighted
+30-second aggregation and keeps it separate. The models' outputs are predictions, not emotion
 ground truth. Dataset revisions, settings and per-model results are saved for
 resume. An optional `--limit` is a smoke limit, not the default.
 
-The feature extractor needs at least 400 samples (25 ms at 16 kHz). If the last
-chunk is shorter, its boundary moves backward into the preceding chunk so every
+The feature extractor needs at least 400 samples (25 ms at 16 kHz). In explicit
+chunked mode only, a shorter final chunk moves backward into the preceding chunk so every
 real sample is still used exactly once, with no padding and no chunk above 30s.
 Entire recordings shorter than 400 samples are saved as `insufficient_audio`,
 excluded from predicted-emotion percentages, and counted separately. Existing
@@ -229,7 +228,29 @@ ID, chunk index and sample count to identify any remaining incompatible inputs.
   --dataset mmau-pro --model emotion2vec --summary-only
 ```
 
-Default reports and JSONL predictions live in
-`outputs/dataset-emotions/{spoken-gsm,mmau,mmau-pro,speechr}`. Once both classifiers
+Default whole-recording reports and JSONL predictions live in
+`outputs/dataset-emotions-whole/{spoken-gsm,mmau,mmau-pro,speechr}`. Once both classifiers
 have run, summaries also show agreement over their shared recordings. Use a new
 output folder when changing an audit's source directory or aggregation recipe.
+
+### Correction: whole recordings are now the default
+
+The earlier audit added 30-second chunking as an unverified memory precaution;
+that is not an established emotion2vec maximum duration. The default now passes
+the complete waveform in one classifier call. Old chunked results stay under
+`outputs/dataset-emotions` and are never overwritten or mixed with whole-recording
+predictions for longer audio. Compatible old results with exactly one complete
+chunk are copied automatically: those already used the entire recording, so
+only the missing or previously split recordings need new inference. The source
+revision is inherited from the old audit when available.
+
+```bash
+nohup env STREAM_AUDIO=1 bash run_dataset_emotions.sh \
+  cuda:0 spoken-gsm mmau mmau-pro speechr \
+  > outputs/dataset-emotions-whole.log 2>&1 < /dev/null &
+```
+
+Memory failures are saved and counted separately, without automatic chunking.
+To retry such failures with host memory, use the direct classifier command with
+`--device cpu --retry-memory-failures`. Explicit `--chunked` restores the earlier
+aggregation in its separate old output folder; it is not the default.

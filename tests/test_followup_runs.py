@@ -13,11 +13,27 @@ import unittest
 from unittest.mock import patch
 import zipfile
 
-from classify_dataset_emotions import audio_index, archived_recordings, aggregate_predictions, chunk_ranges, report
+from classify_dataset_emotions import audio_index, archived_recordings, aggregate_predictions, chunk_ranges, reusable_single_chunks, report
 from steer_azure_holdout import main as steer_main
 
 
 class DatasetAuditTests(unittest.TestCase):
+    def test_reuses_only_full_single_chunk_predictions_from_identical_source(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            source=dict(dataset='speechr',audio_root='/same',revisions={},files={})
+            settings=dict(model='model',sample_rate=16000,model_name='emotion2vec')
+            (root/'source.json').write_text(json.dumps(source))
+            (root/'settings-emotion2vec.json').write_text(json.dumps(dict(model='model',sample_rate=16000,chunk_seconds=30)))
+            rows=[dict(clip_id='short',duration_seconds=10,chunks=[dict(duration_seconds=10,emotion='happy',scores=[1.])]),
+                  dict(clip_id='long',duration_seconds=40,chunks=[dict(duration_seconds=30,emotion='sad'),dict(duration_seconds=10,emotion='happy')]),
+                  dict(clip_id='partial',duration_seconds=20,chunks=[dict(duration_seconds=10,emotion='neutral')])]
+            (root/'results-emotion2vec.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rows))
+            reused=reusable_single_chunks(root,source,settings)
+            self.assertEqual([r['clip_id'] for r in reused],['short'])
+            self.assertEqual(reused[0]['emotion'],'happy')
+            self.assertEqual(reusable_single_chunks(root,dict(source,audio_root='/changed'),settings),[])
+
     def test_chunk_boundaries_rebalance_tiny_tails_without_padding_overlap_or_dropped_samples(self):
         for count in [400,401,480000,480001,480399,480400,960001]:
             ranges=chunk_ranges(count)
@@ -129,6 +145,70 @@ class DatasetAuditTests(unittest.TestCase):
 
 @unittest.skipUnless(importlib.util.find_spec('soundfile') and importlib.util.find_spec('librosa'),'Needs audio libraries')
 class RealDatasetAuditTests(unittest.TestCase):
+    def test_whole_default_reuses_short_recording_and_reclassifies_only_long_recording(self):
+        import numpy as np
+        import soundfile as sf
+        from classify_dataset_emotions import main
+        calls=[]
+        class Adapter:
+            MODEL='test-model'
+            def load_predictor(device):
+                def predict(audio):
+                    calls.append(len(audio))
+                    return dict(emotion='sad',raw_text='whole')
+                return predict
+        with tempfile.TemporaryDirectory() as directory,redirect_stdout(io.StringIO()):
+            root=Path(directory); data=root/'audio'; data.mkdir(); old=root/'old'; old.mkdir()
+            sf.write(data/'short.wav',np.zeros(16000,dtype='float32'),16000)
+            sf.write(data/'long.wav',np.zeros(65*16000,dtype='float32'),16000)
+            source=dict(dataset='speechr',audio_root=str(data.resolve()),revisions={},files={})
+            (old/'source.json').write_text(json.dumps(source))
+            (old/'settings-sensevoice.json').write_text(json.dumps(dict(model='test-model',sample_rate=16000,chunk_seconds=30)))
+            short=dict(clip_id='short.wav',question_ids=['short'],categories=['speech'],duration_seconds=1,
+                       chunks=[dict(duration_seconds=1,emotion='happy')],emotion='happy')
+            long=dict(clip_id='long.wav',question_ids=['long'],categories=['speech'],duration_seconds=65,
+                      chunks=[dict(duration_seconds=d,emotion='happy') for d in (30,30,5)],emotion='happy')
+            previous=''.join(json.dumps(r)+'\n' for r in [short,long])
+            (old/'results-sensevoice.jsonl').write_text(previous)
+            argv=['test','--dataset','speechr','--audio-root',str(data),'--output',str(root/'out'),
+                  '--model','sensevoice','--device','cpu','--reuse-single-chunk-from',str(old)]
+            with patch.object(sys,'argv',argv),patch('classify_dataset_emotions.importlib.import_module',return_value=Adapter),patch.dict(sys.modules,{'huggingface_hub':SimpleNamespace(HfApi=lambda:None)}):
+                main(); main()
+            self.assertEqual(calls,[65*16000])
+            self.assertEqual((old/'results-sensevoice.jsonl').read_text(),previous)
+            rows={r['clip_id']:r for r in [json.loads(line) for line in (root/'out/results-sensevoice.jsonl').read_text().splitlines()]}
+            self.assertEqual(rows['short.wav']['emotion'],'happy')
+            self.assertEqual(rows['long.wav']['emotion'],'sad')
+            self.assertEqual(rows['long.wav']['chunk_sample_ranges'],[[0,65*16000]])
+            self.assertEqual(rows['long.wav']['raw_text'],'whole')
+
+    def test_whole_memory_failure_is_reported_without_chunk_fallback_and_later_audio_runs(self):
+        import numpy as np
+        import soundfile as sf
+        from classify_dataset_emotions import main
+        calls=[]
+        class Adapter:
+            MODEL='test-model'
+            def load_predictor(device):
+                def predict(audio):
+                    calls.append(len(audio))
+                    if len(audio)>480000:
+                        raise RuntimeError('out of memory')
+                    return dict(emotion='neutral')
+                return predict
+        with tempfile.TemporaryDirectory() as directory,redirect_stdout(io.StringIO()):
+            root=Path(directory); data=root/'audio'; data.mkdir()
+            sf.write(data/'a.wav',np.zeros(65*16000,dtype='float32'),16000)
+            sf.write(data/'b.wav',np.zeros(16000,dtype='float32'),16000)
+            argv=['test','--dataset','speechr','--audio-root',str(data),'--output',str(root/'out'),
+                  '--model','sensevoice','--device','cpu']
+            with patch.object(sys,'argv',argv),patch('classify_dataset_emotions.importlib.import_module',return_value=Adapter),patch.dict(sys.modules,{'huggingface_hub':SimpleNamespace(HfApi=lambda:None)}):
+                main()
+            self.assertEqual(calls,[65*16000,16000])
+            summary=json.loads((root/'out/summary-sensevoice.json').read_text())
+            self.assertEqual(summary['classified_recordings'],1)
+            self.assertEqual(summary['unclassified_reasons'],{'memory_failure':1})
+
     def test_tiny_tail_is_rebalanced_and_short_whole_clip_is_reported_not_classified(self):
         import numpy as np
         import soundfile as sf
@@ -148,7 +228,7 @@ class RealDatasetAuditTests(unittest.TestCase):
             sf.write(data/'long.wav',np.zeros(480001,dtype='float32'),16000)
             sf.write(data/'short.wav',np.zeros(100,dtype='float32'),16000)
             argv=['test','--dataset','speechr','--audio-root',str(data),'--output',str(root/'out'),
-                  '--model','sensevoice','--device','cpu']
+                  '--model','sensevoice','--device','cpu','--chunked']
             with patch.object(sys,'argv',argv),patch('classify_dataset_emotions.importlib.import_module',return_value=Adapter),patch.dict(sys.modules,{'huggingface_hub':SimpleNamespace(HfApi=lambda:None)}):
                 main(); main()
             self.assertEqual(calls,[479601,400])
@@ -197,7 +277,7 @@ class RealDatasetAuditTests(unittest.TestCase):
             root=Path(directory); data=root/'audio'; data.mkdir()
             sf.write(data/'q.wav',np.zeros(65*16000,dtype='float32'),16000)
             argv=['test','--dataset','speechr','--audio-root',str(data),'--output',str(root/'out'),
-                  '--model','sensevoice','--device','cpu']
+                  '--model','sensevoice','--device','cpu','--chunked']
             with patch.object(sys,'argv',argv),patch('classify_dataset_emotions.importlib.import_module',return_value=Adapter),patch.dict(sys.modules,{'huggingface_hub':SimpleNamespace(HfApi=lambda:None)}):
                 main(); main()
             self.assertEqual(calls,['load',480000,480000,80000])
