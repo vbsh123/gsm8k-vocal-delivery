@@ -13,11 +13,23 @@ import unittest
 from unittest.mock import patch
 import zipfile
 
-from classify_dataset_emotions import audio_index, archived_recordings, aggregate_predictions, report
+from classify_dataset_emotions import audio_index, archived_recordings, aggregate_predictions, chunk_ranges, report
 from steer_azure_holdout import main as steer_main
 
 
 class DatasetAuditTests(unittest.TestCase):
+    def test_chunk_boundaries_rebalance_tiny_tails_without_padding_overlap_or_dropped_samples(self):
+        for count in [400,401,480000,480001,480399,480400,960001]:
+            ranges=chunk_ranges(count)
+            self.assertEqual(ranges[0][0],0)
+            self.assertEqual(ranges[-1][1],count)
+            self.assertEqual(sum(end-start for start,end in ranges),count)
+            self.assertTrue(all(400<=end-start<=480000 for start,end in ranges))
+            self.assertTrue(all(a[1]==b[0] for a,b in zip(ranges,ranges[1:])))
+        self.assertEqual(chunk_ranges(0),[])
+        self.assertEqual(chunk_ranges(399),[])
+        self.assertEqual(chunk_ranges(480001),[(0,479601),(479601,480001)])
+
     def test_qwen_launcher_uses_full_batches_and_reports_with_its_own_environment(self):
         from run_azure_followups import main
         with tempfile.TemporaryDirectory() as directory,redirect_stdout(io.StringIO()):
@@ -117,6 +129,35 @@ class DatasetAuditTests(unittest.TestCase):
 
 @unittest.skipUnless(importlib.util.find_spec('soundfile') and importlib.util.find_spec('librosa'),'Needs audio libraries')
 class RealDatasetAuditTests(unittest.TestCase):
+    def test_tiny_tail_is_rebalanced_and_short_whole_clip_is_reported_not_classified(self):
+        import numpy as np
+        import soundfile as sf
+        from classify_dataset_emotions import main
+        calls=[]
+        class Adapter:
+            MODEL='test-model'
+            def load_predictor(device):
+                def predict(audio):
+                    if len(audio)<400:
+                        raise RuntimeError('Calculated padded input size too small')
+                    calls.append(len(audio))
+                    return dict(emotion='neutral')
+                return predict
+        with tempfile.TemporaryDirectory() as directory,redirect_stdout(io.StringIO()):
+            root=Path(directory); data=root/'audio'; data.mkdir()
+            sf.write(data/'long.wav',np.zeros(480001,dtype='float32'),16000)
+            sf.write(data/'short.wav',np.zeros(100,dtype='float32'),16000)
+            argv=['test','--dataset','speechr','--audio-root',str(data),'--output',str(root/'out'),
+                  '--model','sensevoice','--device','cpu']
+            with patch.object(sys,'argv',argv),patch('classify_dataset_emotions.importlib.import_module',return_value=Adapter),patch.dict(sys.modules,{'huggingface_hub':SimpleNamespace(HfApi=lambda:None)}):
+                main(); main()
+            self.assertEqual(calls,[479601,400])
+            rows=[json.loads(line) for line in (root/'out/results-sensevoice.jsonl').read_text().splitlines()]
+            self.assertEqual(rows[1]['classification_status'],'insufficient_audio')
+            summary=json.loads((root/'out/summary-sensevoice.json').read_text())
+            self.assertEqual(summary['classified_recordings'],1)
+            self.assertEqual(summary['unclassified_recordings'],1)
+
     def test_cloud_classifier_resume_preserves_predictions_and_does_not_load_again(self):
         from classify_cloud_smoke import main
         import numpy as np

@@ -207,6 +207,14 @@ whole-utterance classifier call. The models' outputs are predictions, not emotio
 ground truth. Dataset revisions, settings and per-model results are saved for
 resume. An optional `--limit` is a smoke limit, not the default.
 
+The feature extractor needs at least 400 samples (25 ms at 16 kHz). If the last
+chunk is shorter, its boundary moves backward into the preceding chunk so every
+real sample is still used exactly once, with no padding and no chunk above 30s.
+Entire recordings shorter than 400 samples are saved as `insufficient_audio`,
+excluded from predicted-emotion percentages, and counted separately. Existing
+completed predictions are preserved. Failed inference messages include the clip
+ID, chunk index and sample count to identify any remaining incompatible inputs.
+
 ```bash
 # Small direct smoke; omit --limit for the full dataset.
 .venv-emotion/bin/python -u classify_dataset_emotions.py \

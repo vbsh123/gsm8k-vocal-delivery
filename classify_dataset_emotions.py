@@ -24,6 +24,20 @@ REPOS={
 }
 
 
+def chunk_ranges(samples, maximum=30*16000, minimum=400):
+    """Keep every sample once; borrow context from the prior chunk for a tiny tail.
+
+    emotion2vec's seven feature convolutions need at least 400 input samples.
+    Whole recordings below this limit are reported as unclassifiable.
+    """
+    if samples<minimum:
+        return []
+    bounds=list(range(0,samples,maximum))+[samples]
+    if len(bounds)>2 and bounds[-1]-bounds[-2]<minimum:
+        bounds[-2]=samples-minimum
+    return list(zip(bounds,bounds[1:]))
+
+
 def read_rows(path):
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()] if path.exists() else []
 
@@ -157,21 +171,23 @@ def aggregate_predictions(predictions, durations, model):
 
 def report(output, model):
     rows={r['clip_id']:r for r in read_rows(output/f'results-{model}.jsonl')}
+    valid={k:r for k,r in rows.items() if r.get('classification_status','classified')=='classified'}
     groups=defaultdict(Counter)
-    for row in rows.values():
+    for row in valid.values():
         groups['ALL'][row['emotion']]+=1
         for category in set(row['categories']):
             groups[category][row['emotion']]+=1
-    print(f'\n{model}: {len(rows)} unique recordings classified; counts are per audio file, not question.')
+    print(f'\n{model}: {len(valid)} unique recordings classified; {len(rows)-len(valid)} unclassifiable; counts are per audio file, not question.')
     print(f'{"Category":24} {"Label":16} {"Clips":>8} {"Percent":>9}')
     for category,counts in groups.items():
         for label,count in counts.most_common():
             print(f'{category:24} {label:16} {count:8} {count/sum(counts.values()):9.1%}')
     print('Music/sound categories are classifier outputs, not validated speaker emotions. No accuracy evaluation was performed.')
-    summary=dict(unique_recordings=len(rows),categories={k:dict(v) for k,v in groups.items()})
+    summary=dict(unique_recordings=len(rows),classified_recordings=len(valid),
+                 unclassified_recordings=len(rows)-len(valid),categories={k:dict(v) for k,v in groups.items()})
     other='sensevoice' if model=='emotion2vec' else 'emotion2vec'
     other_rows={r['clip_id']:r for r in read_rows(output/f'results-{other}.jsonl')}
-    shared=rows.keys() & other_rows.keys()
+    shared=valid.keys() & {k for k,r in other_rows.items() if r.get('classification_status','classified')=='classified'}
     if shared:
         def label(value):
             return 'unknown' if value in ('unknown','<unk>','emo_unknown') else value
@@ -236,23 +252,30 @@ def main():
     completed=set(saved)
     with result_path.open('a') as stream:
         for record,payload in recordings(args,source,completed):
-            if predictor is None:
-                predictor=adapter.load_predictor(args.device)
             audio,sr=sf.read(io.BytesIO(payload) if isinstance(payload,bytes) else payload,dtype='float32')
             if audio.ndim==2:
                 audio=audio.mean(axis=1)
-            if sr!=16000:
+            if sr!=16000 and len(audio):
                 audio=librosa.resample(audio,orig_sr=sr,target_sr=16000)
-            if not len(audio):
-                raise ValueError(f'Empty audio: {record["clip_id"]}')
+            bounds=chunk_ranges(len(audio))
             predictions,durations=[],[]
-            for start in range(0,len(audio),30*16000):
-                chunk=audio[start:start+30*16000]
-                predictions.append(predictor(chunk))
+            if bounds and predictor is None:
+                predictor=adapter.load_predictor(args.device)
+            for index,(start,end) in enumerate(bounds,1):
+                chunk=audio[start:end]
+                print(f'Classify {record["clip_id"]}: chunk {index}/{len(bounds)}, {len(chunk)} samples at 16000 Hz',flush=True)
+                try:
+                    prediction=predictor(chunk)
+                except RuntimeError as exc:
+                    raise RuntimeError(f'{record["clip_id"]}, chunk {index}/{len(bounds)}, {len(chunk)} samples: {exc}') from exc
+                predictions.append(prediction)
                 durations.append(len(chunk)/16000)
+            prediction=aggregate_predictions(predictions,durations,args.model) if predictions else dict(emotion='unclassified_too_short')
             result=dict(**record,model=adapter.MODEL,duration_seconds=len(audio)/16000,
+                        classification_status='classified' if predictions else 'insufficient_audio',
+                        chunk_sample_ranges=bounds,
                         chunks=[dict(duration_seconds=d,**pred) for pred,d in zip(predictions,durations)],
-                        **aggregate_predictions(predictions,durations,args.model))
+                        **prediction)
             stream.write(json.dumps(result,ensure_ascii=False)+'\n')
             stream.flush()
             completed.add(record['clip_id'])
