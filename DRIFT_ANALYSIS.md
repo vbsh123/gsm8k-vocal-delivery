@@ -105,3 +105,12 @@ activation means. Answer JSONL files and aggregate direction checkpoints cannot
 replace those tensors. Run each collection into a separate analysis output
 folder to preserve cohort comparisons; no new activation collection is launched
 by this late-layer sweep.
+
+The queue also appends L12 acoustic ×1 with the 20-forward-window checkpoint and
+periodic2 steering, reported separately as `forward20`. Its checkpoint is read
+from `outputs/jenny-large/temporal-evaluation/forward_windows/run_config.json`;
+use `--forward20-vectors PATH` if it moved. This adds 460 interventions, for
+11,500 total at 460 recordings. The original late-layer result folder and recipe
+are unchanged. If the old launcher is already running, launch the updated one
+into a different log: it waits for the shared lock, skips completed late-layer
+answers, then runs the added combination. Both stages use the same recordings.

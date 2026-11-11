@@ -29,17 +29,26 @@ def conditions():
     return result
 
 
+def forward20_conditions():
+    return [dict(name='baseline', interventions=[]),
+            dict(name='L12-acoustic-a1-periodic2', schedule='periodic2', interventions=[
+                dict(layer=12, group='acoustic', strength=1)])]
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--source-run', type=Path,
                    default=Path('outputs/jenny-large/timing/original_mean'))
     p.add_argument('--vectors', type=Path, help='Override the original vector checkpoint path if moved.')
+    p.add_argument('--forward20-source', type=Path,
+                   default=Path('outputs/jenny-large/temporal-evaluation/forward_windows'))
+    p.add_argument('--forward20-vectors', type=Path, help='Override the 20-forward checkpoint path if moved.')
     p.add_argument('--output', type=Path, default=Path('outputs/steer-jenny-late-layers'))
     p.add_argument('--prepare-only', action='store_true')
     p.add_argument('--summary-only', action='store_true')
     args = p.parse_args()
     if args.summary_only:
-        report(args.output, ['original_mean'], LABEL)
+        report(args.output, ['original_mean', 'forward20'], LABEL)
         return
     source = json.loads((args.source_run / 'run_config.json').read_text())
     vector = args.vectors or Path(source['settings']['vectors'])
@@ -54,10 +63,25 @@ def main():
                '--num-examples', str(len(source['recordings'])),
                '--output', str(args.output), '--baseline-source', str(args.source_run),
                '--cohort-label', LABEL]
-    print(f'{len(source["recordings"])} recordings × 24 interventions; '
+    temporal = json.loads((args.forward20_source / 'run_config.json').read_text())
+    temporal_vector = args.forward20_vectors or Path(temporal['settings']['vectors'])
+    if not temporal_vector.is_file():
+        p.error(f'Missing 20-forward checkpoint: {temporal_vector}; pass --forward20-vectors if it moved.')
+    temporal_file = args.output / 'forward20-conditions.json'
+    temporal_file.write_text(json.dumps(forward20_conditions(), indent=2) + '\n')
+    temporal_command = [sys.executable, '-u', 'evaluate_audio_steering.py',
+                        '--source-run', str(args.source_run), '--vectors', str(temporal_vector),
+                        '--methods', 'forward20', '--conditions-file', str(temporal_file),
+                        '--num-examples', str(len(source['recordings'])),
+                        '--output', str(args.output), '--baseline-source', str(args.source_run),
+                        '--cohort-label', LABEL]
+    commands = [command, temporal_command]
+    print(f'{len(source["recordings"])} recordings × 25 interventions '
+          '(24 late-layer conditions, then L12 acoustic forward20 + periodic2); '
           'compatible saved baselines are reused. Each condition runs separately, seed42.', flush=True)
     print('periodic2 uses forwards 1, 3, 5, ... within each decoding block.', flush=True)
-    subprocess.run(command + ['--prepare-only'], check=True)
+    for queued in commands:
+        subprocess.run(queued + ['--prepare-only'], check=True)
     if args.prepare_only:
         return
     with Path('outputs/jenny-task-vectors.lock').open('w') as lock:
@@ -67,7 +91,8 @@ def main():
                 ['nvidia-smi', '--query-compute-apps=pid', '--format=csv,noheader'], text=True).strip():
             print('Waiting for active GPU work.', flush=True)
             time.sleep(30)
-        subprocess.run(command, check=True)
+        for queued in commands:
+            subprocess.run(queued, check=True)
 
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 import unittest
 
-from run_jenny_late_layers import conditions
+from run_jenny_late_layers import conditions, forward20_conditions
 
 
 class LateLayerConditionsTest(unittest.TestCase):
@@ -18,6 +18,12 @@ class LateLayerConditionsTest(unittest.TestCase):
                     for g in ('acoustic', 'answer') for a in (0.5, 1)
                     for s in ('always', 'periodic2')}
         self.assertEqual(actual, expected)
+
+    def test_forward20_periodic_is_separate_l12_condition(self):
+        rows = forward20_conditions()
+        self.assertEqual(rows, [dict(name='baseline', interventions=[]),
+                               dict(name='L12-acoustic-a1-periodic2', schedule='periodic2',
+                                    interventions=[dict(layer=12, group='acoustic', strength=1)])])
 
 
 if __name__ == '__main__':
