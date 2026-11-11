@@ -12,6 +12,7 @@ import io
 import json
 from pathlib import Path
 import tarfile
+from urllib.request import urlopen
 import zipfile
 
 
@@ -50,10 +51,10 @@ def audio_index(rows, dataset):
     return index
 
 
-def archived_recordings(archive, index, completed):
+def archived_recordings(archive, index, completed, archive_type=None):
     """Read an archive once, without extracting another copy of the audio."""
     found=set()
-    if zipfile.is_zipfile(archive):
+    if archive_type=='zip' or (archive_type is None and zipfile.is_zipfile(archive)):
         with zipfile.ZipFile(archive) as zipped:
             for member in zipped.infolist():
                 name=member.filename.removeprefix('./')
@@ -62,7 +63,8 @@ def archived_recordings(archive, index, completed):
                     if name not in completed:
                         yield index[name],zipped.read(member)
     else:
-        with tarfile.open(archive,'r|gz') as tar:
+        options=dict(fileobj=archive,mode='r|gz') if archive_type=='tar' else dict(name=archive,mode='r|gz')
+        with tarfile.open(**options) as tar:
             for member in tar:
                 name=member.name.removeprefix('./')
                 if member.isfile() and name in index:
@@ -112,6 +114,9 @@ def recordings(args, source, completed):
         rows=list(parquet_rows(download(repo,'test.parquet')))
         index=audio_index(rows,args.dataset)
         print(f'{repo}: {len(index)} unique audio paths referenced by {len(rows)} questions.',flush=True)
+        if set(index)<=completed:
+            print('All referenced audio already classified; archive reading skipped.',flush=True)
+            continue
         if args.audio_root:
             for cid,record in index.items():
                 if cid not in completed:
@@ -119,6 +124,18 @@ def recordings(args, source, completed):
                     if not path.exists():
                         raise FileNotFoundError(f'Expected metadata path {path}; point --audio-root at the parent of data/ or test-audios/.')
                     yield record,path
+        elif args.stream_audio:
+            from huggingface_hub import hf_hub_url
+            name='data.zip' if args.dataset=='mmau-pro' else 'test-audios.tar.gz'
+            url=hf_hub_url(repo,name,repo_type='dataset',revision=source['revisions'][repo])
+            print(f'Streaming {name}; no complete archive is cached on disk.',flush=True)
+            if name.endswith('.zip'):
+                import fsspec
+                with fsspec.open(url,'rb',block_size=1024*1024,cache_type='readahead').open() as handle:
+                    yield from archived_recordings(handle,index,completed,'zip')
+            else:
+                with urlopen(url,timeout=180) as handle:
+                    yield from archived_recordings(handle,index,completed,'tar')
         else:
             archive=download(repo,'data.zip' if args.dataset=='mmau-pro' else 'test-audios.tar.gz')
             yield from archived_recordings(archive,index,completed)
@@ -176,6 +193,7 @@ def main():
     p.add_argument('--device',default='cuda:0')
     p.add_argument('--limit',type=int,help='First N unique recordings, including completed results; omit for all.')
     p.add_argument('--summary-only',action='store_true')
+    p.add_argument('--stream-audio',action='store_true',help='Stream MMAU/Pro archives rather than downloading them in full; small metadata and embedded-audio parquet files are still cached.')
     args=p.parse_args()
     output=args.output or Path('outputs/dataset-emotions')/args.dataset
     output.mkdir(parents=True,exist_ok=True)

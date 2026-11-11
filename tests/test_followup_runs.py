@@ -57,6 +57,24 @@ class DatasetAuditTests(unittest.TestCase):
                 self.assertEqual(list(archived_recordings(path,index,set(index))),[])
                 with self.assertRaises(ValueError):
                     list(archived_recordings(path,{'missing':{}},set()))
+            for path,kind in [(zipped,'zip'),(tarred,'tar')]:
+                with path.open('rb') as handle:
+                    self.assertEqual(list(archived_recordings(handle,index,set(),kind))[0][1],b'audio')
+
+    def test_speechr_nested_zip_unpack_preserves_existing_audio(self):
+        from prepare_speechr_audio import unpack
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            inner=io.BytesIO()
+            with zipfile.ZipFile(inner,'w') as zipped:
+                zipped.writestr('mini/mini_ori/q.wav',b'audio')
+            outer=io.BytesIO()
+            with zipfile.ZipFile(outer,'w') as zipped:
+                zipped.writestr('audio_core/audio_core_mini.zip',inner.getvalue())
+            with zipfile.ZipFile(outer) as zipped:
+                self.assertEqual(unpack(zipped,root),1)
+                self.assertEqual(unpack(zipped,root),0)
+            self.assertEqual((root/'mini/mini_ori/q.wav').read_bytes(),b'audio')
 
     def test_duration_weighted_scores_and_votes_include_final_short_chunk(self):
         predictions=[dict(labels=['neutral','angry'],scores=[.9,.1]),

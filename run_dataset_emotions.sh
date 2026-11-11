@@ -27,6 +27,6 @@ for dataset in "${datasets[@]}"; do
   for model in emotion2vec sensevoice; do
     echo "Dataset emotion audit: $dataset / $model / $device"
     .venv-emotion/bin/python -u classify_dataset_emotions.py \
-      --dataset "$dataset" --model "$model" --device "$device" "${extra[@]}"
+      --dataset "$dataset" --model "$model" --device "$device" ${STREAM_AUDIO:+--stream-audio} "${extra[@]}"
   done
 done
