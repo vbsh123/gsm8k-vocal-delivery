@@ -1,5 +1,37 @@
 # Remaining Azure evaluations and existing-dataset emotion audits
 
+## Queue work after the current jobs
+
+On the classification/speed machine, upload and extract the two missing Azure
+cohorts, then start:
+
+```bash
+nohup bash run_azure_after_classification.sh \
+  > outputs/azure-after-classification.log 2>&1 < /dev/null &
+tail -f outputs/azure-after-classification.log
+```
+
+It checks inputs and disk, prepares missing Qwen/Kimi environments while the
+current classification can continue, waits for all matching classification
+parents/workers in this repository to exit, fills missing Jenny emotion labels,
+then runs Qwen and Kimi sequentially. Existing answers resume. All generation
+stages additionally use the shared GPU lock; no two model workers are started
+on the GPU together. A missing model snapshot is conservatively budgeted at
+25 GiB before the long wait. A failed model does not prevent attempting the other.
+
+On the original steering machine:
+
+```bash
+nohup bash run_emotions_after_steering.sh \
+  > outputs/emotions-after-steering.log 2>&1 < /dev/null &
+tail -f outputs/emotions-after-steering.log
+```
+
+This waits for the promoted steering parent and its workers, then runs the
+final-batch neutral/angry/happy/sad classification and DIFFA accuracy workflow,
+including separate final-batch and pooled three-cohort reports. The wait checks
+process exit, not scientific success; inspect the preceding job's summaries.
+
 Run from the repository root after `git pull --ff-only`. Nothing here synthesizes
 new Azure audio or requires Azure keys. Every GPU launcher waits for the shared
 `outputs/jenny-task-vectors.lock` and for existing GPU processes to finish.
