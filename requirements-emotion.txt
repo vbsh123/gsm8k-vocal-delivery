@@ -4,4 +4,5 @@ huggingface-hub
 soundfile
 librosa
 numpy<2
+pyarrow==19.0.1
 sentencepiece

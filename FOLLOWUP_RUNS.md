@@ -165,7 +165,7 @@ This is a descriptive audio audit only. It does not synthesize emotional speech,
 solve benchmark questions, or compare answer accuracy. It runs both classifiers.
 
 ```bash
-.venv-emotion/bin/pip install pyarrow
+.venv-emotion/bin/pip install pyarrow==19.0.1
 nohup bash run_dataset_emotions.sh cuda:0 spoken-gsm mmau mmau-pro speechr \
   > outputs/dataset-emotions.log 2>&1 < /dev/null &
 tail -f outputs/dataset-emotions.log

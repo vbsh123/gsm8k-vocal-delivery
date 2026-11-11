@@ -41,7 +41,8 @@ if ! .venv-emotion/bin/python -c 'import torch, torchaudio, funasr, librosa, sou
     exit 1
   fi
 fi
-run_stage setup-audit-dependencies retry .venv-emotion/bin/python -m pip install pyarrow 'fsspec[http]' gdown
+run_stage setup-audit-dependencies retry .venv-emotion/bin/python -m pip install pyarrow==19.0.1 'fsspec[http]' gdown
+.venv-emotion/bin/python -c 'import numpy, pyarrow.parquet; print("Parquet imports OK; NumPy", numpy.__version__)'
 export STREAM_AUDIO=1
 for dataset in spoken-gsm mmau mmau-pro; do
   run_stage "classify-$dataset" retry bash run_dataset_emotions.sh cuda:0 "$dataset" || true
