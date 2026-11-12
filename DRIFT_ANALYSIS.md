@@ -132,3 +132,23 @@ The updated launcher first waits for `run_emotions_after_steering.sh`,
 `run_jenny_third_accuracy.sh`, and their classification/accuracy workers to exit,
 before acquiring the shared GPU lock. This lets that already-queued work take
 priority without a lock-order deadlock. Log viewers are ignored.
+
+## Finish only the L31 finalists
+
+After stopping the original full-sweep launcher and its evaluation worker,
+`finish_jenny_finalists.py` resumes only L31 answer ×1 and L31 answer ×1 periodic2
+from their saved answers in the existing second-cohort output. It then runs the
+already-prepared L12 acoustic forward20 ×1 periodic2 evaluation, reusing compatible
+baselines. Other conditions and their partial results remain intact; the frozen
+run configs are not rewritten. Selected-condition summaries use
+`summary-selected.json`. No final-cohort experiment is automatically queued.
+
+```bash
+nohup .venv-diffa/bin/python -u finish_jenny_finalists.py \
+  > outputs/jenny-finalists.log 2>&1 < /dev/null &
+tail -f outputs/jenny-finalists.log
+```
+
+`--prepare-only` validates the existing configs without loading a model. If the
+old sweep is still running, this launcher waits for its lock rather than
+interrupting it.

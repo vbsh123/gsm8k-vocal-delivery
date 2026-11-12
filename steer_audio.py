@@ -12,7 +12,7 @@ from steer import read_rows, summarize
 
 
 def run_experiment(recordings, conditions, vectors, output, audio_root=Path("."),
-                   allow_extraction_overlap=False, report=None):
+                   allow_extraction_overlap=False, report=None, summary_name="summary.json"):
     if report is None:
         report = lambda rows, conditions, recordings: summarize(rows, conditions)
     results_path = output / "results.jsonl"
@@ -122,8 +122,17 @@ def run_experiment(recordings, conditions, vectors, output, audio_root=Path(".")
     finally:
         decoder.insert_audio_embedding = original_insert
     summary = report(results, conditions, recordings)
-    (output / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
+    (output / summary_name).write_text(json.dumps(summary, indent=2) + "\n")
     return summary
+
+
+def select_conditions(conditions, names):
+    if not names:
+        return conditions
+    unknown = set(names) - {c['name'] for c in conditions}
+    if unknown:
+        raise ValueError(f'Unknown conditions: {sorted(unknown)}')
+    return [c for c in conditions if c['name']=='baseline' or c['name'] in names]
 
 
 def main(argv=None):
@@ -135,15 +144,17 @@ def main(argv=None):
     p.add_argument("--audio-root", type=Path, default=Path("."))
     p.add_argument("--prepare-only", action="store_true")
     p.add_argument("--summary-only", action="store_true")
+    p.add_argument("--conditions", nargs='+', help="Resume only these conditions from an existing --config, retaining baseline.")
     p.add_argument("--allow-extraction-overlap", action="store_true")
     args = p.parse_args(argv)
     config_path = args.output / "run_config.json"
     if args.summary_only:
         saved = json.loads(config_path.read_text())
-        return summarize(read_rows(args.output / "results.jsonl"), saved["settings"]["conditions"])
+        return summarize(read_rows(args.output / "results.jsonl"), select_conditions(saved["settings"]["conditions"], args.conditions))
     if args.config:
         saved = json.loads(args.config.read_text())
         settings = saved["settings"]
+        selected = select_conditions(settings['conditions'], args.conditions)
         if settings.get("seed_policy") != "constant_before_every_generation" or settings["seed"] != 42:
             p.error("This runner requires the seed42 generation recipe")
         vectors = Path(settings["vectors"])
@@ -151,9 +162,12 @@ def main(argv=None):
         if (stat.st_size, stat.st_mtime_ns) != (settings["vector_bytes"], settings["vector_mtime_ns"]):
             p.error("Vector checkpoint changed; use a new run")
         if not args.prepare_only:
-            return run_experiment(saved["recordings"], settings["conditions"], vectors, args.output,
-                                  Path(settings.get("path", ".")), settings.get("allow_extraction_overlap", False))
+            return run_experiment(saved["recordings"], selected, vectors, args.output,
+                                  Path(settings.get("path", ".")), settings.get("allow_extraction_overlap", False),
+                                  summary_name='summary-selected.json' if args.conditions else 'summary.json')
         return
+    if args.conditions:
+        p.error('--conditions requires an existing --config or --summary-only')
     if args.plan is None or args.vectors is None:
         p.error("--plan and --vectors are required for a run")
     source = json.loads(args.plan.read_text())
