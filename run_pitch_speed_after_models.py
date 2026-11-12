@@ -40,10 +40,12 @@ def release_model_weights():
     complete_model_results()
     for model,default in [('Qwen--Qwen2.5-Omni-7B','outputs/hf-qwen-omni'),
                           ('moonshotai--Kimi-Audio-7B-Instruct','outputs/hf-kimi-audio')]:
-        folder=Path(os.environ.get('HF_HOME') or default)/'hub'/f'models--{model}'
-        if folder.is_dir():
-            print(f'Removing downloadable model cache only: {folder}; results and environments retained.',flush=True)
-            shutil.rmtree(folder)
+        caches={Path(os.environ.get('HF_HOME') or default),Path(default)}
+        for cache in sorted(caches):
+            folder=cache/'hub'/f'models--{model}'
+            if folder.is_dir():
+                print(f'Removing downloadable model cache only: {folder}; results and environments retained.',flush=True)
+                shutil.rmtree(folder)
 
 
 def import_metadata(archive):
@@ -187,9 +189,9 @@ def main():
                 os.environ['HUGGINGFACE_HUB_CACHE']=os.environ['HF_HUB_CACHE']
             for key in ('PYTHONHOME','PYTHONPATH','TRANSFORMERS_CACHE'):os.environ.pop(key,None)
             free=shutil.disk_usage('.').free/2**30
-            print(f'Free disk after optional model-cache release: {free:.1f} GiB.',flush=True)
-            if free<22:
-                raise ValueError('Need at least 22 GiB free for restored DIFFA weights and temporary inputs; audio/results have not been removed.')
+            print(f'Free disk after optional model-cache release: {free:.3f} GiB.',flush=True)
+            if free<20:
+                raise ValueError('Need at least 20 GiB free for restored DIFFA weights and temporary inputs; experiment audio/results have not been removed.')
             python=str(Path('.venv-diffa/bin/python').absolute())
             stage('Ensure CPU transform dependencies',[python,'-m','pip','install','--no-cache-dir','audiostretchy==1.3.14','imageio-ffmpeg==0.8.1'])
             archive=args.metadata_zip or next((p for p in (Path('/workspace/azure-final-metadata.zip'),Path('azure-final-metadata.zip')) if p.is_file()),None)
