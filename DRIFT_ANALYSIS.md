@@ -79,14 +79,17 @@ No activation-patching runs are added by this script.
 
 ## Late-layer development sweep
 
-`run_jenny_late_layers.py` tests the original winning checkpoint on the same
-second-cohort neutrals used for the timing experiments. It uses each target
+`run_jenny_late_layers.py` tests the original winning checkpoint on both
+evaluation cohorts: the 460 second-cohort neutrals used for the timing experiments
+and the 258 eligible final-cohort neutrals. Extraction questions are excluded.
+It uses each target
 layer's own direction, with acoustic and answer groups separately, layers
 29/30/31, strengths 0.5/1, and always/periodic2 schedules: 24 interventions.
 Periodic2 acts on forwards 1, 3, 5, ... within each decoding block. Compatible
 saved baselines are reused; every generation resets seed42. No extraction or
 correctness filtering is added. This is a development sweep, not independent
-confirmation. At 460 recordings there are 11,040 intervention generations.
+confirmation. The default runs all 718 evaluation recordings; compatible saved
+answers in each output folder are skipped.
 
 ```bash
 nohup .venv-diffa/bin/python -u run_jenny_late_layers.py \
@@ -109,11 +112,22 @@ by this late-layer sweep.
 The queue also appends L12 acoustic ×1 with the 20-forward-window checkpoint and
 periodic2 steering, reported separately as `forward20`. Its checkpoint is read
 from `outputs/jenny-large/temporal-evaluation/forward_windows/run_config.json`;
-use `--forward20-vectors PATH` if it moved. This adds 460 interventions, for
-11,500 total at 460 recordings. The original late-layer result folder and recipe
-are unchanged. If the old launcher is already running, launch the updated one
-into a different log: it waits for the shared lock, skips completed late-layer
-answers, then runs the added combination. Both stages use the same recordings.
+use `--forward20-vectors PATH` if it moved. Across both cohorts there are
+17,950 intervention generations (718 × 25), plus any unavailable baselines.
+Second-cohort results retain their original output paths. Final-cohort results
+are stored under `third-cohort/`. `--summary-only` prints combined results first,
+then the cohort breakdown. A completed run saves `combined-summary.json`.
+If the old second-cohort launcher is already running, queue just the extension:
+
+```bash
+nohup .venv-diffa/bin/python -u run_jenny_late_layers.py --third-only \
+  > outputs/jenny-late-layers-third.log 2>&1 < /dev/null &
+tail -f outputs/jenny-late-layers-third.log
+```
+
+The extension waits for the shared GPU lock and runs only the final 258 questions;
+it does not restart the second-cohort experiment. Both vector methods use the
+same recordings and share compatible existing baselines.
 The updated launcher first waits for `run_emotions_after_steering.sh`,
 `run_jenny_third_accuracy.sh`, and their classification/accuracy workers to exit,
 before acquiring the shared GPU lock. This lets that already-queued work take

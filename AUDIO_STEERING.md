@@ -1,5 +1,16 @@
 # Audio extraction and steering
 
+## Evaluation coverage for new runs
+
+New steering experiments should evaluate all available eligible recordings from
+the non-extraction cohorts, rather than stopping at the older 460-question set.
+For directions learned from the first Azure cohort, this currently means 460
+second-cohort plus 258 final-cohort neutral recordings (718 total). Keep the
+cohorts identifiable in saved files and report combined counts first. Do not
+pool extraction questions into the transfer score or combine different vector
+methods as though they were one intervention. Historical launchers below retain
+their original fixed cohorts for reproducibility.
+
 ## Wider playback-speed sweep
 
 `run_spoken_gsm_speed_extended.sh` selects the first 100 exported original Spoken GSM recordings of at most 15 seconds and evaluates each at every rate from 0.5× through 2.0× in 0.1 increments. This is a new common cohort, not necessarily the same 100 questions as the earlier 0.7×–1.5× sweep. Even the slowest version fits within 30 seconds; nothing is cropped. Seed42, pitch-preserving time stretching, and the 1× bypass remain unchanged.
