@@ -15,6 +15,8 @@ NAMES={
                       'classify_cloud_smoke.py','compare_cloud_accuracy.py'},
     'finalist-queue':{'finish_jenny_finalists.py','run_jenny_late_layers.py',
                       'evaluate_audio_steering.py','steer_audio.py','collect_temporal_vectors.py'},
+    'audio-models':{'evaluate_qwen_omni.py','evaluate_kimi_audio.py','setup_qwen_omni.sh',
+                    'setup_kimi_audio.sh','run_azure_after_classification.sh','run_azure_when_uploaded.py'},
 }
 
 
@@ -32,9 +34,13 @@ def active_jobs(kind, root, proc=Path('/proc')):
             args=[a.decode(errors='replace') for a in (entry/'cmdline').read_bytes().split(b'\0') if a]
             names={Path(a).name for a in args}
             matches=bool(names & NAMES[kind])
+            if kind=='audio-models' and Path(args[0]).name in ('bash','sh') and '-c' in args:
+                body=args[args.index('-c')+1]
+                matches |= all(token in body for token in ('setup_qwen_omni.sh','setup_kimi_audio.sh','run_azure_followups.py'))
             if 'run_azure_followups.py' in names and '--stage' in args:
                 stages={'classification':('classify',),'steering':('steering',),
-                        'azure-emotions':('classify','diffa'),'finalist-queue':('steering',)}
+                        'azure-emotions':('classify','diffa'),'finalist-queue':('steering',),
+                        'audio-models':('qwen','kimi')}
                 matches |= args[args.index('--stage')+1] in stages[kind]
             if matches:
                 active.append(int(entry.name))

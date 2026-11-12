@@ -140,6 +140,7 @@ def main():
     p.add_argument("--output",type=Path,default=Path("outputs/spoken-gsm-speed100"))
     p.add_argument("--rates",type=float,nargs='+',default=RATES,help='Playback rates; 1x baseline is always included.')
     p.add_argument("--reuse-from",type=Path,help='Copy compatible completed answers for overlapping questions and rates.')
+    p.add_argument('--source-run',type=Path,help='Restrict to the exact recordings in this earlier run; retain its fingerprints.')
     p.add_argument('--stretch-method',choices=['librosa','atempo','audiostretchy'],default='librosa')
     p.add_argument("--prepare-only",action="store_true",help="Select/freeze questions without loading DIFFA.")
     p.add_argument("--summary-only",action="store_true")
@@ -171,7 +172,23 @@ def main():
         records=[r for r in records if r['question_id'] not in ids and r['clip_id'] not in clips]
         exclusion=dict(source=str(args.exclude_run.resolve()),question_ids=sorted(ids),clip_ids=sorted(clips))
         print(f'Excluding all {len(ids)} questions from the earlier speed sweep.',flush=True)
-    selected=select_recordings(records,args.path,args.num_examples,rates,sf)
+    if args.source_run:
+        source=json.loads((args.source_run/'run_config.json').read_text())
+        selected=[]
+        for record in source['recordings']:
+            audio_path=Path(record['audio_path'])
+            stat=audio_path.stat()
+            if record.get('audio_bytes')!=stat.st_size or record.get('audio_mtime_ns')!=stat.st_mtime_ns:
+                p.error(f'Original audio fingerprint changed: {audio_path}')
+            info=sf.info(audio_path)
+            if 0<info.frames/info.samplerate<=30*min(rates):
+                selected.append(record)
+        if args.num_examples:
+            selected=selected[:args.num_examples]
+        if not selected:
+            p.error('No source-run recordings fit every requested rate')
+    else:
+        selected=select_recordings(records,args.path,args.num_examples,rates,sf)
     conditions=[dict(name="baseline")]+[dict(name=condition(r)) for r in rates if r!=1]
     plan=dict(recordings=selected,conditions=conditions,rates=rates,
               settings=dict(seed=42,prompt=PROMPT,steps=128,block_length=32,max_new_tokens=512,
@@ -189,6 +206,9 @@ def main():
         plan['excluded_cohort']=exclusion
         short=sum(sf.info(r['audio_path']).duration<=15 for r in selected)
         print(f'Remaining cohort: {short} recordings <=15s and {len(selected)-short} recordings >15s (all <=30s).',flush=True)
+    if args.source_run:
+        plan['source_run']=str(args.source_run.resolve())
+        plan['settings']['selection']=f'Eligible subset of frozen source run; duration <= {30*min(rates):g}s; no correctness or emotion filtering'
     args.output.mkdir(parents=True,exist_ok=True)
     config=args.output/"run_config.json"
     if config.exists() and json.loads(config.read_text())!=plan:
