@@ -38,7 +38,8 @@ def collect(plan, output, torch):
     if not pending:
         return
     model, tokenizer, features = load_model()
-    bounds, captured, phases = {}, [[], [], []], []
+    targets = plan.get('targets', TARGETS)
+    bounds, captured, phases = {}, [[] for _ in targets], []
     original = decoder.insert_audio_embedding
 
     def insert(text, speech, lengths):
@@ -55,12 +56,12 @@ def collect(plan, output, torch):
         return hook
 
     handles = [model.llm_model.model.transformer.blocks[layer].register_forward_hook(hook_for(i, group))
-               for i, (layer, group) in enumerate(TARGETS)]
+               for i, (layer, group) in enumerate(targets)]
     decoder.insert_audio_embedding = insert
 
     def capture(cid):
         nonlocal captured, phases, progress
-        captured, phases = [[], [], []], []
+        captured, phases = [[] for _ in targets], []
         audio, rate = sf.read(plan['manifest'][cid]['audio_path'], dtype='float32')
         random.seed(42)
         np.random.seed(42)
@@ -87,12 +88,13 @@ def collect(plan, output, torch):
             handle.remove()
 
 
-def fit(plan, output, torch):
+def fit(plan, output, torch, modes=('phase', 'forward_windows')):
+    targets = plan.get('targets', TARGETS)
     rows = [torch.load(output/'pairs'/f'{i:05d}.pt', map_location='cpu', weights_only=True)
             for i in range(len(plan['pairs']))]
     width = rows[0]['mean'].shape[-1]
     excluded = sorted({r['question_id'] for r in plan['manifest'].values()})
-    for mode in ('phase', 'forward_windows'):
+    for mode in modes:
         bins = 3 if mode == 'phase' else max(len(r[mode]) for r in rows)
         total = torch.zeros(32, len(GROUPS), width)
         sums = torch.zeros(32, bins, len(GROUPS), width)
@@ -101,7 +103,7 @@ def fit(plan, output, torch):
         for row, pair in zip(rows, plan['pairs']):
             if row['pair'] != pair:
                 raise ValueError('Saved temporal pair differs from collection plan')
-            for index, (layer, group) in enumerate(TARGETS):
+            for index, (layer, group) in enumerate(targets):
                 g = GROUPS.index(group)
                 total[layer, g] += row['mean'][index]
                 pair_counts[layer] += 1
@@ -117,14 +119,14 @@ def fit(plan, output, torch):
                      temporal_sums={'angry': sums}, temporal_counts={'angry': counts},
                      groups=GROUPS, styles=['angry'], prompt=plan['prompt'], max_new_tokens=512,
                      seed=42, seed_policy='constant_before_every_generation', pairs=plan['pairs'],
-                     extraction_question_ids=excluded, collected_targets=TARGETS,
+                     extraction_question_ids=excluded, collected_targets=targets,
                      averaging='matched; equal weight per contributing question', **metadata)
         checkpoint = folder/'style-vectors.pt'
         if not checkpoint.exists():
             save_tensor(torch, state, checkpoint)
         (folder/'direction-settings.json').write_text(json.dumps(metadata, indent=2)+'\n')
         (folder/'extraction-questions.jsonl').write_text(''.join(json.dumps(dict(question_id=q))+'\n' for q in excluded))
-        contributors = counts[TARGETS[0][0]].tolist()
+        contributors = counts[targets[0][0]].tolist()
         (folder/'contributors.json').write_text(json.dumps(contributors)+'\n')
         print(f'{mode}: contributing pairs per bin: {contributors}. Missing/beyond-range bins use the overall matched mean.', flush=True)
 
@@ -135,7 +137,16 @@ def main():
     p.add_argument('--original-vector', type=Path, required=True)
     p.add_argument('--output', type=Path, default=Path('outputs/jenny-large/temporal-vectors'))
     p.add_argument('--prepare-only', action='store_true')
+    p.add_argument('--targets', nargs='+', default=['11:answer','12:acoustic','16:answer'],
+                   help='Layer:group targets; one group per layer, acoustic or answer.')
+    p.add_argument('--modes', nargs='+', choices=['phase','forward_windows'],default=['phase','forward_windows'])
     args = p.parse_args()
+    try:
+        targets = [(int(t.split(':')[0]), t.split(':')[1]) for t in args.targets]
+        if any(not 0<=layer<32 or group not in ('answer','acoustic') for layer,group in targets) or len({l for l,g in targets})!=len(targets):
+            raise ValueError()
+    except (ValueError,IndexError):
+        p.error('Use targets such as 31:answer; layers 0–31, acoustic/answer, one group per layer.')
     import torch
     source = json.loads((args.collection/'collection-config.json').read_text())
     if source.get('averaging', 'matched') != 'matched':
@@ -146,7 +157,7 @@ def main():
             [{k: r[k] for k in keys} for r in source['pairs']]):
         p.error('Temporal extraction must use the same pairs as the original vector')
     plan = dict(pairs=source['pairs'], manifest=source['manifest'], prompt=source['prompt'],
-                targets=TARGETS, seed=42, window_size=20, averaging='matched')
+                targets=targets, seed=42, window_size=20, averaging='matched')
     plan = json.loads(json.dumps(plan))
     args.output.mkdir(parents=True, exist_ok=True)
     path = args.output/'collection-config.json'
@@ -156,7 +167,7 @@ def main():
     (args.output/'pairs').mkdir(exist_ok=True)
     if not args.prepare_only:
         collect(plan, args.output, torch)
-        fit(plan, args.output, torch)
+        fit(plan, args.output, torch, args.modes)
 
 
 if __name__ == '__main__':

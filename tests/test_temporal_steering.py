@@ -189,6 +189,16 @@ class TimingTests(unittest.TestCase):
             self.assertTrue(torch.allclose(windows['pair_mean_sums']['angry'][12, 0], torch.ones(2)))
             self.assertIs(decoder.insert_audio_embedding, original_insert)
             self.assertTrue(all(not layer._forward_hooks for layer in model.llm_model.model.transformer.blocks))
+            single=output/'layer31';(single/'pairs').mkdir(parents=True)
+            single_plan=dict(plan,targets=[(31,'answer')])
+            collect(single_plan,single,torch)
+            fit(single_plan,single,torch,modes=['forward_windows'])
+            fitted=torch.load(single/'forward_windows/style-vectors.pt',weights_only=True)
+            self.assertEqual(fitted['collected_targets'],[(31,'answer')])
+            self.assertEqual(fitted['pair_counts']['angry'][31].item(),1)
+            self.assertEqual(fitted['pair_counts']['angry'][11].item(),0)
+            self.assertTrue(torch.allclose(fitted['temporal_sums']['angry'][31,0,3],torch.ones(2)))
+            self.assertFalse((single/'phase').exists())
 
     def test_clock_observes_active_block_and_resets_periodic_counter(self):
         class LLM(torch.nn.Module):
