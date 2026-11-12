@@ -14,7 +14,7 @@ NAMES={
     'azure-emotions':{'run_emotions_after_steering.sh','run_jenny_third_accuracy.sh',
                       'classify_cloud_smoke.py','compare_cloud_accuracy.py'},
     'finalist-queue':{'finish_jenny_finalists.py','run_jenny_late_layers.py',
-                      'evaluate_audio_steering.py','steer_audio.py'},
+                      'evaluate_audio_steering.py','steer_audio.py','collect_temporal_vectors.py'},
 }
 
 

@@ -142,13 +142,13 @@ def main():
                 print('Waiting for active GPU work.',flush=True)
                 time.sleep(30)
             stage('Collect and fit L31 answer 20-forward vectors',collect)
-            for name,command in zip(('Evaluate L31 forward20 on second cohort','Evaluate L31 forward20 on final cohort'),evaluations):
-                stage(name,command)
             destination=args.late_root/'third-cohort/original_mean'
             reuse_third_baselines(destination,args.third_baseline_source)
             stage('Finish original mean L31 finalists on final cohort',
                   [sys.executable,'-u','steer_audio.py','--config',str(destination/'run_config.json'),
                    '--output',str(destination),'--conditions',*FINALISTS])
+            for name,command in zip(('Evaluate L31 forward20 on second cohort','Evaluate L31 forward20 on final cohort'),evaluations):
+                stage(name,command)
         summary=pooled_report(args.output,args.late_root)
         (args.output/'combined-summary.json').write_text(json.dumps(summary,indent=2)+'\n')
         (args.output/'status.json').write_text(json.dumps(dict(stage='All requested stages finished',state='finished',time=datetime.now(timezone.utc).isoformat()),indent=2)+'\n')

@@ -27,7 +27,8 @@ class WaitTests(unittest.TestCase):
                 (20,['python','run_azure_followups.py','--stage','diffa'],root,'S'),
                 (21,['python','run_jenny_late_layers.py'],root,'S'),
                 (22,['python','finish_jenny_finalists.py'],root,'S'),
-                (23,['python','run_L31_forward20_after_current.py'],root,'S')]:
+                (23,['python','run_L31_forward20_after_current.py'],root,'S'),
+                (24,['python','collect_temporal_vectors.py'],root,'S')]:
                 folder=proc/str(pid); folder.mkdir()
                 (folder/'cwd').symlink_to(cwd,target_is_directory=True)
                 (folder/'cmdline').write_bytes(b'\0'.join(a.encode() for a in args))
@@ -35,7 +36,7 @@ class WaitTests(unittest.TestCase):
             self.assertEqual(active_jobs('classification',root,proc),[10,11,16])
             self.assertEqual(active_jobs('steering',root,proc),[14,17])
             self.assertEqual(active_jobs('azure-emotions',root,proc),[16,18,19,20])
-            self.assertEqual(active_jobs('finalist-queue',root,proc),[14,17,21,22])
+            self.assertEqual(active_jobs('finalist-queue',root,proc),[14,17,21,22,24])
 
 
 if __name__=='__main__':

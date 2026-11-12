@@ -26,12 +26,12 @@ checks the existing inputs before waiting. Use `--prepare-only` to stop there.
    contributing question has equal weight in its window. The checkpoint also
    retains an overall matched mean, used for absent or beyond-range windows.
    Sparse late windows report their contributor counts.
-2. Evaluate this new direction at **L31 answer ×1, always-on**, on the same 460
-   second-cohort neutral recordings and 258 eligible final-cohort neutrals.
-3. Finish the existing original-mean **L31 answer ×1** and **L31 answer ×1
+2. Finish the existing original-mean **L31 answer ×1** and **L31 answer ×1
    periodic2** conditions on the final 258 recordings. Reuse compatible baselines
    and any already completed selected answers. The other L29/L30 conditions do
    not run, even though their old frozen config is retained.
+3. Evaluate this new direction at **L31 answer ×1, always-on**, on the same 460
+   second-cohort neutral recordings and 258 eligible final-cohort neutrals.
 
 There are up to 850 collection generations, 718 new window-steering generations,
 and 516 original-mean final-cohort generations, reduced by saved work. Baselines
