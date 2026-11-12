@@ -18,6 +18,15 @@ from steer_azure_holdout import main as steer_main
 
 
 class DatasetAuditTests(unittest.TestCase):
+    def test_model_python_uses_named_environment_instead_of_system_python(self):
+        from run_azure_followups import environment_python
+        listing=json.dumps({'envs':['/opt/miniforge3','/venv/qwen-omni','/venv/kimi-audio']})
+        with patch('run_azure_followups.subprocess.check_output',return_value=listing),patch('run_azure_followups.Path.is_file',return_value=True):
+            self.assertEqual(environment_python('qwen-omni'),'/venv/qwen-omni/bin/python')
+            self.assertEqual(environment_python('kimi-audio'),'/venv/kimi-audio/bin/python')
+            with self.assertRaises(FileNotFoundError):
+                environment_python('missing')
+
     def test_reuses_only_full_single_chunk_predictions_from_identical_source(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)
@@ -52,13 +61,13 @@ class DatasetAuditTests(unittest.TestCase):
             root=Path(directory)
             (root/'plan.jsonl').write_text('')
             argv=['test','--stage','qwen','--paths',str(root)]
-            with patch.object(sys,'argv',argv),patch('run_azure_followups.run') as execute,patch('run_azure_followups.fcntl.flock'),patch('run_azure_followups.subprocess.check_output',return_value=''),patch('run_azure_followups.Path.open',return_value=io.StringIO()):
+            with patch.object(sys,'argv',argv),patch('run_azure_followups.environment_python',return_value='/venv/qwen-omni/bin/python'),patch.dict('os.environ'),patch('run_azure_followups.run') as execute,patch('run_azure_followups.fcntl.flock'),patch('run_azure_followups.subprocess.check_output',return_value=''),patch('run_azure_followups.Path.open',return_value=io.StringIO()):
                 main()
             commands=[c.args[0] for c in execute.call_args_list]
-            self.assertEqual(commands[0][:6],['conda','run','--no-capture-output','-n','qwen-omni','python'])
+            self.assertEqual(commands[0][:2],['/venv/qwen-omni/bin/python','-u'])
             self.assertEqual(commands[0][commands[0].index('--num-questions')+1],'0')
             self.assertEqual(commands[0][-2:],['--seed','42'])
-            self.assertTrue(all(c[:6]==commands[0][:6] for c in commands[1:]))
+            self.assertTrue(all(c[0]==commands[0][0] for c in commands[1:]))
             self.assertTrue(all('--confidence-intervals' in c for c in commands[1:]))
 
     def test_multi_audio_metadata_deduplicates_files_preserving_all_questions(self):
