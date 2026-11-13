@@ -18,6 +18,10 @@ from steer import read_rows
 CONDITIONS=['neutral','angry','neutral_to_angry_pitch','angry_to_neutral_pitch']
 
 
+class PitchTransformError(ValueError):
+    """A rendered recording failed the fixed audio-quality criteria."""
+
+
 def select_pairs(paths,sf):
     groups={}
     for folder in paths:
@@ -60,11 +64,12 @@ def shift_audio(audio,semitones,path,ffmpeg,sf,np):
         '-c:a','pcm_f32le',str(temporary)],input=np.asarray(audio,dtype='<f4').tobytes(),check=True)
     changed,sr=sf.read(temporary,dtype='float32')
     if sr!=16000 or abs(len(changed)-len(audio))>320 or len(changed)>30*16000:
-        raise ValueError(f'Pitch shift changed duration by more than 20 ms or exceeded 30 seconds: {path}')
+        raise PitchTransformError(f'{path}: input={len(audio)/16000:.6f}s, output={len(changed)/sr:.6f}s, '
+                                  f'sample_rate={sr}; requires 16 kHz, duration change <=20 ms and duration <=30s')
     original_rms=float(np.sqrt(np.mean(audio**2)))
     changed_rms=float(np.sqrt(np.mean(changed**2)))
     if not changed_rms:
-        raise ValueError(f'Pitch shift produced silent audio: {path}')
+        raise PitchTransformError(f'Pitch shift produced silent audio: {path}')
     changed*=original_rms/changed_rms
     sf.write(temporary,changed,16000,subtype='FLOAT')
     temporary.replace(path)
@@ -114,20 +119,29 @@ def prepare(args):
             record['status']='pitch_estimate_unusable'
         else:
             shifted={};metrics={};audit={}
-            for name,audio,amount,target in [('neutral_to_angry_pitch',neutral,delta,ans),
-                                           ('angry_to_neutral_pitch',angry,-delta,ns)]:
-                path=audio_folder/f'{pair["pair_id"]}__{name}.wav'
-                metrics[name]=shift_audio(audio,amount,path,ffmpeg,sf,np)
-                shifted[name]=str(path.resolve())
-                if index<=5:
-                    stats,_=measure_pitch(load_audio(path,sf,librosa),librosa,np)
-                    if stats['median_f0_hz'] is None:
-                        raise ValueError('Pilot output has no measurable voiced pitch')
-                    error=12*math.log2(stats['median_f0_hz']/target['median_f0_hz'])
-                    audit[name]=dict(**stats,target_error_semitones=error)
-                    if abs(error)>2:
-                        raise ValueError(f'Pilot pitch missed its target by {error:.2f} semitones; inspect audio before proceeding')
-            record.update(status='prepared',shifted=shifted,waveform_metrics=metrics,pilot_audit=audit)
+            try:
+                for name,audio,amount,target in [('neutral_to_angry_pitch',neutral,delta,ans),
+                                               ('angry_to_neutral_pitch',angry,-delta,ns)]:
+                    path=audio_folder/f'{pair["pair_id"]}__{name}.wav'
+                    metrics[name]=shift_audio(audio,amount,path,ffmpeg,sf,np)
+                    shifted[name]=str(path.resolve())
+                    if index<=5:
+                        stats,_=measure_pitch(load_audio(path,sf,librosa),librosa,np)
+                        if stats['median_f0_hz'] is None:
+                            raise ValueError('Pilot output has no measurable voiced pitch')
+                        error=12*math.log2(stats['median_f0_hz']/target['median_f0_hz'])
+                        audit[name]=dict(**stats,target_error_semitones=error)
+                        if abs(error)>2:
+                            raise ValueError(f'Pilot pitch missed its target by {error:.2f} semitones; inspect audio before proceeding')
+            except PitchTransformError as error:
+                record.update(status='pitch_transform_unusable',reason=str(error),waveform_metrics=metrics)
+                for name in CONDITIONS[2:]:
+                    path=audio_folder/f'{pair["pair_id"]}__{name}.wav'
+                    path.unlink(missing_ok=True)
+                    path.with_suffix('.tmp.wav').unlink(missing_ok=True)
+                print(f'Excluded pair {pair["question_id"]}: {error}',flush=True)
+            else:
+                record.update(status='prepared',shifted=shifted,waveform_metrics=metrics,pilot_audit=audit)
         with (args.output/'pairs.jsonl').open('a') as f:
             f.write(json.dumps(record)+'\n')
         cache[pair['pair_id']]=record
@@ -148,7 +162,11 @@ def prepare(args):
         '<style>body{font:16px system-ui;max-width:900px;margin:30px auto}audio{width:100%}</style>'
         '<h1>Same questions: original and pitch-matched delivery</h1><p>Duration is unchanged; formant preservation is requested and RMS is matched to each source. '
         'Listen for pronunciation and processing artifacts. Automatic F0 checks do not establish naturalness.</p>'+''.join(pages))
-    print(f'Pitch preparation: {len(usable)}/{len(pairs)} usable pairs; {len(pairs)-len(usable)} excluded by fixed pitch-estimation criteria.',flush=True)
+    exclusions={}
+    for pair in pairs:
+        status=cache[pair['pair_id']]['status']
+        if status!='prepared':exclusions[status]=exclusions.get(status,0)+1
+    print(f'Pitch preparation: {len(usable)}/{len(pairs)} usable pairs; exclusions: {exclusions}.',flush=True)
     return usable,cache
 
 
