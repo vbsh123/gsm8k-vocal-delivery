@@ -17,6 +17,7 @@ NAMES={
                       'evaluate_audio_steering.py','steer_audio.py','collect_temporal_vectors.py'},
     'audio-models':{'evaluate_qwen_omni.py','evaluate_kimi_audio.py','setup_qwen_omni.sh',
                     'setup_kimi_audio.sh','run_azure_after_classification.sh','run_azure_when_uploaded.py'},
+    'pitch-speed':{'run_pitch_speed_after_models.py','evaluate_audio_pitch.py','evaluate_audio_speed.py'},
 }
 
 
@@ -40,7 +41,7 @@ def active_jobs(kind, root, proc=Path('/proc')):
             if 'run_azure_followups.py' in names and '--stage' in args:
                 stages={'classification':('classify',),'steering':('steering',),
                         'azure-emotions':('classify','diffa'),'finalist-queue':('steering',),
-                        'audio-models':('qwen','kimi')}
+                        'audio-models':('qwen','kimi'),'pitch-speed':()}
                 matches |= args[args.index('--stage')+1] in stages[kind]
             if matches:
                 active.append(int(entry.name))

@@ -31,7 +31,11 @@ class WaitTests(unittest.TestCase):
                 (24,['python','collect_temporal_vectors.py'],root,'S'),
                 (25,['bash','-c','bash setup_qwen_omni.sh && python run_azure_followups.py --stage qwen && bash setup_kimi_audio.sh'],root,'S'),
                 (26,['python','evaluate_kimi_audio.py'],root,'R'),
-                (27,['python','run_azure_followups.py','--stage','qwen'],root,'S')]:
+                (27,['python','run_azure_followups.py','--stage','qwen'],root,'S'),
+                (28,['python','run_pitch_speed_after_models.py'],root,'S'),
+                (29,['python','evaluate_audio_speed.py'],root,'R'),
+                (30,['python','evaluate_audio_pitch.py'],root,'R'),
+                (31,['python','evaluate_commonsense_audio.py','--wait-for-speeds'],root,'S')]:
                 folder=proc/str(pid); folder.mkdir()
                 (folder/'cwd').symlink_to(cwd,target_is_directory=True)
                 (folder/'cmdline').write_bytes(b'\0'.join(a.encode() for a in args))
@@ -41,6 +45,7 @@ class WaitTests(unittest.TestCase):
             self.assertEqual(active_jobs('azure-emotions',root,proc),[16,18,19,20])
             self.assertEqual(active_jobs('finalist-queue',root,proc),[14,17,21,22,24])
             self.assertEqual(active_jobs('audio-models',root,proc),[25,26,27])
+            self.assertEqual(active_jobs('pitch-speed',root,proc),[28,29,30])
 
 
 if __name__=='__main__':
