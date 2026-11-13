@@ -16,6 +16,10 @@ STYLES = ("neutral", "angry", "happy", "sad")
 AZURE_EXTRA_STYLES = ("excited", "terrified", "shouting", "whispering", "hopeful", "friendly", "unfriendly")
 
 
+class TransientTTSError(RuntimeError):
+    pass
+
+
 def azure_ssml(text, style, voice, intensity):
     content = escape(text)
     if style != "neutral":
@@ -39,12 +43,15 @@ def request_audio(url, body, headers):
             with urlopen(request, timeout=180) as response:
                 return response.read()
         except HTTPError as error:
-            if error.code not in (429, 500, 502, 503, 504) or attempt == 2:
+            if error.code not in (429, 500, 502, 503, 504):
                 raise RuntimeError(f"TTS HTTP {error.code}: {error.read().decode(errors='replace')}") from None
+            message=f'TTS HTTP {error.code}'
             error.close()
+            if attempt == 2:
+                raise TransientTTSError(message) from None
         except (IncompleteRead, URLError, TimeoutError, ConnectionError):
             if attempt == 2:
-                raise
+                raise TransientTTSError('TTS connection interrupted after three attempts') from None
         delay = 2 ** (attempt + 1)
         print(f"TTS download interrupted or service busy; retry {attempt + 1}/2 in {delay}s.", flush=True)
         time.sleep(delay)
@@ -65,7 +72,10 @@ def main():
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--prepare-only", action="store_true", help="Save the requests without calling APIs.")
     parser.add_argument("--resume", action="store_true", help="Skip saved audio from an identical request plan.")
+    parser.add_argument('--retry-passes',type=int,default=1,help='Revisit transiently failed requests after completing the other clips.')
     args = parser.parse_args()
+    if args.retry_passes<1:
+        parser.error('--retry-passes must be positive')
     if args.provider != "azure" and any(style in AZURE_EXTRA_STYLES for style in args.styles):
         parser.error("The additional Azure styles require --provider azure.")
     if not 0.01 <= args.azure_intensity <= 2:
@@ -121,32 +131,49 @@ def main():
         print(f"Prepared {len(tasks)} requests in {args.output}; no API calls made.")
         return
 
-    for index, task in enumerate(tasks, 1):
-        target = args.output / task["audio_path"]
-        if args.resume and target.exists():
-            print(f'[{index}/{len(tasks)}] skip {task["audio_path"]}', flush=True)
-            continue
-        missing = [name for name in required[task["provider"]] if not os.environ.get(name)]
-        if missing:
-            parser.error("Generating missing audio requires environment variables: " + ", ".join(missing))
-        print(f'[{index}/{len(tasks)}] {task["question_id"]} / {task["provider"]} / {task["style"]}', flush=True)
-        if task["provider"] == "azure":
-            region = os.environ["AZURE_SPEECH_REGION"]
-            audio = request_audio(
-                f"https://{region}.tts.speech.microsoft.com/cognitiveservices/v1",
-                task["request"].encode("utf-8"),
-                {"Ocp-Apim-Subscription-Key": os.environ["AZURE_SPEECH_KEY"],
-                 "Content-Type": "application/ssml+xml",
-                 "X-Microsoft-OutputFormat": "riff-24khz-16bit-mono-pcm",
-                 "User-Agent": "gsm8k-vocal-delivery"})
-        else:
-            audio = request_audio(
-                f'https://api.elevenlabs.io/v1/text-to-speech/{quote(task["voice"], safe="")}'
-                '?output_format=mp3_44100_128', json.dumps(task["request"]).encode("utf-8"),
-                {"xi-api-key": os.environ["ELEVENLABS_API_KEY"], "Content-Type": "application/json"})
-        temporary = target.with_suffix(target.suffix + ".tmp")
-        temporary.write_bytes(audio)
-        temporary.replace(target)
+    pending=list(enumerate(tasks,1))
+    for pass_index in range(args.retry_passes):
+        failed=[]
+        for index, task in pending:
+            target = args.output / task["audio_path"]
+            if args.resume and target.exists():
+                print(f'[{index}/{len(tasks)}] skip {task["audio_path"]}', flush=True)
+                continue
+            missing = [name for name in required[task["provider"]] if not os.environ.get(name)]
+            if missing:
+                parser.error("Generating missing audio requires environment variables: " + ", ".join(missing))
+            print(f'[{index}/{len(tasks)}] {task["question_id"]} / {task["provider"]} / {task["style"]}', flush=True)
+            try:
+                if task["provider"] == "azure":
+                    region = os.environ["AZURE_SPEECH_REGION"]
+                    audio = request_audio(
+                        f"https://{region}.tts.speech.microsoft.com/cognitiveservices/v1",
+                        task["request"].encode("utf-8"),
+                        {"Ocp-Apim-Subscription-Key": os.environ["AZURE_SPEECH_KEY"],
+                         "Content-Type": "application/ssml+xml",
+                         "X-Microsoft-OutputFormat": "riff-24khz-16bit-mono-pcm",
+                         "User-Agent": "gsm8k-vocal-delivery"})
+                else:
+                    audio = request_audio(
+                        f'https://api.elevenlabs.io/v1/text-to-speech/{quote(task["voice"], safe="")}'
+                        '?output_format=mp3_44100_128', json.dumps(task["request"]).encode("utf-8"),
+                        {"xi-api-key": os.environ["ELEVENLABS_API_KEY"], "Content-Type": "application/json"})
+            except TransientTTSError as error:
+                print(f'Deferred {task["audio_path"]}: {error}',flush=True)
+                failed.append((index,task))
+                continue
+            temporary = target.with_suffix(target.suffix + ".tmp")
+            temporary.write_bytes(audio)
+            temporary.replace(target)
+        if not failed:
+            break
+        pending=failed
+        if pass_index+1<args.retry_passes:
+            print(f'{len(failed)} missing clips; retry pass {pass_index+2}/{args.retry_passes} in 30s.',flush=True)
+            time.sleep(30)
+    if failed:
+        raise TransientTTSError(f'{len(failed)} clips still missing after {args.retry_passes} passes; rerun with --resume. '
+                                + ', '.join(t['audio_path'] for _,t in failed))
     print(f"Saved audio and listening page: {args.output / 'listen.html'}")
 
 

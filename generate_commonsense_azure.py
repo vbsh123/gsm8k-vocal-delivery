@@ -86,7 +86,7 @@ def main():
         command=[sys.executable,'-u',str(Path(__file__).with_name('cloud_tts_smoke.py')),
                  '--provider','azure','--azure-voice','en-US-JennyNeural','--azure-intensity','1.5',
                  '--input-jsonl',str(bank),'--num-examples',str(len(selected)),
-                 '--styles',*STYLES,'--output',str(args.output),'--resume']
+                 '--styles',*STYLES,'--output',str(args.output),'--resume','--retry-passes','5']
         if args.prepare_only:command.append('--prepare-only')
         subprocess.run(command,check=True)
         if not args.prepare_only:duration_report(args.output)
