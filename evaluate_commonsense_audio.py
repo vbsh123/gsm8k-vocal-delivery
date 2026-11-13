@@ -4,6 +4,7 @@ import argparse
 import fcntl
 from itertools import combinations
 import json
+import os
 from math import comb
 from pathlib import Path
 import random
@@ -105,6 +106,12 @@ def main():
             print('Waiting for the shared GPU lock.',flush=True);fcntl.flock(lock,fcntl.LOCK_EX)
             while subprocess.check_output(['nvidia-smi','--query-compute-apps=pid','--format=csv,noheader'],text=True).strip():
                 print('Waiting for active GPU work.',flush=True);time.sleep(30)
+            cache=Path(os.environ.get('HF_HOME') or next((str(p) for p in
+                (Path('/workspace/hf-cache'),Path('/workspace/.hf_home')) if (p/'hub').is_dir()),'outputs/hf-diffa')).resolve()
+            os.environ['HF_HOME']=str(cache)
+            os.environ['HF_HUB_CACHE']=str(cache/'hub')
+            os.environ['HUGGINGFACE_HUB_CACHE']=str(cache/'hub')
+            os.environ.pop('TRANSFORMERS_CACHE',None)
             import librosa
             import numpy as np
             import soundfile as sf
