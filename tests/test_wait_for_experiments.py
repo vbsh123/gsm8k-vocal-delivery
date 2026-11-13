@@ -28,7 +28,10 @@ class WaitTests(unittest.TestCase):
                 (21,['python','run_jenny_late_layers.py'],root,'S'),
                 (22,['python','finish_jenny_finalists.py'],root,'S'),
                 (23,['python','run_L31_forward20_after_current.py'],root,'S'),
-                (24,['python','collect_temporal_vectors.py'],root,'S')]:
+                (24,['python','collect_temporal_vectors.py'],root,'S'),
+                (25,['bash','-c','bash setup_qwen_omni.sh && python run_azure_followups.py --stage qwen && bash setup_kimi_audio.sh'],root,'S'),
+                (26,['python','evaluate_kimi_audio.py'],root,'R'),
+                (27,['python','run_azure_followups.py','--stage','qwen'],root,'S')]:
                 folder=proc/str(pid); folder.mkdir()
                 (folder/'cwd').symlink_to(cwd,target_is_directory=True)
                 (folder/'cmdline').write_bytes(b'\0'.join(a.encode() for a in args))
@@ -37,6 +40,7 @@ class WaitTests(unittest.TestCase):
             self.assertEqual(active_jobs('steering',root,proc),[14,17])
             self.assertEqual(active_jobs('azure-emotions',root,proc),[16,18,19,20])
             self.assertEqual(active_jobs('finalist-queue',root,proc),[14,17,21,22,24])
+            self.assertEqual(active_jobs('audio-models',root,proc),[25,26,27])
 
 
 if __name__=='__main__':
