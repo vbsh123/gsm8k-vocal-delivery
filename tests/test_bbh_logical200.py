@@ -1,6 +1,7 @@
 from contextlib import redirect_stdout
 import io
 import json
+import os
 from pathlib import Path
 import tempfile
 from unittest.mock import patch
@@ -73,6 +74,47 @@ class BBHTests(unittest.TestCase):
                 (folder/'stat').write_text(f'{pid} (python) S 0 0')
                 (folder/'cmdline').write_bytes(b'\0'.join(a.encode() for a in args))
             self.assertEqual(active_jobs('svamp', root, proc), [800])
+
+    def test_default_summary_calls_upstream_scorer_without_generation(self):
+        from types import SimpleNamespace
+        with patch('score_bbh_harness.report_saved') as report:
+            run.summarize(SimpleNamespace(output=Path('answers'), source=Path('audio')))
+        report.assert_called_once_with(Path('answers'), Path('audio'))
+
+
+@unittest.skipUnless(os.environ.get('BBH_HARNESS_CACHE'), 'Set BBH_HARNESS_CACHE to a pinned upstream cache; no network during tests')
+class UpstreamBBHTests(unittest.TestCase):
+    def test_actual_upstream_strict_and_flexible_keep_their_format_rules(self):
+        from score_bbh_harness import HarnessScorer
+        scorer = HarnessScorer(os.environ['BBH_HARNESS_CACHE'])
+        docs = [dict(input='Which?\nOptions:\n(A) red\n(B) blue\n(C) green', target='(B)')]*4
+        values = scorer.score(['The answer is (B).', 'Final answer: B', 'No answer supplied.', 'The answer is (A).'], docs)
+        self.assertEqual([r['correct'] for r in values['strict-match']], [True,False,False,False])
+        self.assertEqual([r['correct'] for r in values['flexible-extract']], [True,True,False,False])
+
+    def test_report_requires_all_four_deliveries_and_preserves_saved_answers(self):
+        from score_bbh_harness import report_saved
+        with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
+            root = Path(d); source = root/'source'; source.mkdir()
+            official = dict(input='Which?\nOptions:\n(A) red\n(B) blue\n(C) green',target='(B)')
+            payload = json.dumps(dict(examples=[official])).encode()
+            (source/'logical_deduction_three_objects-source.json').write_bytes(payload)
+            question = dict(question_id='q', source_index=0, original_input=official['input'],
+                            original_target='(B)',answer='B')
+            (source/'questions.jsonl').write_text(json.dumps(question)+'\n')
+            rows = [dict(question_id='q',voice=voice,condition=style,reference_answer='B',
+                         response='The answer is (A).' if style == 'angry' else 'The answer is (B).')
+                    for voice,styles in [('matched',run.STYLES),('incomplete',['neutral'])] for style in styles]
+            saved = ''.join(json.dumps(r)+'\n' for r in rows)
+            (root/'results.jsonl').write_text(saved)
+            with patch.object(run, 'SOURCE_SHA256', run.hashlib.sha256(payload).hexdigest()):
+                summary = report_saved(root,source,cache=os.environ['BBH_HARNESS_CACHE'])
+            self.assertEqual(summary['matched_questions'],1)
+            self.assertEqual(summary['unmatched_rows_excluded'],1)
+            self.assertTrue(all(r['n'] == 1 for r in summary['accuracy']))
+            strict = next(r for r in summary['paired'] if r['metric']=='strict-match' and r['condition']=='angry')
+            self.assertEqual((strict['wins'],strict['losses']),(0,1))
+            self.assertEqual((root/'results.jsonl').read_text(),saved)
 
 
 if __name__ == '__main__':

@@ -24,6 +24,14 @@ SOURCE_REVISION = '7827fb803c3f6b017086f75024515b15bf31900f'
 SOURCE_URL = f'https://raw.githubusercontent.com/arkilpatel/SVAMP/{SOURCE_REVISION}/SVAMP.json'
 SOURCE_SHA256 = '5be77703a6d891ae476d7c082787ad361392aa02453b132516cdd5f4e7934e3e'
 STEERED = 'neutral-GSM8K-L31-answer-a1'
+HARNESS_STRICT = r'#### (\-?[0-9\.\,]+)'
+HASH_PROMPT = PROMPT.replace('Final answer: <number>.', '#### <number>.')
+
+
+def prompt_for_format(answer_format):
+    if answer_format not in ('final-answer', 'hashes'):
+        raise ValueError('Unknown answer format.')
+    return HASH_PROMPT if answer_format == 'hashes' else PROMPT
 
 
 def select_questions(data, count=500):
@@ -125,10 +133,14 @@ def recordings(source, bank, steering):
 
 def score(response, gold, Filter):
     prediction = Filter(regex_pattern=FLEXIBLE, group_select=-1).apply([[response]], [{}])[0][0]
+    strict_prediction = Filter(regex_pattern=HARNESS_STRICT, group_select=0).apply([[response]], [{}])[0][0]
     normalize = lambda s: re.sub(r'\.$', '', s.replace(',', '').replace('$', '').strip()).lower()
     return dict(strict=score_response(response, gold)['correct'],
         harness_flexible=normalize(prediction) == normalize(gold),
-        flexible_numeric=numeric_equal(prediction, gold), flexible_prediction=prediction)
+        flexible_numeric=numeric_equal(prediction, gold), flexible_prediction=prediction,
+        harness_strict=normalize(strict_prediction) == normalize(gold),
+        harness_strict_prediction=strict_prediction,
+        harness_format_compliant=strict_prediction != '[invalid]')
 
 
 def report(output, bank, Filter, include_steering=False):
@@ -142,15 +154,24 @@ def report(output, bank, Filter, include_steering=False):
         metrics = score(row['response'], bank[qid]['answer'], Filter)
         groups.setdefault(condition, {})[qid, voice] = metrics
         scored.append(dict(row, rescored=metrics))
+    matched = groups.get('neutral', {}).keys() & groups.get('angry', {}).keys()
+    groups = {condition: {k:v for k,v in values.items() if k in matched}
+              for condition,values in groups.items()}
     print('\nSVAMP: flexible_numeric is primary; GSM8K harness extraction + our numeric equivalence.')
     print('This is saved-answer scoring, not an official SVAMP harness inference task.')
-    print(f'{"Condition":30} {"N":>5} {"Numeric accuracy":>17} {"Harness string":>16} {"Strict accuracy":>17}')
+    print('Only completed neutral/angry question+voice pairs are included in the tables.')
+    print(f'{"Condition":30} {"N":>5} {"Numeric accuracy":>17} {"Harness string":>16} '
+          f'{"Our Final answer":>17} {"Harness ####":>14} {"#### extracted":>15}')
     totals = []
     for condition, values in groups.items():
         n = len(values)
-        correct = {m: sum(v[m] for v in values.values()) for m in ('flexible_numeric', 'harness_flexible', 'strict')}
+        if not n:
+            continue
+        correct = {m: sum(v[m] for v in values.values()) for m in
+                   ('flexible_numeric', 'harness_flexible', 'strict', 'harness_strict', 'harness_format_compliant')}
         print(f'{condition:30} {n:5} {correct["flexible_numeric"]/n:17.1%}'
-              f' {correct["harness_flexible"]/n:16.1%} {correct["strict"]/n:17.1%}')
+              f' {correct["harness_flexible"]/n:16.1%} {correct["strict"]/n:17.1%}'
+              f' {correct["harness_strict"]/n:14.1%} {correct["harness_format_compliant"]/n:15.1%}')
         totals.append(dict(condition=condition, n=n, correct=correct))
     comparisons = []
     base = groups.get('neutral', {})
@@ -160,7 +181,7 @@ def report(output, bank, Filter, include_steering=False):
         keys = sorted(base.keys() & values.keys())
         if not keys:
             continue
-        for metric in ('flexible_numeric', 'harness_flexible', 'strict'):
+        for metric in ('flexible_numeric', 'harness_flexible', 'strict', 'harness_strict', 'harness_format_compliant'):
             result = paired([(base[k][metric], values[k][metric]) for k in keys])
             lo, hi = result['ci95_gain_pp']
             n = result['pairs']
@@ -178,7 +199,8 @@ def evaluate(args, vectors, bank, Filter):
     tasks, eligibility = recordings(args.source, bank, vectors is not None)
     vector = dict(path=str(vectors), sha256=hashlib.sha256(vectors.read_bytes()).hexdigest()) if vectors else None
     config = dict(recordings=tasks, eligibility=eligibility, vector=vector,
-        seed=42, prompt=PROMPT, max_new_tokens=512, decoder='fast_dllm', steps=128,
+        seed=42, prompt=prompt_for_format(getattr(args, 'answer_format', 'final-answer')),
+        max_new_tokens=512, decoder='fast_dllm', steps=128,
         block_length=32, temperature=0., primary_metric='flexible_numeric')
     path = args.output/'run_config.json'
     if path.exists():
@@ -216,6 +238,7 @@ def run(config, pending, bank, output, Filter):
     import torch
     from extract_vectors import gen, load_model
     directions = {}
+    prompt = config.get('prompt', PROMPT)
     if config['vector']:
         state = torch.load(config['vector']['path'], map_location='cpu', weights_only=True)
         if state['prompt'] != PROMPT or state['max_new_tokens'] != 512 or state.get('mode', 'fixed') != 'fixed':
@@ -240,27 +263,34 @@ def run(config, pending, bank, output, Filter):
         print(f'[{index}/{len(pending)}] {task["question_id"]} {task["condition"]}', flush=True)
         started = time.monotonic()
         with install_interventions(layers, directions, intervention, {}, 512):
-            response = gen(audio, sr, model, tokenizer, features, PROMPT, 512)
+            response = gen(audio, sr, model, tokenizer, features, prompt, 512)
         metrics = score(response, bank[task['question_id']]['answer'], Filter)
         row = dict(question_id=task['question_id'], voice=task['voice'], style=task['style'],
             audio_path=task['audio_path'], condition=task['condition'], response=response,
-            reference_answer=bank[task['question_id']]['answer'], seed=42, prompt=PROMPT,
+            reference_answer=bank[task['question_id']]['answer'], seed=42, prompt=prompt,
             max_new_tokens=512, decoder='fast_dllm', generation_seconds=time.monotonic()-started, **metrics)
         with (output/'results.jsonl').open('a') as stream:
             stream.write(json.dumps(row)+'\n')
-        print(f'  numeric_correct={metrics["flexible_numeric"]}; strict_correct={metrics["strict"]}\n{response}', flush=True)
+        print(f'  numeric_correct={metrics["flexible_numeric"]}; final_label_correct={metrics["strict"]}; '
+              f'harness_strict_correct={metrics["harness_strict"]}\n{response}', flush=True)
 
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--mode', choices=['all', 'prepare', 'generate', 'evaluate', 'summary'], default='all')
     p.add_argument('--source', type=Path, default=Path('outputs/azure-svamp500'))
-    p.add_argument('--output', type=Path, default=Path('outputs/svamp500-diffa2'))
+    p.add_argument('--output', type=Path, help='Defaults to a separate folder for each requested answer format')
+    p.add_argument('--answer-format', choices=['final-answer', 'hashes'], default='final-answer',
+                   help='Change only the requested answer marker; hashes requests #### <number>')
     p.add_argument('--num-examples', type=int, default=500)
     p.add_argument('--vectors', type=Path, help='Frozen original GSM8K mean; otherwise find the existing winner checkpoint')
     p.add_argument('--steer', action='store_true', help='Explicitly add frozen GSM8K L31 steering (default: only neutral/angry)')
     p.add_argument('--unsteered-only', action='store_true', help='Only neutral/angry delivery accuracy, no steering')
     args = p.parse_args()
+    if args.output is None:
+        args.output = Path('outputs/svamp500-diffa2-hashes' if args.answer_format == 'hashes' else 'outputs/svamp500-diffa2')
+    if args.answer_format == 'hashes' and args.steer:
+        p.error('The hash-format control is unsteered; the frozen vector used the original prompt.')
     if args.steer and args.unsteered_only:
         p.error('Choose either --steer or --unsteered-only.')
     if args.vectors and not args.steer:

@@ -1,6 +1,7 @@
 from contextlib import redirect_stdout
 import io
 import json
+import re
 from pathlib import Path
 from types import SimpleNamespace
 import tempfile
@@ -11,7 +12,85 @@ import wave
 import run_svamp500 as run
 
 
+class RegexFilterFixture:
+    """Offline regex-filter fixture: first/last match and invalid fallback."""
+    def __init__(self, regex_pattern, group_select=0):
+        self.pattern, self.group = regex_pattern, group_select
+
+    def apply(self, responses, docs):
+        def extract(text):
+            matches = re.findall(self.pattern, text)
+            if not matches:
+                return '[invalid]'
+            value = matches[self.group]
+            return next((part for part in value if part), '[invalid]') if isinstance(value, tuple) else value.strip()
+        return [[extract(text) for text in group] for group in responses]
+
+
 class SVAMPTests(unittest.TestCase):
+    def test_hash_strict_differs_from_flexible_and_custom_scorer(self):
+        cases = [
+            ('Final answer: 51', '51', True, True, False),
+            ('We get 51.\n#### 51', '51', False, True, True),
+            ('#### 51.00', '51', False, True, False),
+            ('#### 1,234', '1234', False, True, True),
+            ('#### -5', '-5', False, True, True),
+            ('The result is 51', '51', False, True, False),
+            ('#### 4\n#### 5', '5', False, True, False),
+        ]
+        for response,gold,custom,numeric,strict in cases:
+            with self.subTest(response=response):
+                values = run.score(response, gold, RegexFilterFixture)
+                self.assertEqual(values['strict'], custom)
+                self.assertEqual(values['flexible_numeric'], numeric)
+                self.assertEqual(values['harness_strict'], strict)
+
+    def test_format_change_cannot_resume_original_generations(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            args = SimpleNamespace(source=root, output=root, answer_format='final-answer')
+            eligibility = dict(excluded_questions=[])
+            with patch.object(run, 'recordings', return_value=([], eligibility)), patch.object(run, 'report'):
+                run.evaluate(args, None, {}, None)
+                args.answer_format = 'hashes'
+                with self.assertRaisesRegex(ValueError, 'separate result folder'):
+                    run.evaluate(args, None, {}, None)
+
+    def test_hash_mode_passes_new_prompt_to_decoder_and_reuses_audio(self):
+        with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
+            root = Path(d); audio = root/'neutral.wav'; audio.write_bytes(b'audio')
+            task = dict(question_id='svamp_chal-1', voice='Jenny', style='neutral', condition='neutral',
+                        audio_path='neutral.wav', audio_file=str(audio),
+                        audio_sha256=run.hashlib.sha256(b'audio').hexdigest())
+            sf = SimpleNamespace(read=MagicMock(return_value=([0.0], 16000)))
+            np = SimpleNamespace(random=SimpleNamespace(seed=MagicMock()))
+            shared = SimpleNamespace(load_model=MagicMock(return_value=(MagicMock(), 'tokenizer', 'features')),
+                                     gen=MagicMock(return_value='#### 5'))
+            with patch.dict('sys.modules', {'torch': MagicMock(), 'soundfile': sf,
+                                           'numpy': np, 'extract_vectors': shared}), \
+                 patch.object(run, 'install_interventions'):
+                run.run(dict(vector=None, prompt=run.HASH_PROMPT), [task],
+                        {'svamp_chal-1': dict(answer='5')}, root, RegexFilterFixture)
+            self.assertEqual(shared.gen.call_args.args[-2:], (run.HASH_PROMPT, 512))
+            sf.read.assert_called_once_with(audio, dtype='float32')
+            saved = json.loads((root/'results.jsonl').read_text())
+            self.assertEqual(saved['prompt'], run.HASH_PROMPT)
+            self.assertTrue(saved['harness_strict'])
+            self.assertFalse(saved['strict'])
+
+    def test_report_uses_only_completed_pairs_for_every_metric(self):
+        with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
+            root = Path(d)
+            rows = [dict(question_id=q, voice='Jenny', condition=condition, response=response, reference_answer='5')
+                    for q,condition,response in [('paired','neutral','#### 5'), ('paired','angry','#### 6'),
+                                                 ('unpaired','neutral','#### 5')]]
+            (root/'results.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rows))
+            run.report(root, {q:dict(answer='5') for q in ('paired','unpaired')}, RegexFilterFixture)
+            summary = json.loads((root/'summary.json').read_text())
+            self.assertEqual([r['n'] for r in summary['accuracy']], [1,1])
+            strict = next(r for r in summary['paired'] if r['metric'] == 'harness_strict')
+            self.assertEqual((strict['pairs'], strict['wins'], strict['losses']), (1,0,1))
+
     def test_fixed_selection_preserves_official_body_question_and_gold(self):
         data = json.dumps([dict(ID=str(i), Body=f'Body {i}', Question='How many?', Answer=51.0,
                                Equation='76-25', Type='Subtraction') for i in range(1000)])

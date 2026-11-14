@@ -110,7 +110,8 @@ def recordings(source, bank):
 
 
 def summarize(args):
-    report(args.output, args.source, dataset_name='BBH logical deduction (three objects)')
+    from score_bbh_harness import report_saved
+    report_saved(args.output, args.source)
 
 
 def evaluate(args):
@@ -163,7 +164,7 @@ def run(pending, bank, output):
             generation_seconds=time.monotonic()-started, **score(response, bank[task['question_id']]))
         with (output/'results.jsonl').open('a') as stream:
             stream.write(json.dumps(row)+'\n')
-        print(f'  answer_correct={row["answer_correct"]}; strict_correct={row["correct"]}\n{response}', flush=True)
+        print(f'  custom_answer_correct={row["answer_correct"]}; custom_strict_correct={row["correct"]}\n{response}', flush=True)
 
 
 def main():
