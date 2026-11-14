@@ -11,3 +11,5 @@ echo 'STAGE: Generate fixed ARC-Challenge questions in neutral/angry/happy/sad (
 echo 'STAGE: Wait for GPU; evaluate all deliveries and the unchanged CommonsenseQA L31 vector'
 "$PYTHON" -u evaluate_arc_audio.py \
   --vectors outputs/commonsenseqa-angry-mean/style-vectors.pt
+echo 'STAGE: Extract ARC L31 mean from 250 pairs; evaluate on the other 250 neutral recordings'
+"$PYTHON" -u steer_arc_mean.py

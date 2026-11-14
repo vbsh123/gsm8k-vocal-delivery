@@ -33,9 +33,10 @@ def score(response,question):
         answer_scorer_version=RELAXED_SCORER_VERSION)
 
 
-def report(output,source):
+def report(output,source,rows=None,summary_name='summary.json'):
     bank={r['question_id']:r for r in read_rows(source/'questions.jsonl')}
-    latest={(r['question_id'],r['voice'],r['condition']):r for r in read_rows(output/'results.jsonl')}
+    rows=read_rows(output/'results.jsonl') if rows is None else rows
+    latest={(r['question_id'],r['voice'],r['condition']):r for r in rows}
     groups={}
     for (q,voice,condition),row in latest.items():
         if row['reference_answer']!=bank[q]['answer']:raise ValueError('Saved reference differs from ARC source')
@@ -60,7 +61,7 @@ def report(output,source):
             print(f'{condition} / {metric}: N={n}; gain={result["gain_pp"]:+.2f} pp; '
                 f'wins/losses={result["wins"]}/{result["losses"]}; p={result["mcnemar_exact_p"]:.4f}; CI=[{lo:+.1f}, {hi:+.1f}] pp')
             comparisons.append(dict(condition=condition,metric=metric,**result))
-    (output/'summary.json').write_text(json.dumps(dict(answer_scorer=RELAXED_SCORER_VERSION,accuracy=accuracy,paired=comparisons),indent=2)+'\n')
+    (output/summary_name).write_text(json.dumps(dict(answer_scorer=RELAXED_SCORER_VERSION,accuracy=accuracy,paired=comparisons),indent=2)+'\n')
     print('P-values and 95% paired bootstrap intervals are unadjusted; parse failures count as incorrect.')
 
 
