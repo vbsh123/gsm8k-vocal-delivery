@@ -35,7 +35,8 @@ class WaitTests(unittest.TestCase):
                 (28,['python','run_pitch_speed_after_models.py'],root,'S'),
                 (29,['python','evaluate_audio_speed.py'],root,'R'),
                 (30,['python','evaluate_audio_pitch.py'],root,'R'),
-                (31,['python','evaluate_commonsense_audio.py','--wait-for-speeds'],root,'S')]:
+                (31,['python','evaluate_commonsense_audio.py','--wait-for-speeds'],root,'S'),
+                (32,['python','run_bbh_logical200.py','--mode','evaluate','--chunked-audio'],root,'R')]:
                 folder=proc/str(pid); folder.mkdir()
                 (folder/'cwd').symlink_to(cwd,target_is_directory=True)
                 (folder/'cmdline').write_bytes(b'\0'.join(a.encode() for a in args))
@@ -46,6 +47,7 @@ class WaitTests(unittest.TestCase):
             self.assertEqual(active_jobs('finalist-queue',root,proc),[14,17,21,22,24])
             self.assertEqual(active_jobs('audio-models',root,proc),[25,26,27])
             self.assertEqual(active_jobs('pitch-speed',root,proc),[28,29,30])
+            self.assertEqual(active_jobs('bbh',root,proc),[32])
 
 
 if __name__=='__main__':
