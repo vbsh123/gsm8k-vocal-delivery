@@ -3,12 +3,14 @@
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from wait_for_experiments import active_jobs
 
 
 class WaitTests(unittest.TestCase):
-    def test_waits_for_all_matching_parents_and_workers_without_matching_log_viewers(self):
+    @patch('wait_for_experiments.os.getpid', return_value=999999)
+    def test_waits_for_all_matching_parents_and_workers_without_matching_log_viewers(self, _getpid):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)/'repo'; root.mkdir()
             other=Path(directory)/'other'; other.mkdir()
@@ -36,7 +38,9 @@ class WaitTests(unittest.TestCase):
                 (29,['python','evaluate_audio_speed.py'],root,'R'),
                 (30,['python','evaluate_audio_pitch.py'],root,'R'),
                 (31,['python','evaluate_commonsense_audio.py','--wait-for-speeds'],root,'S'),
-                (32,['python','run_bbh_logical200.py','--mode','evaluate','--chunked-audio'],root,'R')]:
+                (32,['python','run_bbh_logical200.py','--mode','evaluate','--chunked-audio'],root,'R'),
+                (33,['python','run_spoken_ifeval.py'],root,'R'),
+                (34,['bash','run_spoken_ifeval.sh'],root,'S')]:
                 folder=proc/str(pid); folder.mkdir()
                 (folder/'cwd').symlink_to(cwd,target_is_directory=True)
                 (folder/'cmdline').write_bytes(b'\0'.join(a.encode() for a in args))
@@ -48,6 +52,7 @@ class WaitTests(unittest.TestCase):
             self.assertEqual(active_jobs('audio-models',root,proc),[25,26,27])
             self.assertEqual(active_jobs('pitch-speed',root,proc),[28,29,30])
             self.assertEqual(active_jobs('bbh',root,proc),[32])
+            self.assertEqual(active_jobs('ifeval',root,proc),[33,34])
 
 
 if __name__=='__main__':

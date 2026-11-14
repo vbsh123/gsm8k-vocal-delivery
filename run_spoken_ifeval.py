@@ -2,6 +2,7 @@
 
 import argparse
 from collections import defaultdict
+from copy import deepcopy
 import fcntl
 import hashlib
 from itertools import combinations
@@ -67,11 +68,11 @@ def prepare(args):
     subprocess.run(command, check=True)
 
 
-def recordings(source):
+def recordings(source, styles=STYLES):
     grouped = defaultdict(dict)
     durations = []
     for task in read_rows(source / 'plan.jsonl'):
-        if task['provider'] != 'azure' or task['style'] not in STYLES:
+        if task['provider'] != 'azure' or task['style'] not in styles:
             continue
         file = source / task['audio_path']
         with wave.open(str(file), 'rb') as audio:
@@ -80,14 +81,14 @@ def recordings(source):
         durations.append(dict(question_id=task['question_id'], style=task['style'], seconds=seconds))
     excluded = {r['question_id'] for r in durations if not 0 < r['seconds'] <= 30}
     eligible = []
-    for (question, _), styles in grouped.items():
-        if set(styles) != set(STYLES):
+    for (question, _), clips in grouped.items():
+        if set(clips) != set(styles):
             raise ValueError(f'Missing delivery for {question}; finish generation first.')
         if question not in excluded:
-            eligible.extend(styles[s] for s in STYLES)
+            eligible.extend(clips[s] for s in styles)
     (source / 'eligibility.json').write_text(json.dumps(dict(
-        rule='All four recordings must be nonempty and at most 30 seconds; no cropping',
-        eligible_questions=len(eligible) // 4, excluded_questions=sorted(excluded), durations=durations), indent=2) + '\n')
+        rule='All requested deliveries must be nonempty and at most 30 seconds; no cropping',
+        eligible_questions=len(eligible) // len(styles), excluded_questions=sorted(excluded), durations=durations), indent=2) + '\n')
     return eligible
 
 
@@ -100,7 +101,7 @@ def official_scorer():
 
 
 def score(example, response, evaluator):
-    inp = evaluator.InputExample(**{k: example[k] for k in ('key', 'prompt', 'instruction_id_list', 'kwargs')})
+    inp = evaluator.InputExample(**deepcopy({k: example[k] for k in ('key', 'prompt', 'instruction_id_list', 'kwargs')}))
     result = {}
     for mode in ('strict', 'loose'):
         random.seed(42)
@@ -111,21 +112,23 @@ def score(example, response, evaluator):
     return result
 
 
-def report(args):
+def report(args, styles=STYLES, evaluator=None, benchmark='IFEval', revision=REVISION,
+           primary_metric='strict_prompt'):
     import numpy as np
     examples = {e['question_id']: e for e in read_rows(args.source / 'questions.jsonl')}
-    evaluator = official_scorer()
+    evaluator = evaluator if evaluator is not None else official_scorer()
     latest = {(r['question_id'], r['voice'], r['style']): r for r in read_rows(args.output / 'results.jsonl')}
-    groups = {style: {} for style in STYLES}
+    groups = {style: {} for style in styles}
     scored = []
     for (qid, voice, style), row in latest.items():
         metrics = score(examples[qid], row['response'], evaluator)
         groups[style][qid, voice] = metrics
         scored.append(dict(row, official_scores=metrics))
     (args.output / 'official-scored.jsonl').write_text(''.join(json.dumps(r) + '\n' for r in scored))
-    print('\nOfficial IFEval checks — our spoken adaptation; completed answers only.')
+    print(f'\nOfficial {benchmark} checks — our spoken adaptation; completed answers only.')
+    print('Primary metric:', primary_metric)
     totals = []
-    for style in STYLES:
+    for style in styles:
         values = list(groups[style].values())
         if not values:
             continue
@@ -142,7 +145,7 @@ def report(args):
     for mode in ('strict', 'loose'):
         print(f'\n{mode} prompt-level paired comparisons:')
         print('Reference Test      N    Ref     Test  Gain pp  Wins Losses  Exact p    95% CI pp')
-        for a, b in combinations(STYLES, 2):
+        for a, b in combinations(styles, 2):
             keys = sorted(groups[a].keys() & groups[b].keys())
             n = len(keys)
             if not n:
@@ -162,9 +165,10 @@ def report(args):
                   f' {100*(w-l)/n:+7.2f} {w:5} {l:6} {p:8.4f} [{ci[0]:+.1f}, {ci[1]:+.1f}]')
     print('Intervals and p-values are unadjusted. No semantic/factual correctness judgment.')
     near_budget = {s: sum(r.get('response_tokens', 0) >= r.get('max_new_tokens', 1024)-8
-                         for r in latest.values() if r['style'] == s) for s in STYLES}
+                         for r in latest.values() if r['style'] == s) for s in styles}
     print('Responses within eight tokens of the output budget (possible truncation):', near_budget)
-    (args.output / 'summary.json').write_text(json.dumps(dict(revision=REVISION, totals=totals,
+    (args.output / 'summary.json').write_text(json.dumps(dict(revision=revision, benchmark=benchmark,
+        primary_metric=primary_metric, totals=totals,
         paired_prompt_comparisons=comparisons, responses_near_token_budget=near_budget), indent=2) + '\n')
 
 
