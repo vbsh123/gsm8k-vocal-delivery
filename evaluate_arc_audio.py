@@ -33,12 +33,12 @@ def score(response,question):
         answer_scorer_version=RELAXED_SCORER_VERSION)
 
 
-def report(output,source,rows=None,summary_name='summary.json',emotion2vec_agreed=False):
+def report(output,source,rows=None,summary_name='summary.json',emotion2vec_agreed=False,dataset_name='ARC-Challenge'):
     bank={r['question_id']:r for r in read_rows(source/'questions.jsonl')}
     rows=read_rows(output/'results.jsonl') if rows is None else rows
     if emotion2vec_agreed:
         label_file=source/'results-emotion2vec.jsonl'
-        if not label_file.exists():raise ValueError('ARC emotion2vec predictions missing; run run_arc_emotion2vec.py first')
+        if not label_file.exists():raise ValueError('Emotion2vec predictions missing for '+str(source)+'; run the classification queue first')
         labels={r['audio_path']:r['emotion'] for r in read_rows(label_file)}
         rows=[r for r in rows if labels.get(r['audio_path'])==r['style']]
     latest={(r['question_id'],r['voice'],r['condition']):r for r in rows}
@@ -46,7 +46,7 @@ def report(output,source,rows=None,summary_name='summary.json',emotion2vec_agree
     for (q,voice,condition),row in latest.items():
         if row['reference_answer']!=bank[q]['answer']:raise ValueError('Saved reference differs from ARC source')
         groups.setdefault(condition,{})[q,voice]=score(row['response'],bank[q])
-    print('\nARC-Challenge: custom answer scorer '+RELAXED_SCORER_VERSION+'; original generations unchanged.')
+    print('\n'+dataset_name+': custom answer scorer '+RELAXED_SCORER_VERSION+'; original generations unchanged.')
     if emotion2vec_agreed:
         print('EMOTION2VEC-AGREED INPUTS: delivery pairs require matching labels on BOTH clips, including neutral.')
         print('Steering uses the same neutral input on both sides, so its filter requires that neutral clip to be classified neutral.')

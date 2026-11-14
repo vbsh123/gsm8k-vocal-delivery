@@ -44,3 +44,22 @@ Mid-run accuracy, scoring sensitivity, p-values and intervals:
 ```
 
 All confidence intervals and p-values are unadjusted. The original 250 and new 721 are also reported separately. Completed answers and successful Azure downloads are retained when restarting the same command. No model caches or recordings are deleted.
+
+Emotion2vec classification and agreed-pair scoring for the original CommonsenseQA 500 (including saved Qwen/Kimi answers):
+
+```bash
+git pull --ff-only
+nohup .venv-diffa/bin/python -u run_commonsense_emotion2vec.py \
+  > outputs/commonsenseqa-emotion2vec.log 2>&1 < /dev/null &
+tail -f outputs/commonsenseqa-emotion2vec.log
+```
+
+The separate emotion environment is used, with its Python symlink path retained (following that symlink to the base executable bypasses the virtual environment). It sets up the environment only if missing, waits for GPU availability/shared lock, and resumes saved classification predictions. The classifier processes the whole recording. No model-answer generations or vector fitting occur. Source recordings and raw answers are retained.
+
+Unfiltered and emotion2vec-agreed reports are written to `outputs/commonsenseqa-diffa2/emotion2vec-audit/`, one pair of summaries per available model, plus the DIFFA held-out steering cohort. Answer accuracy and format compliance are separate metrics using corrected custom parser v2. Natural-delivery comparisons require the intended label on BOTH recordings, including neutral. Steering comparisons use one identical neutral input, which must be classified neutral. Existing vector training pairs are unchanged. Missing classifier labels are excluded from filtered pairs. This command audits the original 500; it does not silently combine them with the separate neutral-only 721-question extension.
+
+For a CPU-only refresh once labels exist:
+
+```bash
+.venv-diffa/bin/python run_commonsense_emotion2vec.py --summary-only
+```
