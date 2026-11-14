@@ -1,4 +1,4 @@
-"""Evaluate original-mean L31 answer x1 in early/middle/late decoding phases on both cohorts."""
+"""Evaluate original-mean L31 schedules or a small strength sweep on both cohorts."""
 
 import argparse
 from datetime import datetime,timezone
@@ -12,14 +12,18 @@ import time
 from steer import read_rows,summarize
 
 
-def conditions():
+def conditions(strength_sweep=False):
+    if strength_sweep:
+        return [dict(name='baseline',interventions=[])]+[
+            dict(name=f'L31-answer-a{strength:g}',interventions=[dict(layer=31,group='answer',strength=strength)])
+            for strength in (.75,1.25,1.5)]
     return [dict(name='baseline',interventions=[])]+[
         dict(name=f'L31-answer-a1-{phase}',schedule=phase,
              interventions=[dict(layer=31,group='answer',strength=1)])
         for phase in ('early','middle','late')]
 
 
-def report(output,sources):
+def report(output,sources,strength_sweep=False):
     answers=[];seen=set();planned=0
     for name,source in sources:
         path=source/'run_config.json'
@@ -36,8 +40,8 @@ def report(output,sources):
     comparison=[dict(name='baseline',interventions=[]),
                 dict(name='L31-answer-a1',interventions=[dict(layer=31,group='answer',strength=1)]),
                 dict(name='L31-answer-a1-periodic2',schedule='periodic2',interventions=[dict(layer=31,group='answer',strength=1)]),
-                *conditions()[1:]]
-    print(f'\nCOMBINED L31 timing: {planned} planned recordings; completed pairs only.',flush=True)
+                *conditions(strength_sweep)[1:]]
+    print(f'\nCOMBINED L31 {"strengths" if strength_sweep else "timing"}: {planned} planned recordings; completed pairs only.',flush=True)
     rows=summarize(answers,comparison)
     (output/'combined-summary.json').write_text(json.dumps(rows,indent=2)+'\n')
     return rows
@@ -46,17 +50,19 @@ def report(output,sources):
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--late-root',type=Path,default=Path('outputs/steer-jenny-late-layers'))
-    p.add_argument('--output',type=Path,default=Path('outputs/jenny-L31-timing'))
+    p.add_argument('--output',type=Path)
+    p.add_argument('--strength-sweep',action='store_true',help='Test 0.75, 1.25 and 1.5 instead of timing schedules; original vector unchanged.')
     p.add_argument('--prepare-only',action='store_true')
     p.add_argument('--summary-only',action='store_true')
     args=p.parse_args()
+    if args.output is None:args.output=Path('outputs/jenny-L31-strengths' if args.strength_sweep else 'outputs/jenny-L31-timing')
     sources=[('second',args.late_root/'original_mean'),('third',args.late_root/'third-cohort/original_mean')]
     args.output.mkdir(parents=True,exist_ok=True)
     if args.summary_only:
-        report(args.output,sources);return
+        report(args.output,sources,args.strength_sweep);return
     config=json.loads((sources[0][1]/'run_config.json').read_text())
     vector=Path(config['settings']['vectors'])
-    specs=args.output/'conditions.json';specs.write_text(json.dumps(conditions(),indent=2)+'\n')
+    specs=args.output/'conditions.json';specs.write_text(json.dumps(conditions(args.strength_sweep),indent=2)+'\n')
     commands=[];count=0
     for name,source in sources:
         records=json.loads((source/'run_config.json').read_text())['recordings'];count+=len(records)
@@ -64,9 +70,10 @@ def main():
             '--vectors',str(vector),'--methods','original_mean','--conditions-file',str(specs),
             '--num-examples',str(len(records)),'--output',str(args.output/name),
             '--baseline-source',str(source),'--cohort-label',
-            f'L31 answer x1 original mean; early/middle/late thirds of unmasking within each 32-token block; {name} cohort.']
+            (f'L31 answer original mean; strengths 0.75/1.25/1.5; {name} cohort.' if args.strength_sweep else
+             f'L31 answer x1 original mean; early/middle/late thirds of unmasking within each 32-token block; {name} cohort.')]
         subprocess.run(command+['--prepare-only'],check=True);commands.append((name,command))
-    print(f'{count} recordings x 3 schedules = {3*count} intervention answers before cached results; compatible seed42 baselines reused.',flush=True)
+    print(f'{count} recordings x 3 {"strengths" if args.strength_sweep else "schedules"} = {3*count} intervention answers before cached results; compatible seed42 baselines reused.',flush=True)
     print('No extraction; the winning original-mean vector is unchanged. Always/periodic2 are shown from saved results.',flush=True)
     if args.prepare_only:return
     with (args.output/'queue.lock').open('w') as own:
@@ -81,12 +88,12 @@ def main():
             for name,command in commands:
                 status=dict(stage=name,state='running',time=datetime.now(timezone.utc).isoformat())
                 (args.output/'status.json').write_text(json.dumps(status,indent=2)+'\n')
-                print(f'\nSTAGE: L31 timing on {name} cohort',flush=True)
+                print(f'\nSTAGE: L31 {"strengths" if args.strength_sweep else "timing"} on {name} cohort',flush=True)
                 try:subprocess.run(command,check=True)
                 except subprocess.CalledProcessError as error:
                     status.update(state='failed',returncode=error.returncode)
                     (args.output/'status.json').write_text(json.dumps(status,indent=2)+'\n');raise
-                report(args.output,sources)
+                report(args.output,sources,args.strength_sweep)
         (args.output/'status.json').write_text(json.dumps(dict(stage='Both cohorts finished',state='finished'),indent=2)+'\n')
 
 

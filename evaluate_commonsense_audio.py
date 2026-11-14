@@ -33,9 +33,9 @@ def score_choice(response,reference):
                 correct=predicted==reference,scorer_version='explicit-choice-final-v1')
 
 
-def report(output):
+def report(output,rows=None,summary_name='summary.json'):
     import numpy as np
-    rows=read_rows(output/'results.jsonl')
+    rows=read_rows(output/'results.jsonl') if rows is None else rows
     latest={r['audio_path']:r for r in rows}
     groups={s:{} for s in STYLES}
     print('\nCommonsenseQA: unfiltered delivery accuracy; parse failures count as incorrect.')
@@ -59,7 +59,7 @@ def report(output):
         summary.append(dict(reference=a,test=b,pairs=n,ref_correct=x,test_correct=y,wins=w,losses=l,mcnemar_exact_p=p,ci95_gain_pp=ci))
         print(f'{a:9} {b:8} {n:5} {x/n:8.1%} {y/n:8.1%} {100*(y-x)/n:+8.2f} {w:5} {l:6} {p:9.4f}   [{ci[0]:+.1f}, {ci[1]:+.1f}]')
     print('Same question and voice; paired bootstrap intervals and McNemar p-values are unadjusted.')
-    (output/'summary.json').write_text(json.dumps(summary,indent=2)+'\n')
+    (output/summary_name).write_text(json.dumps(summary,indent=2)+'\n')
     return summary
 
 

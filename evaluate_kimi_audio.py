@@ -33,10 +33,10 @@ RESULTS = "results-kimi-audio.jsonl"
 SETTINGS = "kimi-audio-settings.json"
 
 
-def messages(audio_path):
+def messages(audio_path,prompt=PROMPT):
     # Same user role for instruction + audio follows the official Kimi API.
     # Do not include the question transcript, reference answer, or style label.
-    return [{"role": "user", "message_type": "text", "content": PROMPT},
+    return [{"role": "user", "message_type": "text", "content": prompt},
             {"role": "user", "message_type": "audio", "content": str(audio_path)}]
 
 
@@ -72,8 +72,7 @@ def assets(source):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--paths", type=Path, nargs="+", default=[
-        Path("outputs/azure-jenny500-extra"), Path("outputs/azure-jenny500-neutral")])
+    p.add_argument("--paths", type=Path, nargs="+")
     p.add_argument("--styles", nargs="+", choices=STYLES+AZURE_EXTRA_STYLES,
                    default=["neutral", "angry", "happy", "sad"])
     p.add_argument("--num-questions", type=int, default=3)
@@ -83,25 +82,34 @@ def main():
     p.add_argument("--download-only", action="store_true")
     p.add_argument("--prepare-only", action="store_true")
     p.add_argument("--summary-only", action="store_true")
+    p.add_argument('--task',choices=['gsm8k','commonsenseqa'],default='gsm8k')
     args = p.parse_args()
+    args.paths=args.paths or ([Path('outputs/azure-commonsenseqa500')] if args.task=='commonsenseqa' else
+                              [Path('outputs/azure-jenny500-extra'),Path('outputs/azure-jenny500-neutral')])
+    task_prompt,score_fn=PROMPT,score_response
+    results_name,settings_name=RESULTS,SETTINGS
+    if args.task=='commonsenseqa':
+        from evaluate_commonsense_audio import PROMPT as task_prompt,score_choice,report as choice_report
+        score_fn=score_choice
+        results_name,settings_name='results-kimi-commonsenseqa.jsonl','kimi-commonsenseqa-settings.json'
     if args.download_only:
         assets(args.source)
         return
     selected = select_tasks([folder.resolve() for folder in args.paths], args.styles, args.num_questions)
     folders = sorted({folder for folder, _ in selected})
-    saved = {folder: {r["audio_path"]: r for r in read(folder/RESULTS)}
-             if (folder/RESULTS).exists() else {} for folder in folders}
+    saved = {folder: {r["audio_path"]: r for r in read(folder/results_name)}
+             if (folder/results_name).exists() else {} for folder in folders}
     recipe = dict(model=MODEL, revision=REVISION, source_revision=SOURCE_REVISION,
                   tokenizer_model=TOKENIZER_MODEL, tokenizer_revision=TOKENIZER_REVISION,
-                  transformers="4.51.3", prompt=PROMPT, max_new_tokens=args.max_new_tokens,
+                  transformers="4.51.3", prompt=task_prompt, max_new_tokens=args.max_new_tokens,
                   seed=args.seed, text_temperature=0.0, audio_temperature=0.0,
                   text_top_k=5, audio_top_k=5, text_repetition_penalty=1.0,
                   audio_repetition_penalty=1.0, output_type="text", load_detokenizer=False)
     for folder in folders:
-        if (folder/SETTINGS).exists() and json.loads((folder/SETTINGS).read_text()) != recipe:
-            p.error(f"Settings changed in {folder/SETTINGS}; use a separate result folder")
-        if saved[folder] and not (folder/SETTINGS).exists():
-            p.error(f"Answers exist without settings: {folder/SETTINGS}")
+        if (folder/settings_name).exists() and json.loads((folder/settings_name).read_text()) != recipe:
+            p.error(f"Settings changed in {folder/settings_name}; use a separate result folder")
+        if saved[folder] and not (folder/settings_name).exists():
+            p.error(f"Answers exist without settings: {folder/settings_name}")
     pending = [(folder, task) for folder, task in selected if task["audio_path"] not in saved[folder]]
     print(f"Selected {len(selected)} clips; {len(pending)} pending. Emotion labels do not filter generation.", flush=True)
     print("By requested delivery:", dict(Counter(task["style"] for _, task in selected)), flush=True)
@@ -117,7 +125,7 @@ def main():
             model = KimiAudio(model_path=model_path, load_detokenizer=False)
         model.alm.eval()
         for folder in folders:
-            (folder/SETTINGS).write_text(json.dumps(recipe, indent=2)+"\n")
+            (folder/settings_name).write_text(json.dumps(recipe, indent=2)+"\n")
         print(f"Kimi loaded; allocated GPU memory {torch.cuda.memory_allocated()/2**30:.2f} GiB.", flush=True)
         for index, (folder, task) in enumerate(pending, 1):
             random.seed(args.seed)
@@ -127,14 +135,14 @@ def main():
             print(f"[{index}/{len(pending)}] {task['question_id']} {task['style']}", flush=True)
             started = time.monotonic()
             with torch.inference_mode():
-                _, response = model.generate(messages((folder/task["audio_path"]).resolve()),
+                _, response = model.generate(messages((folder/task["audio_path"]).resolve(),task_prompt),
                     output_type="text", max_new_tokens=args.max_new_tokens,
                     text_temperature=0.0, audio_temperature=0.0, text_top_k=5, audio_top_k=5,
                     text_repetition_penalty=1.0, audio_repetition_penalty=1.0)
-            score = score_response(response, str(task["answer"]).rsplit("####",1)[-1].strip())
+            score = score_fn(response, str(task["answer"]).rsplit("####",1)[-1].strip())
             row = {**{k: task[k] for k in ("audio_path", "question_id", "voice", "style")},
                    **recipe, **score, "response": response, "generation_seconds": time.monotonic()-started}
-            with (folder/RESULTS).open("a") as handle:
+            with (folder/results_name).open("a") as handle:
                 handle.write(json.dumps(row)+"\n")
                 handle.flush()
             saved[folder][task["audio_path"]] = row
@@ -142,7 +150,9 @@ def main():
                   f"seconds={row['generation_seconds']:.1f}\n{response}\n", flush=True)
     tasks = [{**task,"audio_path":str(folder/task["audio_path"])} for folder,task in selected]
     results = {str(folder/name):row for folder in folders for name,row in saved[folder].items()}
-    summarize_deliveries(tasks, results, args.styles)
+    if args.task=='commonsenseqa':
+        choice_report(args.paths[0],list(results.values()),'summary-kimi-commonsenseqa.json')
+    else:summarize_deliveries(tasks, results, args.styles)
     print("Inspect the smoke responses before launching the full benchmark.")
 
 

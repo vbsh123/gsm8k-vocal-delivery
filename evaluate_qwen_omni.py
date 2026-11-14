@@ -51,36 +51,45 @@ def select_tasks(paths, styles, num_questions):
     return [groups[key][style] for key in keys for style in styles if style in groups[key]]
 
 
-def conversation():
+def conversation(prompt=PROMPT):
     # Neither the question transcript, reference answer, nor intended emotion is
     # included. The processor gets the actual waveform separately.
     return [{"role": "system", "content": [{"type": "text", "text": SYSTEM_PROMPT}]},
-            {"role": "user", "content": [{"type": "audio"}, {"type": "text", "text": PROMPT}]}]
+            {"role": "user", "content": [{"type": "audio"}, {"type": "text", "text": prompt}]}]
 
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--paths", nargs="+", type=Path, default=[Path("outputs/azure-jenny-next500")])
+    p.add_argument("--paths", nargs="+", type=Path)
     p.add_argument("--styles", nargs="+", choices=STYLES+AZURE_EXTRA_STYLES,
-                   default=["neutral", "angry", "happy", "sad", "terrified", "shouting"])
+                   default=None)
     p.add_argument("--num-questions", type=int, default=3,
                    help="Smoke: up to N complete same-question/voice groups. 0: all eligible clips.")
     p.add_argument("--max-new-tokens", type=int, default=512)
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--prepare-only", action="store_true")
     p.add_argument("--summary-only", action="store_true")
+    p.add_argument('--task',choices=['gsm8k','commonsenseqa'],default='gsm8k')
     args = p.parse_args()
+    args.paths=args.paths or [Path('outputs/azure-commonsenseqa500' if args.task=='commonsenseqa' else 'outputs/azure-jenny-next500')]
+    args.styles=args.styles or (list(STYLES) if args.task=='commonsenseqa' else ['neutral','angry','happy','sad','terrified','shouting'])
+    task_prompt,score_fn= PROMPT,score_response
+    results_name,settings_name=RESULTS,SETTINGS
+    if args.task=='commonsenseqa':
+        from evaluate_commonsense_audio import PROMPT as task_prompt,score_choice,report as choice_report
+        score_fn=score_choice
+        results_name,settings_name='results-qwen-commonsenseqa.jsonl','qwen-commonsenseqa-settings.json'
     args.paths = [folder.resolve() for folder in args.paths]
     selected = select_tasks(args.paths, args.styles, args.num_questions)
     folders = sorted({folder for folder, _ in selected})
-    saved = {folder: {r["audio_path"]: r for r in read(folder/RESULTS)}
-             if (folder/RESULTS).exists() else {} for folder in folders}
-    recipe = dict(model=MODEL, revision=REVISION, transformers="4.52.4", prompt=PROMPT,
+    saved = {folder: {r["audio_path"]: r for r in read(folder/results_name)}
+             if (folder/results_name).exists() else {} for folder in folders}
+    recipe = dict(model=MODEL, revision=REVISION, transformers="4.52.4", prompt=task_prompt,
                   system_prompt=SYSTEM_PROMPT, max_new_tokens=args.max_new_tokens,
                   seed=args.seed, do_sample=False, dtype="bfloat16", attention="sdpa",
                   sample_rate=16000, max_audio_seconds=30, return_audio=False)
     for folder in folders:
-        settings = folder/SETTINGS
+        settings = folder/settings_name
         if settings.exists() and json.loads(settings.read_text()) != recipe:
             p.error(f"Settings differ in {settings}; use a separate result folder for a new recipe.")
         if saved[folder] and not settings.exists():
@@ -116,8 +125,8 @@ def main():
         torch.cuda.empty_cache()
         print(f"Loaded Qwen; GPU allocated: {torch.cuda.memory_allocated()/2**30:.2f} GiB", flush=True)
         for folder in folders:
-            (folder/SETTINGS).write_text(json.dumps(recipe, indent=2)+"\n")
-        text = processor.apply_chat_template(conversation(), tokenize=False, add_generation_prompt=True)
+            (folder/settings_name).write_text(json.dumps(recipe, indent=2)+"\n")
+        text = processor.apply_chat_template(conversation(task_prompt), tokenize=False, add_generation_prompt=True)
         for index, (folder, task) in enumerate(pending, 1):
             random.seed(args.seed)
             np.random.seed(args.seed)
@@ -144,11 +153,11 @@ def main():
             suffix = generated[:, inputs.input_ids.shape[1]:]
             response = processor.batch_decode(suffix, skip_special_tokens=True,
                                               clean_up_tokenization_spaces=False)[0].strip()
-            score = score_response(response, str(task["answer"]).rsplit("####", 1)[-1].strip())
+            score = score_fn(response, str(task["answer"]).rsplit("####", 1)[-1].strip())
             row = {**{key: task[key] for key in ("audio_path", "question_id", "voice", "style")},
                    **recipe, **score, "response": response, "output_tokens": suffix.shape[1],
                    "generation_seconds": time.monotonic()-start}
-            with (folder/RESULTS).open("a") as handle:
+            with (folder/results_name).open("a") as handle:
                 handle.write(json.dumps(row)+"\n")
                 handle.flush()
             saved[folder][task["audio_path"]] = row
@@ -156,8 +165,10 @@ def main():
                   f"seconds={row['generation_seconds']:.1f}\n{response}\n", flush=True)
     tasks = [{**task, "audio_path": str(folder/task["audio_path"])} for folder, task in selected]
     answers = {str(folder/name): row for folder in folders for name, row in saved[folder].items()}
-    summarize_deliveries(tasks, answers, args.styles)
-    print(f"Saved answers: {RESULTS} in each source folder. Existing DIFFA answers are separate.")
+    if args.task=='commonsenseqa':
+        choice_report(args.paths[0],list(answers.values()),'summary-qwen-commonsenseqa.json')
+    else:summarize_deliveries(tasks, answers, args.styles)
+    print(f"Saved answers: {results_name} in each source folder. Existing DIFFA answers are separate.")
 
 
 if __name__ == "__main__":
