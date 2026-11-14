@@ -114,3 +114,66 @@ def gen(audio,sample_rate, model, tokenizer, fextractor, prompt, max_new_tokens)
             accelerate="fast_dllm",
             )
     return response
+
+
+def chunked_speech_features(audio, sample_rate, model, fextractor, chunk_seconds=30):
+    """Encode chunks separately, then run BOTH adapters once over the joined valid features."""
+    if sample_rate != 16000 or audio.ndim != 1:
+        raise ValueError('Chunk encoder expects mono 16-kHz audio.')
+    if not 0 < chunk_seconds <= 30 or not len(audio):
+        raise ValueError('Need nonempty audio and chunks of at most 30 seconds.')
+    if model.stage != 2:
+        raise ValueError('Chunked audio currently supports DIFFA dual-adapter stage=2 only.')
+    size = int(chunk_seconds * sample_rate)
+    device = next(model.whisper_model.parameters()).device
+    last_states, layer_states, lengths = [], [], []
+    with torch.inference_mode():
+        for start in range(0, len(audio), size):
+            inputs = fextractor(audio[start:start+size], sampling_rate=sample_rate, truncation=False,
+                return_tensors='pt', return_attention_mask=True).to(device)
+            encoded = model.whisper_model(input_features=inputs.input_features,
+                                          attention_mask=inputs.attention_mask)
+            valid = int(encoded.output_lengths[0].item())
+            lengths.append(valid)
+            last_states.append(encoded.last_hidden_state[:, :valid])
+            layer_states.append(tuple(h[:, :valid] for h in encoded.hidden_states))
+        joined_last = torch.cat(last_states, dim=1)
+        joined_layers = tuple(torch.cat([chunk[layer] for chunk in layer_states], dim=1)
+                              for layer in range(len(layer_states[0])))
+        acoustic = model.acoustic_connector(joined_layers)
+        semantic = model.semantic_connector(joined_last)
+        speech = torch.cat([acoustic, semantic], dim=1)
+        mask = torch.ones(speech.shape[:2], dtype=torch.bool, device=speech.device)
+    info = dict(mode='chunked-whisper-global-adapters-v1', chunks=len(lengths),
+        chunk_seconds=chunk_seconds, valid_encoder_frames=lengths,
+        joined_encoder_frames=joined_last.shape[1], acoustic_tokens=acoustic.shape[1],
+        semantic_tokens=semantic.shape[1], sample_rate=sample_rate, samples=len(audio))
+    return speech, mask, info
+
+
+def gen_chunked(audio, sample_rate, model, tokenizer, fextractor, prompt, max_new_tokens,
+                chunk_seconds=30):
+    """Experimental long-audio path. Native-size audio takes the original gen path unchanged."""
+    if not 0 < chunk_seconds <= 30 or not len(audio):
+        raise ValueError('Need nonempty audio and chunks of at most 30 seconds.')
+    if audio.ndim == 2:
+        audio = audio.mean(axis=1)
+    if sample_rate != 16000:
+        audio = librosa.resample(audio, orig_sr=sample_rate, target_sr=16000)
+        sample_rate = 16000
+    if len(audio) <= int(chunk_seconds * sample_rate):
+        return gen(audio, sample_rate, model, tokenizer, fextractor, prompt, max_new_tokens), dict(
+            mode='native', chunks=1, chunk_seconds=chunk_seconds, samples=len(audio), sample_rate=sample_rate)
+    speech, mask, info = chunked_speech_features(audio, sample_rate, model, fextractor, chunk_seconds)
+    with torch.inference_mode():
+        # generate() normally calls this method to encode audio. Use the already
+        # encoded full recording, leaving its prompt construction and decoder unchanged.
+        original = model.get_speech_features
+        model.get_speech_features = lambda *args, **kwargs: (speech, mask)
+        try:
+            response = model.generate(tokenizer, input_audio_features=None, input_audio_mask=None,
+                system_prompt='', input_texts=[prompt], steps=128, block_length=32,
+                max_new_tokens=max_new_tokens, temperature=0., accelerate='fast_dllm')
+        finally:
+            model.get_speech_features = original
+    return response, info

@@ -54,6 +54,23 @@ class BBHTests(unittest.TestCase):
             self.assertEqual(len(tasks), 4)
             self.assertEqual(eligibility['excluded_questions'], ['long'])
             self.assertEqual({r['condition'] for r in tasks}, set(run.STYLES))
+            full, chunked_eligibility = run.recordings(root, bank, allow_long=True)
+            self.assertEqual(len(full), 8)
+            self.assertEqual(chunked_eligibility['excluded_questions'], [])
+            self.assertTrue(any(t['seconds'] > 30 for t in full))
+
+    def test_chunked_smoke_uses_separate_output_and_does_not_generate_audio(self):
+        with tempfile.TemporaryDirectory() as d:
+            output = Path(d)/'smoke'
+            with patch('sys.argv', ['test', '--mode', 'evaluate', '--chunked-audio', '--smoke-test', '--output', str(output)]), \
+                 patch.object(run.subprocess, 'run'), patch.object(run, 'evaluate') as evaluate, \
+                 patch.object(run, 'generate') as generate:
+                run.main()
+            generate.assert_not_called()
+            args = evaluate.call_args.args[0]
+            self.assertTrue(args.chunked_audio)
+            self.assertTrue(args.smoke_test)
+            self.assertEqual(args.chunk_seconds, 30)
 
     def test_wait_happens_before_generation_and_evaluation(self):
         with tempfile.TemporaryDirectory() as d:

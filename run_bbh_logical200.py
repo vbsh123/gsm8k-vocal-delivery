@@ -78,7 +78,7 @@ def generate(args):
     subprocess.run(command, check=True)
 
 
-def recordings(source, bank):
+def recordings(source, bank, allow_long=False):
     groups = {}; durations = []
     for row in read_rows(source/'plan.jsonl'):
         if row['provider'] != 'azure' or row['style'] not in STYLES:
@@ -99,13 +99,15 @@ def recordings(source, bank):
     for (qid, _), group in groups.items():
         if set(group) != set(STYLES):
             raise ValueError('Finish generating all four styles before evaluation.')
-        if any(not 0 < row['seconds'] <= 30 for row in group.values()):
+        if any(row['seconds'] <= 0 or (not allow_long and row['seconds'] > 30) for row in group.values()):
             excluded.append(qid)
         else:
             tasks.extend(dict(group[s], condition=s) for s in STYLES)
     if not tasks:
-        raise ValueError('No matched four-style questions fit 30 seconds.')
-    return tasks, dict(rule='Every style must fit 30 seconds; no cropping or correctness filtering',
+        raise ValueError('No matched four-style questions fit 30 seconds. For unchanged long audio, use --chunked-audio.')
+    rule = ('Every style must be nonempty; full audio encoded in chunks, no cropping or correctness filtering'
+            if allow_long else 'Every style must fit 30 seconds; no cropping or correctness filtering')
+    return tasks, dict(rule=rule,
                        excluded_questions=excluded, durations=durations)
 
 
@@ -116,10 +118,17 @@ def summarize(args):
 
 def evaluate(args):
     bank = {q['question_id']: q for q in read_rows(args.source/'questions.jsonl')}
-    tasks, eligibility = recordings(args.source, bank)
+    chunked = getattr(args, 'chunked_audio', False)
+    tasks, eligibility = recordings(args.source, bank, allow_long=chunked)
+    if getattr(args, 'smoke_test', False):
+        ids = list(dict.fromkeys(t['question_id'] for t in tasks))[:2]
+        tasks = [t for t in tasks if t['question_id'] in ids]
     config = dict(recordings=tasks, eligibility=eligibility, seed=42, prompt=PROMPT,
                   max_new_tokens=512, steps=128, block_length=32, temperature=0., decoder='fast_dllm',
                   interventions=[], source_sha256=SOURCE_SHA256)
+    if chunked:
+        config['audio_encoding'] = dict(mode='chunked-whisper-global-adapters-v1',
+            chunk_seconds=args.chunk_seconds, smoke_test=args.smoke_test)
     path = args.output/'run_config.json'
     if path.exists() and json.loads(path.read_text()) != config:
         raise ValueError('Settings or audio changed; use a separate result folder.')
@@ -135,11 +144,15 @@ def evaluate(args):
             while subprocess.check_output(['nvidia-smi', '--query-compute-apps=pid', '--format=csv,noheader'], text=True).strip():
                 print('Waiting for active GPU work.', flush=True)
                 time.sleep(30)
-            run(pending, bank, args.output)
+            if chunked:
+                run(pending, bank, args.output, chunked=True, chunk_seconds=args.chunk_seconds,
+                    smoke_test=args.smoke_test)
+            else:
+                run(pending, bank, args.output)
     summarize(args)
 
 
-def run(pending, bank, output):
+def run(pending, bank, output, chunked=False, chunk_seconds=30, smoke_test=False):
     cache = Path(os.environ.get('HF_HOME') or next((str(p) for p in
         (Path('/workspace/.hf_home'), Path('/workspace/hf-cache')) if (p/'hub').is_dir()), 'outputs/hf-diffa')).absolute()
     os.environ.update(HF_HOME=str(cache), HF_HUB_CACHE=str(cache/'hub'), HUGGINGFACE_HUB_CACHE=str(cache/'hub'))
@@ -147,21 +160,48 @@ def run(pending, bank, output):
     import numpy as np
     import soundfile as sf
     import torch
-    from extract_vectors import gen, load_model
+    from extract_vectors import gen, gen_chunked, load_model
     model, tokenizer, features = load_model()
+    def reset_seed():
+        random.seed(42); np.random.seed(42); torch.manual_seed(42); torch.cuda.manual_seed_all(42)
+    if smoke_test:
+        audio, sr = sf.read(pending[0]['audio_file'], dtype='float32')
+        short = audio[:int(20*sr)]
+        reset_seed()
+        original = gen(short, sr, model, tokenizer, features, PROMPT, 512)
+        reset_seed()
+        adapted, _ = gen_chunked(short, sr, model, tokenizer, features, PROMPT, 512)
+        if original != adapted:
+            raise ValueError('Short-audio equivalence check failed; no BBH answers saved.')
+        checks = dict(short_audio_identical=True, short_response=original, boundary_checks=[])
+        long_task = max(pending, key=lambda task: task['seconds'])
+        audio, sr = sf.read(long_task['audio_file'], dtype='float32')
+        for boundary in (20, 30):
+            reset_seed()
+            response, encoding = gen_chunked(audio, sr, model, tokenizer, features, PROMPT, 512, boundary)
+            checks['boundary_checks'].append(dict(question_id=long_task['question_id'], style=long_task['style'],
+                response=response, encoding=encoding, custom_scores=score(response, bank[long_task['question_id']])))
+        (output/'chunking-preflight.json').write_text(json.dumps(checks, indent=2)+'\n')
+        print('Short-audio check: identical response. 20s/30s boundary diagnostics saved to chunking-preflight.json.', flush=True)
     for index, task in enumerate(pending, 1):
         path = Path(task['audio_file'])
         if hashlib.sha256(path.read_bytes()).hexdigest() != task['audio_sha256']:
             raise ValueError('BBH audio changed.')
         audio, sr = sf.read(path, dtype='float32')
-        random.seed(42); np.random.seed(42); torch.manual_seed(42); torch.cuda.manual_seed_all(42)
+        reset_seed()
         print(f'[{index}/{len(pending)}] {task["question_id"]} {task["style"]}', flush=True)
         started = time.monotonic()
-        response = gen(audio, sr, model, tokenizer, features, PROMPT, 512)
+        if chunked:
+            response, encoding = gen_chunked(audio, sr, model, tokenizer, features, PROMPT, 512, chunk_seconds)
+            print('Audio encoding:', encoding, flush=True)
+        else:
+            response = gen(audio, sr, model, tokenizer, features, PROMPT, 512)
         row = dict(question_id=task['question_id'], voice=task['voice'], style=task['style'],
             condition=task['style'], audio_path=task['audio_path'], seed=42, prompt=PROMPT,
             max_new_tokens=512, decoder='fast_dllm', response=response,
             generation_seconds=time.monotonic()-started, **score(response, bank[task['question_id']]))
+        if chunked:
+            row['audio_encoding'] = encoding
         with (output/'results.jsonl').open('a') as stream:
             stream.write(json.dumps(row)+'\n')
         print(f'  custom_answer_correct={row["answer_correct"]}; custom_strict_correct={row["correct"]}\n{response}', flush=True)
@@ -171,9 +211,21 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--mode', choices=['all', 'prepare', 'generate', 'evaluate', 'summary'], default='all')
     p.add_argument('--source', type=Path, default=Path('outputs/azure-bbh-logical200'))
-    p.add_argument('--output', type=Path, default=Path('outputs/bbh-logical200-diffa2'))
+    p.add_argument('--output', type=Path)
     p.add_argument('--num-examples', type=int, default=200)
+    p.add_argument('--chunked-audio', action='store_true', help='Encode full unchanged long audio; apply adapters once after feature concatenation')
+    p.add_argument('--chunk-seconds', type=float, default=30, help='Whisper window, at most 30 seconds')
+    p.add_argument('--smoke-test', action='store_true', help='With --chunked-audio: two questions/four styles plus short-audio and boundary checks')
     args = p.parse_args()
+    if not 0 < args.chunk_seconds <= 30:
+        p.error('--chunk-seconds must be >0 and <=30')
+    if args.smoke_test and not args.chunked_audio:
+        p.error('--smoke-test requires --chunked-audio')
+    if args.output is None:
+        name = 'outputs/bbh-logical200-diffa2'
+        if args.chunked_audio:
+            name += '-chunked-smoke' if args.smoke_test else '-chunked'
+        args.output = Path(name)
     args.output.mkdir(parents=True, exist_ok=True)
     if args.mode == 'summary':
         summarize(args)

@@ -53,3 +53,49 @@ Summary without GPU work, including during evaluation:
 
 Recordings and listening page: `outputs/azure-bbh-logical200/`.
 Raw answers, eligibility/config and summaries: `outputs/bbh-logical200-diffa2/`.
+
+## Experimental unchanged long audio
+
+The full BBH recordings proved too long for matched four-style native evaluation.
+`--chunked-audio` reuses these exact WAVs without time stretching, cropping or TTS.
+Whisper encodes nonoverlapping windows of at most 30 seconds. Valid hidden frames
+from each encoder layer are concatenated chronologically, removing padded frames.
+The existing semantic adapter and acoustic Q-former each run **once** on the
+joined features, producing one semantic sequence and one 64-token acoustic summary.
+Weights, text prompt, seed and fast-dLLM settings remain unchanged. Short audio
+uses the original generator directly.
+
+This is a new inference adaptation, not native trained long-context support.
+Whisper positions restart in each window and encoder attention cannot cross
+window boundaries. The downstream adapters see longer feature sequences. This
+must be reported as experimental chunked inference.
+
+First run two original questions in all four styles, with one model load:
+
+```bash
+nohup .venv-diffa/bin/python -u run_bbh_logical200.py \
+  --mode evaluate --chunked-audio --smoke-test \
+  > outputs/bbh-chunked-smoke.log 2>&1 < /dev/null &
+tail -f outputs/bbh-chunked-smoke.log
+```
+
+The smoke output is separate: `outputs/bbh-logical200-diffa2-chunked-smoke/`.
+It checks identical generated responses on a short excerpt using the native and
+wrapper paths, then saves responses for the same long recording with 20s/30s
+boundaries in `chunking-preflight.json`. Boundary diagnostics aren't part of the
+main accuracy table. The eight main smoke answers use 30-second windows.
+Logs and answer rows include chunk counts, valid encoder frames and adapter token
+counts. Inspect those responses and diagnostics before interpreting full results.
+
+The full run uses the same 200 selected questions/all 800 original recordings:
+
+```bash
+nohup .venv-diffa/bin/python -u run_bbh_logical200.py \
+  --mode evaluate --chunked-audio \
+  > outputs/bbh-chunked.log 2>&1 < /dev/null &
+```
+
+Full answers go to `outputs/bbh-logical200-diffa2-chunked/`. Smoke answers are
+kept separate; a full run evaluates them again using the full-run configuration.
+Use `--mode summary --chunked-audio` for the full summary, or add `--smoke-test`
+for the smoke summary. Both use the pinned upstream BBH evaluator.
