@@ -1,4 +1,4 @@
-"""Learn a CommonsenseQA angry-minus-neutral L31 mean on 250 pairs; test the other 250."""
+"""Learn CommonsenseQA angry-minus-neutral means on 250 pairs; test L12/L31 on the other 250."""
 
 import argparse
 import fcntl
@@ -14,7 +14,9 @@ from evaluate_commonsense_audio import PROMPT,score_choice
 from extract_audio_vectors import save_tensor,GROUPS
 from steer import read_rows,summarize,install_interventions
 
-CONDITIONS=[dict(name='baseline',interventions=[]),dict(name='L31-answer-a1',interventions=[dict(layer=31,group='answer',strength=1)])]
+TARGETS=[(12,'acoustic'),(31,'answer')]
+CONDITIONS=[dict(name='baseline',interventions=[])]+[
+    dict(name=f'L{layer}-{group}-a1',interventions=[dict(layer=layer,group=group,strength=1)]) for layer,group in TARGETS]
 
 
 def split_recordings(records,count):
@@ -35,7 +37,7 @@ def split_recordings(records,count):
 
 
 def report(output):
-    print('CommonsenseQA: held-out neutral recordings, L31 answer x1, own angry-minus-neutral mean.',flush=True)
+    print('CommonsenseQA: held-out neutral recordings, L12 acoustic/L31 answer x1, own angry-minus-neutral means.',flush=True)
     values=summarize(read_rows(output/'results.jsonl'),CONDITIONS)
     (output/'summary.json').write_text(json.dumps(values,indent=2)+'\n')
     return values
@@ -44,7 +46,7 @@ def report(output):
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--benchmark',type=Path,default=Path('outputs/commonsenseqa-diffa2'))
-    p.add_argument('--output',type=Path,default=Path('outputs/commonsenseqa-L31-mean'))
+    p.add_argument('--output',type=Path,default=Path('outputs/commonsenseqa-angry-mean'))
     p.add_argument('--extract-count',type=int,default=250)
     p.add_argument('--prepare-only',action='store_true')
     p.add_argument('--summary-only',action='store_true')
@@ -54,7 +56,7 @@ def main():
     if source['prompt']!=PROMPT or source['seed']!=42 or source['max_new_tokens']!=512:
         p.error('Expected the existing seed42 CommonsenseQA DIFFA benchmark')
     train,test=split_recordings(source['recordings'],args.extract_count)
-    plan=dict(extraction=train,test=test,seed=42,prompt=PROMPT,layer=31,group='answer',strength=1,
+    plan=dict(extraction=train,test=test,seed=42,prompt=PROMPT,targets=[dict(layer=l,group=g,strength=1) for l,g in TARGETS],
               averaging='mean of matched-forward angry-minus-neutral differences; equal weight per question')
     config=args.output/'split.json'
     if config.exists() and json.loads(config.read_text())!=plan:p.error('Frozen split changed; use a new output')
@@ -81,6 +83,7 @@ def run(plan,benchmark,output):
     import numpy as np
     import soundfile as sf
     import torch
+    import src.fast_dllm.diffa_generate as decoder
     from extract_vectors import gen,load_model
     pairs_dir=output/'pairs';pairs_dir.mkdir(exist_ok=True)
     test={r['audio_path']:r for r in plan['test']}
@@ -100,9 +103,13 @@ def run(plan,benchmark,output):
                 stream.write(json.dumps(baseline)+'\n');complete.add(key)
     if any((key,'baseline') not in complete for key in test):raise ValueError('Finish unsteered benchmark before steering')
     pending=[(i,pair) for i,pair in enumerate(plan['extraction']) if not (pairs_dir/f'{i:05d}.pt').exists()]
-    needed=[task for key,task in test.items() if (key,'L31-answer-a1') not in complete]
+    needed=[task for key,task in test.items() if any((key,c['name']) not in complete for c in CONDITIONS[1:])]
     if not pending and not needed:report(output);return
-    model,tokenizer,features=load_model();layer=model.llm_model.model.transformer.blocks[31]
+    model,tokenizer,features=load_model();layers=model.llm_model.model.transformer.blocks
+    bounds={};original=decoder.insert_audio_embedding
+    def insert(text,speech,lengths):
+        start=int(lengths[0].item());bounds.update(start=start,acoustic_end=start+model.config.prompt_size)
+        return original(text,speech,lengths)
     def generate(task):
         file=Path(task['audio_file']);stat=file.stat()
         if stat.st_size!=task['audio_bytes'] or stat.st_mtime_ns!=task['audio_mtime_ns']:raise ValueError('Source recording changed')
@@ -112,36 +119,48 @@ def run(plan,benchmark,output):
         random.seed(42);np.random.seed(42);torch.manual_seed(42);torch.cuda.manual_seed_all(42)
         return gen(a,16000,model,tokenizer,features,PROMPT,512)
     def capture(task):
-        values=[]
-        def hook(module,inputs,result):values.append(result[0][0,-512:].float().mean(0).cpu())
-        handle=layer.register_forward_hook(hook)
+        values=[[] for _ in TARGETS]
+        def hook_for(index,group):
+            def hook(module,inputs,result):
+                positions=slice(-512,None) if group=='answer' else slice(bounds['start'],bounds['acoustic_end'])
+                values[index].append(result[0][0,positions].float().mean(0).cpu())
+            return hook
+        handles=[layers[layer].register_forward_hook(hook_for(i,group)) for i,(layer,group) in enumerate(TARGETS)]
+        decoder.insert_audio_embedding=insert
         try:response=generate(task)
-        finally:handle.remove()
-        return response,torch.stack(values)
+        finally:
+            decoder.insert_audio_embedding=original
+            for handle in handles:handle.remove()
+        return response,torch.stack([torch.stack(v) for v in values])
     for i,pair in pending:
         print(f'Collect [{i+1}/{len(plan["extraction"])}] {pair["question_id"]} neutral + angry',flush=True)
-        nr,n=capture(pair['neutral']);ar,a=capture(pair['angry']);steps=min(len(n),len(a))
-        value=dict(question_id=pair['question_id'],difference=(a[:steps]-n[:steps]).mean(0),
-                   neutral_response=nr,angry_response=ar,neutral_forwards=len(n),angry_forwards=len(a),matched_forwards=steps)
+        nr,n=capture(pair['neutral']);ar,a=capture(pair['angry']);steps=min(n.shape[1],a.shape[1])
+        value=dict(question_id=pair['question_id'],difference=(a[:,:steps]-n[:,:steps]).mean(1),
+                   neutral_response=nr,angry_response=ar,neutral_forwards=n.shape[1],angry_forwards=a.shape[1],matched_forwards=steps)
         save_tensor(torch,value,pairs_dir/f'{i:05d}.pt')
     values=[torch.load(pairs_dir/f'{i:05d}.pt',map_location='cpu',weights_only=True) for i in range(len(plan['extraction']))]
     if any(v['question_id']!=p['question_id'] for v,p in zip(values,plan['extraction'])):raise ValueError('Pair cache differs from split')
     total=torch.stack([v['difference'] for v in values]).sum(0);direction=total/len(values)
-    sums=torch.zeros(32,len(GROUPS),len(direction));sums[31,GROUPS.index('answer')]=total
-    counts=torch.zeros(32,dtype=torch.long);counts[31]=len(values)
+    sums=torch.zeros(32,len(GROUPS),direction.shape[-1]);counts=torch.zeros(32,dtype=torch.long)
+    for i,(layer,group) in enumerate(TARGETS):
+        sums[layer,GROUPS.index(group)]=total[i];counts[layer]=len(values)
     save_tensor(torch,dict(pair_mean_sums={'angry':sums},pair_counts={'angry':counts},groups=GROUPS,
-        prompt=PROMPT,max_new_tokens=512,seed=42,mode='fixed',method='mean',collected_targets=[(31,'answer')],
+        prompt=PROMPT,max_new_tokens=512,seed=42,mode='fixed',method='mean',collected_targets=TARGETS,
         extraction_question_ids=[p['question_id'] for p in plan['extraction']],averaging=plan['averaging']),output/'style-vectors.pt')
-    directions={(31,'answer'):direction.to(device='cuda',dtype=torch.bfloat16)}
+    directions={target:direction[i].to(device='cuda',dtype=torch.bfloat16) for i,target in enumerate(TARGETS)}
     for index,task in enumerate(needed,1):
-        print(f'Steer [{index}/{len(needed)}] {task["question_id"]} L31 answer x1',flush=True)
-        with install_interventions(model.llm_model.model.transformer.blocks,directions,CONDITIONS[1]['interventions'],{},512):
-            response=generate(task)
-        row=dict(audio_path=task['audio_path'],clip_id=task['audio_path'],question_id=task['question_id'],
-            voice=task['voice'],style='neutral',condition='L31-answer-a1',seed=42,prompt=PROMPT,response=response,
-            **score_choice(response,task['answer']))
-        with (output/'results.jsonl').open('a') as stream:stream.write(json.dumps(row)+'\n')
-        print(f'  correct={row["correct"]} answer={row["predicted_answer"]}',flush=True)
+        for condition in CONDITIONS[1:]:
+            if (task['audio_path'],condition['name']) in complete:continue
+            print(f'Steer [{index}/{len(needed)}] {task["question_id"]} {condition["name"]}',flush=True)
+            decoder.insert_audio_embedding=insert
+            try:
+                with install_interventions(layers,directions,condition['interventions'],bounds,512):response=generate(task)
+            finally:decoder.insert_audio_embedding=original
+            row=dict(audio_path=task['audio_path'],clip_id=task['audio_path'],question_id=task['question_id'],
+                voice=task['voice'],style='neutral',condition=condition['name'],seed=42,prompt=PROMPT,response=response,
+                **score_choice(response,task['answer']))
+            with (output/'results.jsonl').open('a') as stream:stream.write(json.dumps(row)+'\n')
+            print(f'  correct={row["correct"]} answer={row["predicted_answer"]}',flush=True)
     report(output)
 
 

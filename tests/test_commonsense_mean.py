@@ -31,7 +31,7 @@ class CommonsenseMeanTests(unittest.TestCase):
             with patch('sys.argv',['test','--benchmark',str(bench),'--output',str(root/'out'),'--prepare-only']):main()
             split=json.loads((root/'out/split.json').read_text())
             self.assertEqual((len(split['extraction']),len(split['test'])),(250,250))
-            self.assertEqual((split['layer'],split['group'],split['strength']),(31,'answer',1))
+            self.assertEqual(split['targets'],[dict(layer=12,group='acoustic',strength=1),dict(layer=31,group='answer',strength=1)])
 
     def test_strength_sweep_leaves_existing_timing_defaults_unchanged(self):
         self.assertEqual([r['schedule'] for r in conditions()[1:]],['early','middle','late'])
