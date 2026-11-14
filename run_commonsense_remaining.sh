@@ -7,7 +7,7 @@ mkdir -p outputs
 echo 'STAGE: Rescore existing CommonsenseQA answers (CPU only)'
 "$PYTHON" -u audit_commonsense_scoring.py
 "$PYTHON" -u rescore_audio_steering.py --task commonsenseqa \
-  --output outputs/commonsenseqa-independent-audit
+  --output outputs/commonsenseqa-independent-audit-v2
 
 echo 'STAGE: Generate the 721 unused validation questions, neutral only (Azure, no GPU)'
 "$PYTHON" -u generate_commonsense_azure.py \

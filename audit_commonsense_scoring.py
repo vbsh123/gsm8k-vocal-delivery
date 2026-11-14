@@ -12,6 +12,8 @@ import zipfile
 from evaluate_commonsense_audio import score_choice,STYLES
 from steer import read_rows
 
+RELAXED_SCORER_VERSION='choice-relaxed-v2'
+
 
 def normalized(text):
     return re.sub(r'\W+',' ',text.casefold()).strip()
@@ -21,26 +23,30 @@ def relaxed_choice(response,choices):
     """Extract without receiving the gold answer; never search reasoning for it."""
     clean=response.replace('**','').replace('__','').replace('`','')
     clean=re.sub(r'\\boxed\{([^{}]*)\}',r'\1',clean)
-    labels=list(re.finditer(r'(?:final\s+(?:answer|choice)|(?:the\s+)?(?:correct\s+)?(?:answer|choice))\s*(?::|is\b)',clean,re.I))
+    labels=list(re.finditer(r'\b(?:final(?:\s+(?:answer|choice))?|(?:the\s+)?(?:correct\s+)?(?:answer|choice))\s*(?::|is\b)',clean,re.I))
     lines=(clean[labels[-1].end():].strip().splitlines() if labels else [l.strip() for l in clean.splitlines() if l.strip()][-1:])
     if not lines:return None
     answer=lines[0].strip().strip('$')
-    match=re.match(r'^(?:(?:option|choice)\s+)?[\(\[]?([A-E])[\)\]]?(?=$|[\s.,:;!/?–—-])',answer,re.I)
+    answer=re.sub(r'\s+is\s+(?:the\s+)?(?:correct\s+)?(?:answer|choice)[.!]?\s*$','',answer,flags=re.I)
     by_text=defaultdict(list)
     for choice in choices:by_text[normalized(choice['text'])].append(choice['label'])
+    mapped=by_text.get(normalized(answer),[])
+    if mapped:return mapped[0] if len(mapped)==1 else None
+    repeated=re.fullmatch(r'\(?([A-E])\)?\s*[:.,;\s]\s*\(?\1\)?[.!]?',answer,re.I)
+    if repeated:return repeated[1].upper()
+    match=re.match(r'^(?:(?:option|choice)\s+)?[\(\[]?([A-E])[\)\]]?(?=$|[\s.,:;!/?–—-])',answer,re.I)
     if match:
         letter=match[1].upper();suffix=answer[match.end():]
-        if re.match(r'\s*(?:or|and|/|,)\s*(?:(?:option|choice)\s+)?[\(\[]?[A-E]\b',suffix,re.I):return None
+        if re.match(r'\s*(?:or|and|/)\s*(?:(?:option|choice)\s+)?[\(\[]?[A-E]\b',suffix,re.I):return None
         remainder=normalized(suffix)
         if not remainder:return letter
-        if re.match(r'^[\s.,;:/–—-]+(?:(?:option|choice)\s+)?[A-E](?=$|[\s.):])',suffix,re.I):return None
+        if re.match(r'^[\s.,;:/–—-]+(?:(?:option|choice)\s+)?[A-E](?=$|[).:]|\s*$)',suffix,re.I):return None
         mapped=by_text.get(remainder,[])
         if mapped:return letter if mapped==[letter] else None
         if re.fullmatch(r'[A-E](?:\s+(?:or|and)\s+[A-E])*',remainder,re.I):return None
         # With an explicit answer label, explanatory prose after one letter is allowed.
         return letter if labels else None
-    mapped=by_text.get(normalized(answer),[])
-    return mapped[0] if len(mapped)==1 else None
+    return None
 
 
 def scored(row,bank):
@@ -64,7 +70,7 @@ def accuracy_table(title,groups,bank):
         sf=sum(v['strict_parse_failed'] for v in values);rf=sum(v['relaxed_parse_failed'] for v in values)
         print(f'{label:25} {n:5} {a/n:9.1%} {b/n:9.1%} {100*(b-a)/n:+7.2f} {sf:17} {rf:18}')
         summary.append(dict(table=title,condition=label,n=n,strict_correct=a,relaxed_correct=b,
-                            strict_parse_failed=sf,relaxed_parse_failed=rf))
+                            strict_parse_failed=sf,relaxed_parse_failed=rf,relaxed_scorer_version=RELAXED_SCORER_VERSION))
     return summary
 
 
@@ -110,9 +116,10 @@ def main():
     p.add_argument('--source',type=Path,default=Path('outputs/azure-commonsenseqa500'))
     p.add_argument('--diffa',type=Path,default=Path('outputs/commonsenseqa-diffa2'))
     p.add_argument('--steering',type=Path,default=Path('outputs/commonsenseqa-angry-mean'))
-    p.add_argument('--output',type=Path,default=Path('outputs/commonsenseqa-scoring-audit'))
+    p.add_argument('--output',type=Path,default=Path('outputs/commonsenseqa-scoring-audit-v2'))
     p.add_argument('--export-examples',action='store_true')
     args=p.parse_args();args.output.mkdir(parents=True,exist_ok=True)
+    print('Custom relaxed scorer:',RELAXED_SCORER_VERSION)
     bank={r['question_id']:r for r in read_rows(args.source/'questions.jsonl')}
     if not bank:raise ValueError('Question/choice metadata is missing')
     summary=[];diffa=read_rows(args.diffa/'results.jsonl')

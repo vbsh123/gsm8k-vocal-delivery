@@ -23,5 +23,19 @@ class RelaxedChoiceTests(unittest.TestCase):
         choices=self.choices+[dict(label='F',text='library')]
         self.assertIsNone(relaxed_choice('Final answer: library',choices))
 
+    def test_sentence_article_is_not_an_alternative_choice(self):
+        for response in ['The correct answer is B. A library is where books are kept.',
+                         'Answer: B, a library is where books are kept.']:
+            self.assertEqual(relaxed_choice(response,self.choices),'B')
+        for response in ['Final answer: B. C','Final answer: B, C','Final answer: B: C']:
+            self.assertIsNone(relaxed_choice(response,self.choices))
+
+    def test_consistent_repetition_final_label_and_answer_text_sentence(self):
+        for response in ['B: B','Final answer: B B.','Final: B','Library is the correct answer.']:
+            self.assertEqual(relaxed_choice(response,self.choices),'B')
+        choices=[dict(label=k,text=v) for k,v in zip('ABCDE',['shop','a library','bank','park','station'])]
+        self.assertEqual(relaxed_choice('Answer: a library',choices),'B')
+        self.assertIsNone(relaxed_choice('B: C',self.choices))
+
 
 if __name__=='__main__':unittest.main()

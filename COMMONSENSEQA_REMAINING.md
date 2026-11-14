@@ -5,10 +5,12 @@ On the CommonsenseQA/evaluation machine, from the repository:
 ```bash
 .venv-diffa/bin/python -u audit_commonsense_scoring.py
 .venv-diffa/bin/python -u rescore_audio_steering.py --task commonsenseqa \
-  --output outputs/commonsenseqa-independent-audit
+  --output outputs/commonsenseqa-independent-audit-v2
 ```
 
 The first command compares strict/relaxed scoring for every available delivery and model. The second checks gold answers against the original checksum-verified CommonsenseQA source, and reports paired baseline/steering gains, McNemar p-values and 200,000-resample paired bootstrap confidence intervals. Full scoring disagreements are exported for inspection. The independent choice parser is not an official CommonsenseQA harness task.
+
+The corrected custom relaxed scorer is `choice-relaxed-v2`. It accepts consistent repeated letters (`C: C`), `Final: C`, exact choice text followed by “is the correct answer”, and sentences such as “D. A pet store ...” without treating the article A as another option. Conflicting letters remain unparseable. Scoring accepts only explicit choices and never receives the gold answer during extraction. The main audit defaults to `outputs/commonsenseqa-scoring-audit-v2`, preserving the previous audit folder. Raw generation files and strict scoring are unchanged.
 
 On the GSM8K/steering machine:
 

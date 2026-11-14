@@ -11,7 +11,7 @@ from pathlib import Path
 import re
 from urllib.request import Request, urlopen
 
-from audit_commonsense_scoring import relaxed_choice
+from audit_commonsense_scoring import relaxed_choice,RELAXED_SCORER_VERSION
 from evaluate_commonsense_audio import score_choice
 from scoring import score_response
 from steer import read_rows
@@ -78,8 +78,8 @@ def report(rows,task,bank,output,label,RegexFilter=None):
             strict=m[1].upper() if m else None
             relaxed=relaxed_choice(response,bank[key[0]]['choices'])
             scores={'current_strict':score_choice(response,gold)['correct'],
-                'independent_strict':strict==gold,'relaxed_choice':relaxed==gold}
-            extracted=dict(independent_strict=strict,relaxed_choice=relaxed)
+                'independent_strict':strict==gold,RELAXED_SCORER_VERSION:relaxed==gold}
+            extracted=dict(independent_strict=strict,relaxed_choice=relaxed,relaxed_scorer_version=RELAXED_SCORER_VERSION)
         else:
             match=re.fullmatch(r'(?:spoken_)?gsm8k_test_(\d+)(?:__.*)?',key[0])
             if not match:raise ValueError(f'Unknown GSM8K source ID: {key[0]}')
@@ -142,7 +142,7 @@ def main():
     p.add_argument('--source',type=Path,default=Path('outputs/azure-commonsenseqa500'))
     p.add_argument('--results',nargs='+',type=Path)
     p.add_argument('--conditions',nargs='+',default=['L31-answer-a1','L31-answer-a1-periodic2'])
-    p.add_argument('--output',type=Path,default=Path('outputs/independent-scoring-audit'))
+    p.add_argument('--output',type=Path,default=Path('outputs/independent-scoring-audit-v2'))
     args=p.parse_args()
     if args.task=='commonsenseqa':commonsense_reports(args.original,args.extension,args.source,args.output);return
     if not args.results:p.error('GSM8K needs --results with the saved results.jsonl files to pool')
