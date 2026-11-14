@@ -17,12 +17,12 @@ SOURCE_SHA256='3210497fdaae614ac085d9eb873dd7f4d49b6f965a93adadc803e1229fd8a02a'
 STYLES=['neutral','angry','happy','sad']
 
 
-def questions(source,count):
+def questions(source,count,start=0):
     rows=[json.loads(line) for line in source.splitlines() if line.strip()]
-    if not 1<=count<=len(rows):
+    if start<0 or not 1<=count<=len(rows)-start:
         raise ValueError(f'Need 1–{len(rows)} questions')
     selected=[]
-    for index,row in enumerate(rows[:count]):
+    for index,row in enumerate(rows[start:start+count],start=start):
         choices=row['question']['choices']
         if [c['label'] for c in choices]!=list('ABCDE') or row['answerKey'] not in 'ABCDE':
             raise ValueError(f'Unexpected choice labels: {row["id"]}')
@@ -58,6 +58,8 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--output',type=Path,default=Path('outputs/azure-commonsenseqa500'))
     p.add_argument('--num-examples',type=int,default=500)
+    p.add_argument('--start-index',type=int,default=0)
+    p.add_argument('--styles',nargs='+',choices=STYLES,default=STYLES)
     p.add_argument('--prepare-only',action='store_true',help='Download and freeze requests without Azure API calls')
     args=p.parse_args()
     args.output.mkdir(parents=True,exist_ok=True)
@@ -74,19 +76,19 @@ def main():
         data=source.read_bytes()
         if hashlib.sha256(data).hexdigest()!=SOURCE_SHA256:
             raise ValueError('Cached source dataset checksum differs')
-        selected=questions(data,args.num_examples)
+        selected=questions(data,args.num_examples,args.start_index)
         text=''.join(json.dumps(row,ensure_ascii=False)+'\n' for row in selected)
         bank=args.output/'questions.jsonl'
         if bank.exists() and bank.read_text()!=text:
             raise ValueError('Selected questions changed; use a different output folder')
         bank.write_text(text,encoding='utf-8')
-        print(f'{len(selected)} fixed validation questions × 4 styles = {4*len(selected)} Azure clips.',flush=True)
+        print(f'{len(selected)} fixed validation questions × {len(args.styles)} styles = {len(args.styles)*len(selected)} Azure clips.',flush=True)
         print('Jenny; style intensity 1.5; happy uses Azure cheerful. All five choices are spoken; the answer key is not.',flush=True)
-        print(f'Spoken characters across all requests: {4*sum(len(r["question"]) for r in selected):,}.',flush=True)
+        print(f'Spoken characters across all requests: {len(args.styles)*sum(len(r["question"]) for r in selected):,}.',flush=True)
         command=[sys.executable,'-u',str(Path(__file__).with_name('cloud_tts_smoke.py')),
                  '--provider','azure','--azure-voice','en-US-JennyNeural','--azure-intensity','1.5',
                  '--input-jsonl',str(bank),'--num-examples',str(len(selected)),
-                 '--styles',*STYLES,'--output',str(args.output),'--resume','--retry-passes','5']
+                 '--styles',*args.styles,'--output',str(args.output),'--resume','--retry-passes','5']
         if args.prepare_only:command.append('--prepare-only')
         subprocess.run(command,check=True)
         if not args.prepare_only:duration_report(args.output)
