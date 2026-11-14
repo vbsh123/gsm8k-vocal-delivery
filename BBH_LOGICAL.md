@@ -52,7 +52,7 @@ Summary without GPU work, including during evaluation:
 ```
 
 Recordings and listening page: `outputs/azure-bbh-logical200/`.
-Raw answers, eligibility/config and summaries: `outputs/bbh-logical200-diffa2/`.
+Raw answers, eligibility/config and summaries: `outputs/bbh-logical200-diffa2-harness/`.
 
 ## Experimental unchanged long audio
 
@@ -79,7 +79,7 @@ nohup .venv-diffa/bin/python -u run_bbh_logical200.py \
 tail -f outputs/bbh-chunked-smoke.log
 ```
 
-The smoke output is separate: `outputs/bbh-logical200-diffa2-chunked-smoke/`.
+The smoke output is separate: `outputs/bbh-logical200-diffa2-harness-chunked-smoke/`.
 It checks identical generated responses on a short excerpt using the native and
 wrapper paths, then saves responses for the same long recording with 20s/30s
 boundaries in `chunking-preflight.json`. Boundary diagnostics aren't part of the
@@ -95,7 +95,18 @@ nohup .venv-diffa/bin/python -u run_bbh_logical200.py \
   > outputs/bbh-chunked.log 2>&1 < /dev/null &
 ```
 
-Full answers go to `outputs/bbh-logical200-diffa2-chunked/`. Smoke answers are
+Full answers go to `outputs/bbh-logical200-diffa2-harness-chunked/`. Smoke answers are
 kept separate; a full run evaluates them again using the full-run configuration.
 Use `--mode summary --chunked-audio` for the full summary, or add `--smoke-test`
 for the smoke summary. Both use the pinned upstream BBH evaluator.
+
+## Harness-aligned answer instruction
+
+New runs explicitly request `The answer is (<letter>).`, with a parenthesized
+A/B/C and final period, matching the upstream strict extractor. The text wrapper
+includes the task description and “Let's think step by step” convention from the
+zero-shot harness. It is still an audio adaptation, not the exact text prompt.
+The instruction is identical across styles. Progress logs now show actual harness
+strict/flexible correctness; the old custom Final-answer score remains a legacy
+field only. Outputs use the `-harness` name to keep previous prompt runs separate.
+Existing recordings are reused without any regeneration.

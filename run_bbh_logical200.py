@@ -21,9 +21,10 @@ REVISION = '9ee07bd481feebf959a6b59d61ea57bdcf30964d'
 SOURCE_URL = f'https://raw.githubusercontent.com/suzgunmirac/BIG-Bench-Hard/{REVISION}/bbh/logical_deduction_three_objects.json'
 SOURCE_SHA256 = 'e590fae72e3a6041fbd23bd8ff6b74baf44ca563f6ba40a041c55e7b867c1681'
 STYLES = ['neutral', 'angry', 'sad', 'happy']
-PROMPT = ('Solve the logical deduction problem in the audio. The audio includes three choices labeled A, B, C. '
-          'Give concise reasoning. End with one plain-text line in exactly this format: Final answer: <letter>. '
-          'Give only one letter from A to C on that line.')
+PROMPT = ('A logical deduction task which requires deducing the order of a sequence of objects. '
+          'Solve the problem in the audio, including its three choices A, B, C. '
+          "Let's think step by step. End with exactly one plain-text line in this format: "
+          'The answer is (<letter>). Replace <letter> with the correct option A, B, or C.')
 
 
 def select_questions(data, count=200):
@@ -161,6 +162,8 @@ def run(pending, bank, output, chunked=False, chunk_seconds=30, smoke_test=False
     import soundfile as sf
     import torch
     from extract_vectors import gen, gen_chunked, load_model
+    from score_bbh_harness import HarnessScorer
+    harness = HarnessScorer(output/'harness/upstream')
     model, tokenizer, features = load_model()
     def reset_seed():
         random.seed(42); np.random.seed(42); torch.manual_seed(42); torch.cuda.manual_seed_all(42)
@@ -200,11 +203,15 @@ def run(pending, bank, output, chunked=False, chunk_seconds=30, smoke_test=False
             condition=task['style'], audio_path=task['audio_path'], seed=42, prompt=PROMPT,
             max_new_tokens=512, decoder='fast_dllm', response=response,
             generation_seconds=time.monotonic()-started, **score(response, bank[task['question_id']]))
+        question = bank[task['question_id']]
+        values = harness.score([response], [dict(input=question['original_input'], target=question['original_target'])])
+        row['harness'] = {name: results[0] for name, results in values.items()}
         if chunked:
             row['audio_encoding'] = encoding
         with (output/'results.jsonl').open('a') as stream:
             stream.write(json.dumps(row)+'\n')
-        print(f'  custom_answer_correct={row["answer_correct"]}; custom_strict_correct={row["correct"]}\n{response}', flush=True)
+        status = '; '.join(f'{name}={value["correct"]}' for name, value in row['harness'].items())
+        print(f'  {status}\n{response}', flush=True)
 
 
 def main():
@@ -222,7 +229,7 @@ def main():
     if args.smoke_test and not args.chunked_audio:
         p.error('--smoke-test requires --chunked-audio')
     if args.output is None:
-        name = 'outputs/bbh-logical200-diffa2'
+        name = 'outputs/bbh-logical200-diffa2-harness'
         if args.chunked_audio:
             name += '-chunked-smoke' if args.smoke_test else '-chunked'
         args.output = Path(name)

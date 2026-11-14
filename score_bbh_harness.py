@@ -157,10 +157,13 @@ def report_saved(output, source, destination=None, cache=None):
                 print(f'  {style} vs neutral: {result["gain_pp"]:+.2f} pp; W/L={result["wins"]}/{result["losses"]}; p={result["mcnemar_exact_p"]:.4f}')
     summary = dict(scorer=scorer.provenance, matched_questions=len(matched),
                    unmatched_rows_excluded=len(latest)-len(rows), accuracy=accuracy, paired=comparisons,
-                   inference_protocol='Existing audio prompts/native DIFFA decoding unchanged; evaluator migration only')
+                   inference_protocol='Audio-adapted saved generations; raw responses and recorded generation settings unchanged by this scoring audit')
     (destination/'summary.json').write_text(json.dumps(summary, indent=2)+'\n')
     (destination/'rescored.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rescored))
-    print('Strict extraction expects the upstream answer phrase; the existing Final answer prompt may not satisfy it.')
+    if any('Final answer:' in r.get('prompt', '') for r in rows):
+        print('Legacy Final-answer prompt detected: strict extraction expects a different upstream answer phrase.')
+    else:
+        print('Strict extraction expects the upstream answer phrase, e.g. The answer is (A).')
     print('Flexible extraction may match choices mentioned in reasoning; upstream behavior is preserved. Paired tests are unadjusted.')
     return summary
 

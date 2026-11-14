@@ -1,10 +1,9 @@
 # BBH upstream scoring
 
 `run_bbh_logical200.py` now uses EleutherAI lm-evaluation-harness BBH CoT zero-shot
-answer filters and its exact-match metric for its final summary. Existing raw
-generations, audio, prompts, targets and decoding are unchanged. Per-generation
-progress fields remain explicitly labeled custom diagnostics; the final harness
-summary is the evaluator result.
+answer filters and its exact-match metric for its final summary. Existing raw generations and audio remain unchanged. New runs request the
+upstream-compatible answer phrase and use separate `-harness` output folders.
+Per-generation progress and final summaries report actual harness scores.
 
 This uses the standard EleutherAI harness implementation, not an evaluator
 published by the BBH paper authors. It is an **audio-adapted evaluation with
@@ -16,15 +15,15 @@ https://github.com/EleutherAI/lm-evaluation-harness/blob/main/lm_eval/tasks/bbh/
 - `flexible-extract`: upstream BBH MultiChoiceRegexFilter, including its fallback
   rules for option text and colon-prefixed letters, then upstream TakeFirstFilter.
 - `strict-match`: upstream RegexFilter, then TakeFirstFilter. It expects phrases
-  such as `The answer is (B).`, not our existing `Final answer: B` instruction.
+  such as `The answer is (B).`, the new requested answer format. Earlier runs requested `Final answer: B`.
 - Both use the upstream exact_match function and normalization from the task's
   included template, against the original `(A)`/`(B)`/`(C)` target.
 
 No responses are reformatted to make them pass. No stop sequences are applied
 retroactively. Flexible extraction may pick choices mentioned in reasoning: that
-is the upstream behavior, not a custom correction. Strict results can be low
-because our generation prompt requests a different final marker. A separate
-prompt-format experiment would require new generations and a new output folder.
+is the upstream behavior, not a custom correction. Earlier Final-answer runs can have zero strict accuracy despite correct answers.
+New runs explicitly request the upstream phrase; this requires new generations,
+using the same saved audio and a separate output folder.
 
 ## Rescore without rerunning the model
 
@@ -44,7 +43,7 @@ python run_bbh_logical200.py --mode summary
 
 No GPU, Azure key, model downloads or new model environment are needed. The first
 call fetches a few small upstream source/config files. Their Git revision and
-SHA256 hashes are saved under `outputs/bbh-logical200-diffa2/harness/upstream/`.
+SHA256 hashes are saved under each result folder’s `harness/upstream/`.
 Existing caches are checked for source changes on subsequent calls.
 
 To avoid installing the full harness and its model dependencies, the adapter

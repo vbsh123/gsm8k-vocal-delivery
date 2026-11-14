@@ -72,6 +72,26 @@ class BBHTests(unittest.TestCase):
             self.assertTrue(args.smoke_test)
             self.assertEqual(args.chunk_seconds, 30)
 
+    def test_aligned_prompt_uses_new_default_folder(self):
+        with patch('sys.argv', ['test', '--mode', 'summary', '--chunked-audio']), \
+             patch.object(run, 'summarize') as summarize:
+            run.main()
+        self.assertEqual(summarize.call_args.args[0].output, Path('outputs/bbh-logical200-diffa2-harness-chunked'))
+        self.assertIn('The answer is (<letter>).', run.PROMPT)
+        self.assertNotIn('Final answer:', run.PROMPT)
+
+    def test_changed_prompt_cannot_reuse_old_result_folder(self):
+        from types import SimpleNamespace
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d); source = root/'source'; source.mkdir(); output = root/'out'; output.mkdir()
+            (source/'questions.jsonl').write_text('')
+            previous = json.dumps(dict(prompt='Final answer: <letter>.'))
+            (output/'run_config.json').write_text(previous)
+            with patch.object(run, 'recordings', return_value=([], {})):
+                with self.assertRaisesRegex(ValueError, 'separate result folder'):
+                    run.evaluate(SimpleNamespace(source=source, output=output))
+            self.assertEqual((output/'run_config.json').read_text(), previous)
+
     def test_wait_happens_before_generation_and_evaluation(self):
         with tempfile.TemporaryDirectory() as d:
             events = []
@@ -108,6 +128,16 @@ class UpstreamBBHTests(unittest.TestCase):
         values = scorer.score(['The answer is (B).', 'Final answer: B', 'No answer supplied.', 'The answer is (A).'], docs)
         self.assertEqual([r['correct'] for r in values['strict-match']], [True,False,False,False])
         self.assertEqual([r['correct'] for r in values['flexible-extract']], [True,True,False,False])
+
+    def test_every_requested_letter_passes_both_upstream_filters(self):
+        from score_bbh_harness import HarnessScorer
+        scorer = HarnessScorer(os.environ['BBH_HARNESS_CACHE'])
+        responses = [f'The answer is ({letter}).' for letter in 'ABC']
+        docs = [dict(input='Which?\nOptions:\n(A) red\n(B) blue\n(C) green', target=f'({letter})')
+                for letter in 'ABC']
+        values = scorer.score(responses, docs)
+        for pipeline in values.values():
+            self.assertTrue(all(v['correct'] for v in pipeline))
 
     def test_report_requires_all_four_deliveries_and_preserves_saved_answers(self):
         from score_bbh_harness import report_saved
