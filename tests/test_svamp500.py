@@ -104,6 +104,39 @@ class SVAMPTests(unittest.TestCase):
             self.assertEqual(interventions.call_args_list[1].args[2], [dict(layer=31, group='answer', strength=1)])
             self.assertEqual(sf.read.call_args_list[0], sf.read.call_args_list[1])
 
+    def test_narrowing_existing_run_keeps_answers_and_skips_steering(self):
+        with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
+            root = Path(d); output = root/'results'; output.mkdir(); vector = root/'vector.pt'; vector.write_bytes(b'vector')
+            task = dict(question_id='svamp_chal-1', voice='Jenny', condition='neutral', audio_path='n.wav')
+            tasks = [task, dict(task, condition='angry'), dict(task, condition=run.STEERED)]
+            eligibility = dict(excluded_questions=[])
+            args = SimpleNamespace(source=root, output=output)
+            with patch.object(run, 'recordings', side_effect=lambda source, bank, steering: (tasks if steering else tasks[:2], eligibility)), \
+                 patch.object(run.fcntl, 'flock'), patch.object(run.subprocess, 'check_output', return_value=''), \
+                 patch.object(run, 'run'), patch.object(run, 'report') as report:
+                run.evaluate(args, vector, {}, None)
+                frozen = (output/'run_config.json').read_text()
+                saved = ''.join(json.dumps(r)+'\n' for r in [task, tasks[2]])
+                (output/'results.jsonl').write_text(saved)
+                with patch.object(run, 'run') as inference:
+                    run.evaluate(args, None, {}, None)
+                pending = inference.call_args.args[1]
+                self.assertEqual([r['condition'] for r in pending], ['angry'])
+                self.assertIsNone(inference.call_args.args[0]['vector'])
+                self.assertEqual((output/'run_config.json').read_text(), frozen)
+                self.assertEqual((output/'results.jsonl').read_text(), saved)
+                self.assertFalse(report.call_args.kwargs['include_steering'])
+
+    def test_default_run_does_not_load_vector(self):
+        with tempfile.TemporaryDirectory() as d:
+            source = Path(d)/'source'; source.mkdir(); (source/'questions.jsonl').write_text('')
+            with patch('sys.argv', ['test', '--mode', 'evaluate', '--source', str(source), '--output', str(Path(d)/'out')]), \
+                 patch.object(run, 'harness_filter'), patch.object(run, 'evaluate') as evaluate, \
+                 patch.object(run, 'find_vectors') as vectors:
+                run.main()
+            vectors.assert_not_called()
+            self.assertIsNone(evaluate.call_args.args[1])
+
 
 if __name__ == '__main__':
     unittest.main()

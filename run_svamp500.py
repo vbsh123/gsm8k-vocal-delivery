@@ -1,4 +1,4 @@
-"""Generate 500 SVAMP neutral/angry pairs, then test deliveries and frozen GSM8K L31 steering."""
+"""Generate 500 SVAMP neutral/angry pairs and test delivery accuracy; steering is opt-in."""
 
 import argparse
 from decimal import Decimal
@@ -131,8 +131,9 @@ def score(response, gold, Filter):
         flexible_numeric=numeric_equal(prediction, gold), flexible_prediction=prediction)
 
 
-def report(output, bank, Filter):
-    rows = read_rows(output/'results.jsonl')
+def report(output, bank, Filter, include_steering=False):
+    rows = [r for r in read_rows(output/'results.jsonl')
+            if include_steering or r['condition'] in ('neutral', 'angry')]
     latest = {(r['question_id'], r['voice'], r['condition']): r for r in rows}
     groups = {}; scored = []
     for (qid, voice, condition), row in latest.items():
@@ -180,9 +181,16 @@ def evaluate(args, vectors, bank, Filter):
         seed=42, prompt=PROMPT, max_new_tokens=512, decoder='fast_dllm', steps=128,
         block_length=32, temperature=0., primary_metric='flexible_numeric')
     path = args.output/'run_config.json'
-    if path.exists() and json.loads(path.read_text()) != config:
-        raise ValueError('Settings or audio changed; use a separate result folder.')
-    path.write_text(json.dumps(config, indent=2)+'\n')
+    if path.exists():
+        original = json.loads(path.read_text())
+        if original != config:
+            narrowed = dict(original, vector=None, recordings=[r for r in original['recordings']
+                if r['condition'] in ('neutral', 'angry')])
+            if vectors is not None or narrowed != config:
+                raise ValueError('Settings or audio changed; use a separate result folder.')
+            print('Resuming only neutral/angry; original three-condition config and all saved answers retained.', flush=True)
+    else:
+        path.write_text(json.dumps(config, indent=2)+'\n')
     done = {(r['question_id'], r['voice'], r['condition']) for r in read_rows(args.output/'results.jsonl', repair=True)}
     pending = [r for r in tasks if (r['question_id'], r['voice'], r['condition']) not in done]
     print(f'{len(tasks)//(3 if vectors else 2)} matched questions; {len(pending)}/{len(tasks)} generations pending.', flush=True)
@@ -195,7 +203,7 @@ def evaluate(args, vectors, bank, Filter):
                 print('Waiting for active GPU work.', flush=True)
                 time.sleep(30)
             run(config, pending, bank, args.output, Filter)
-    report(args.output, bank, Filter)
+    report(args.output, bank, Filter, include_steering=vectors is not None)
 
 
 def run(config, pending, bank, output, Filter):
@@ -250,16 +258,22 @@ def main():
     p.add_argument('--output', type=Path, default=Path('outputs/svamp500-diffa2'))
     p.add_argument('--num-examples', type=int, default=500)
     p.add_argument('--vectors', type=Path, help='Frozen original GSM8K mean; otherwise find the existing winner checkpoint')
+    p.add_argument('--steer', action='store_true', help='Explicitly add frozen GSM8K L31 steering (default: only neutral/angry)')
     p.add_argument('--unsteered-only', action='store_true', help='Only neutral/angry delivery accuracy, no steering')
     args = p.parse_args()
+    if args.steer and args.unsteered_only:
+        p.error('Choose either --steer or --unsteered-only.')
+    if args.vectors and not args.steer:
+        p.error('--vectors requires explicit --steer.')
     args.output.mkdir(parents=True, exist_ok=True)
     if args.mode == 'summary':
         Filter = harness_filter(args.output/'upstream')
-        report(args.output, {r['question_id']: r for r in read_rows(args.source/'questions.jsonl')}, Filter)
+        report(args.output, {r['question_id']: r for r in read_rows(args.source/'questions.jsonl')}, Filter,
+               include_steering=args.steer)
         return
     with (args.output/'queue.lock').open('w') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        vectors = find_vectors(args.vectors) if args.mode in ('all', 'evaluate') and not args.unsteered_only else None
+        vectors = find_vectors(args.vectors) if args.mode in ('all', 'evaluate') and args.steer else None
         if args.mode in ('all', 'prepare', 'generate'):
             generate(args)
         if args.mode in ('all', 'evaluate'):

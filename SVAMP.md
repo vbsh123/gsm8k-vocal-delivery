@@ -9,13 +9,15 @@ selected IDs are saved. The other 500 problems remain outside this initial run.
 The same Jenny voice reads neutral and angry versions, intensity 1.5. Only pairs
 where both recordings fit 30 seconds enter evaluation; nothing is cropped.
 
-Three conditions run on exactly the same eligible questions:
+By default, only two conditions run on the same eligible questions:
 
 - Neutral audio, no steering.
 - Angry audio, no steering.
-- The same neutral audio, frozen GSM8K L31 answer direction, strength 1, always on.
 
-No SVAMP vector extraction or tuning. The original mean checkpoint is discovered
+Steering is disabled by default. Only explicit `--steer` adds the same neutral audio
+with frozen GSM8K L31 answer steering at strength 1.
+
+No SVAMP vector extraction or tuning. When `--steer` is explicitly requested, the original mean checkpoint is discovered
 from the existing GSM8K winner config or original vector folders, or supplied with
 `--vectors`. It is fingerprinted in the run configuration. Do not substitute the
 CommonsenseQA, SVD, forward-window or reversed/random checkpoints.
@@ -44,7 +46,7 @@ tail -f outputs/svamp500.log
 ```
 
 Run only generation with `--mode generate`, or only evaluation with `--mode
-evaluate`. Use `--unsteered-only` for just neutral/angry accuracy. Rerunning resumes
+evaluate`. Neutral/angry accuracy is the default. Rerunning resumes
 saved audio and answers. Configuration changes require a separate output folder.
 
 Check completed results at any time, without GPU work:
@@ -56,3 +58,7 @@ Check completed results at any time, without GPU work:
 Recordings and a listening page: `outputs/azure-svamp500/`.
 Raw answers, frozen config, upstream scorer provenance, rescored answers and
 summaries: `outputs/svamp500-diffa2/`.
+
+An earlier three-condition run can resume without `--steer`: only pending neutral/angry
+answers are generated. Its original config and all raw answers are preserved; the
+default summary excludes steering.
