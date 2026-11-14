@@ -13,6 +13,8 @@ import wave
 @unittest.skipUnless(importlib.util.find_spec('torch'),'Needs CPU PyTorch')
 class CommonsenseBackendTests(unittest.TestCase):
     def test_both_models_use_choice_reports_and_separate_result_files(self):
+        import numpy as np
+        import torch
         from evaluate_commonsense_audio import PROMPT,score_choice
         with patch.dict('sys.modules',{'librosa':SimpleNamespace(),'soundfile':SimpleNamespace()}):
             import evaluate_qwen_omni as qwen

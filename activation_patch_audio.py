@@ -26,8 +26,10 @@ def positions(group,bounds):
 
 
 @contextmanager
-def patch_forward(llm,layer,donor_prefix,donor_bounds,recipient_bounds,group,torch):
+def patch_forward(llm,layer,donor_prefix,donor_bounds,recipient_bounds,group,torch,
+                  collect_only=False,max_forwards=None):
     state=dict(donor=False,recipient_forwards=0,donor_forwards=0,patched_forwards=0)
+    if collect_only:state.update(neutral_means=[],differences=[])
     captured={}
 
     def before(module,args,kwargs):
@@ -38,6 +40,8 @@ def patch_forward(llm,layer,donor_prefix,donor_bounds,recipient_bounds,group,tor
         if embeds.shape[0]!=1 or embeds.shape[1]<=ANSWER_TOKENS:
             raise ValueError('Expected one full prompt and 512 answer embeddings')
         state['recipient_forwards']+=1
+        if collect_only and max_forwards is not None and state['recipient_forwards']>max_forwards:
+            captured.clear();return
         # Reuse current recipient answer embeddings, including all committed tokens and masks.
         donor=torch.cat([donor_prefix,embeds[:,-ANSWER_TOKENS:]],dim=1)
         captured.clear();state['donor']=True
@@ -50,9 +54,16 @@ def patch_forward(llm,layer,donor_prefix,donor_bounds,recipient_bounds,group,tor
         if state['donor']:
             captured['hidden']=result[0][:,positions(group,donor_bounds)].detach().clone()
             return
-        hidden=result[0].clone();index=positions(group,recipient_bounds)
-        if hidden[:,index].shape!=captured['hidden'].shape:
+        index=positions(group,recipient_bounds)
+        if collect_only and 'hidden' not in captured:return
+        if result[0][:,index].shape!=captured['hidden'].shape:
             raise ValueError('Donor and recipient token groups are not aligned')
+        if collect_only:
+            neutral=result[0][:,index].float();angry=captured.pop('hidden').float()
+            state['neutral_means'].append(neutral.mean(dim=(0,1)).cpu())
+            state['differences'].append((angry-neutral).mean(dim=(0,1)).cpu())
+            return
+        hidden=result[0].clone()
         hidden[:,index]=captured.pop('hidden')
         state['patched_forwards']+=1
         return (hidden,*result[1:])

@@ -80,5 +80,20 @@ class MatchedStatePatchTests(unittest.TestCase):
         self.assertEqual(prefix.shape,(1,5,2));self.assertEqual(saved,bounds)
         self.assertEqual(model.seen,[]);self.assertFalse(model._forward_pre_hooks)
 
+    def test_collection_does_not_patch_and_respects_original_forward_limit(self):
+        import torch
+        model=self.model(torch);x=torch.arange(ANSWER_TOKENS+3,dtype=torch.float32).reshape(1,-1,1)
+        expected=model(inputs_embeds=x);bounds=dict(start=0,acoustic_end=2)
+        donor=x[:,:-ANSWER_TOKENS]+100
+        donor_hidden=model.blocks[0](torch.cat([donor,x[:,-ANSWER_TOKENS:]],1))[0][:,-ANSWER_TOKENS:]
+        neutral_hidden=model.blocks[0](x)[0][:,-ANSWER_TOKENS:]
+        with patch_forward(model,model.blocks[0],donor,bounds,bounds,'answer',torch,collect_only=True,max_forwards=1) as state:
+            first=model(inputs_embeds=x);second=model(inputs_embeds=x)
+        torch.testing.assert_close(first,expected);torch.testing.assert_close(second,expected)
+        self.assertEqual((state['recipient_forwards'],state['donor_forwards'],state['patched_forwards']),(2,1,0))
+        self.assertEqual(len(state['neutral_means']),1)
+        torch.testing.assert_close(state['neutral_means'][0],neutral_hidden.mean(dim=(0,1)))
+        torch.testing.assert_close(state['differences'][0],(donor_hidden-neutral_hidden).mean(dim=(0,1)))
+
 
 if __name__=='__main__':unittest.main()
