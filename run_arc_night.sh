@@ -13,3 +13,5 @@ echo 'STAGE: Wait for GPU; evaluate all deliveries and the unchanged Commonsense
   --vectors outputs/commonsenseqa-angry-mean/style-vectors.pt
 echo 'STAGE: Extract ARC L31 mean from 250 pairs; evaluate on the other 250 neutral recordings'
 "$PYTHON" -u steer_arc_mean.py
+echo 'STAGE: Emotion2vec classification and agreed-input accuracy summaries (saved answers only)'
+"$PYTHON" -u run_arc_emotion2vec.py

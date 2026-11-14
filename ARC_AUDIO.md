@@ -30,6 +30,25 @@ The report separates:
 
 The parser is our documented scorer, not an official ARC likelihood harness. Full responses are retained for independent/manual inspection. Paired gains, wins/losses, exact McNemar p-values and 200,000-resample paired bootstrap confidence intervals are reported for answer correctness and strict accuracy. P-values/intervals are unadjusted. Successful audio downloads and saved generations resume; no weights or audio are deleted.
 
+The queue now ends with emotion2vec classification and an agreed-input audit. If accuracy evaluation already finished, run this stage alone:
+
+```bash
+git pull --ff-only
+nohup .venv-diffa/bin/python -u run_arc_emotion2vec.py \
+  > outputs/arc-emotion2vec.log 2>&1 < /dev/null &
+tail -f outputs/arc-emotion2vec.log
+```
+
+This uses the separate `.venv-emotion` environment, setting it up only if missing. It waits for the shared GPU lock and active GPU workers, then classifies each whole recording without truncation/chunking. Existing predictions in the audio folder's `results-emotion2vec.jsonl` resume. No accuracy generations or vector fitting occur. The classification stage prints intended-style agreement rates. The full unfiltered results remain the primary report; filtered results are separate diagnostic subsets.
+
+For angry-versus-neutral, both original input clips must be classified as their requested emotion: angry AND neutral. The same rule applies to happy/sad versus neutral. Missing labels do not count as agreement. For neutral-with-steering versus neutral-without-steering, the original audio is identical, so both sides pass exactly when that neutral recording is classified neutral. The filter does not require a separate angry clip for a steering comparison. It does not change extraction pairs or refit either vector.
+
+Filtered reports are `summary-emotion2vec.json` in each evaluation folder and `shared-heldout-emotion2vec-summary.json` in the ARC-vector folder, leaving unfiltered summaries intact. To print saved classifier and filtered accuracy summaries without GPU inference:
+
+```bash
+.venv-diffa/bin/python run_arc_emotion2vec.py --summary-only
+```
+
 Mid-run summaries (CPU only):
 
 ```bash

@@ -34,21 +34,24 @@ def split_recordings(records,count=250):
     return train,test
 
 
-def summary(output,source,benchmark):
+def summary(output,source,benchmark,emotion2vec_agreed=False):
     plan=json.loads((output/'split.json').read_text())
     train={r['question_id'] for r in plan['extraction']}
     keys={(r['question_id'],r['voice']) for r in plan['test']}
     rows=read_rows(output/'results.jsonl')
     if train&{r['question_id'] for r in rows}:raise ValueError('Training questions found in ARC-vector evaluation')
     print(f'\nARC-trained vector: {len(plan["extraction"])} extraction pairs; {len(plan["test"])} disjoint neutral tests.',flush=True)
-    report(output,source)
+    report(output,source,summary_name='summary-emotion2vec.json' if emotion2vec_agreed else 'summary.json',
+        emotion2vec_agreed=emotion2vec_agreed)
     transfer=[dict(r,condition=CS_STEERING) for r in read_rows(benchmark/'results.jsonl')
         if r['condition']==STEERING and (r['question_id'],r['voice']) in keys]
     common={(r['question_id'],r['voice']) for r in rows if r['condition']==ARC_STEERING}
     common&={(r['question_id'],r['voice']) for r in transfer}
     comparison=[r for r in rows+transfer if (r['question_id'],r['voice']) in common]
     print(f'\nCOMMON HELD-OUT COHORT: both vectors completed on {len(common)} questions; same neutral baselines.',flush=True)
-    report(output,source,rows=comparison,summary_name='shared-heldout-summary.json')
+    report(output,source,rows=comparison,
+        summary_name='shared-heldout-emotion2vec-summary.json' if emotion2vec_agreed else 'shared-heldout-summary.json',
+        emotion2vec_agreed=emotion2vec_agreed)
     have={(r['question_id'],r['voice'],r['condition']) for r in rows}
     pending=sum((q,v,ARC_STEERING) not in have for q,v in keys)
     print(f'ARC-vector interventions pending: {pending}/{len(keys)}. Full-500 CommonsenseQA transfer summary remains in {benchmark}/summary.json.',flush=True)
@@ -62,8 +65,10 @@ def main():
     p.add_argument('--extract-count',type=int,default=250)
     p.add_argument('--prepare-only',action='store_true')
     p.add_argument('--summary-only',action='store_true')
+    p.add_argument('--emotion2vec-agreed',action='store_true')
     args=p.parse_args();args.output.mkdir(parents=True,exist_ok=True)
-    if args.summary_only:summary(args.output,args.source,args.benchmark);return
+    if args.emotion2vec_agreed and not args.summary_only:p.error('--emotion2vec-agreed requires --summary-only')
+    if args.summary_only:summary(args.output,args.source,args.benchmark,args.emotion2vec_agreed);return
     config=json.loads((args.benchmark/'run_config.json').read_text())
     if config['prompt']!=PROMPT or config['seed']!=42 or config['max_new_tokens']!=512 or config['decoder']!='fast_dllm':
         raise ValueError('Expected the existing seed42 ARC fast_dllm benchmark')

@@ -33,15 +33,23 @@ def score(response,question):
         answer_scorer_version=RELAXED_SCORER_VERSION)
 
 
-def report(output,source,rows=None,summary_name='summary.json'):
+def report(output,source,rows=None,summary_name='summary.json',emotion2vec_agreed=False):
     bank={r['question_id']:r for r in read_rows(source/'questions.jsonl')}
     rows=read_rows(output/'results.jsonl') if rows is None else rows
+    if emotion2vec_agreed:
+        label_file=source/'results-emotion2vec.jsonl'
+        if not label_file.exists():raise ValueError('ARC emotion2vec predictions missing; run run_arc_emotion2vec.py first')
+        labels={r['audio_path']:r['emotion'] for r in read_rows(label_file)}
+        rows=[r for r in rows if labels.get(r['audio_path'])==r['style']]
     latest={(r['question_id'],r['voice'],r['condition']):r for r in rows}
     groups={}
     for (q,voice,condition),row in latest.items():
         if row['reference_answer']!=bank[q]['answer']:raise ValueError('Saved reference differs from ARC source')
         groups.setdefault(condition,{})[q,voice]=score(row['response'],bank[q])
     print('\nARC-Challenge: custom answer scorer '+RELAXED_SCORER_VERSION+'; original generations unchanged.')
+    if emotion2vec_agreed:
+        print('EMOTION2VEC-AGREED INPUTS: delivery pairs require matching labels on BOTH clips, including neutral.')
+        print('Steering uses the same neutral input on both sides, so its filter requires that neutral clip to be classified neutral.')
     print(f'{"Condition":30} {"N":>5} {"Answer accuracy":>16} {"Format compliant":>17} {"Strict accuracy":>16}')
     accuracy=[];comparisons=[]
     for condition,values in sorted(groups.items()):
@@ -61,7 +69,8 @@ def report(output,source,rows=None,summary_name='summary.json'):
             print(f'{condition} / {metric}: N={n}; gain={result["gain_pp"]:+.2f} pp; '
                 f'wins/losses={result["wins"]}/{result["losses"]}; p={result["mcnemar_exact_p"]:.4f}; CI=[{lo:+.1f}, {hi:+.1f}] pp')
             comparisons.append(dict(condition=condition,metric=metric,**result))
-    (output/summary_name).write_text(json.dumps(dict(answer_scorer=RELAXED_SCORER_VERSION,accuracy=accuracy,paired=comparisons),indent=2)+'\n')
+    (output/summary_name).write_text(json.dumps(dict(answer_scorer=RELAXED_SCORER_VERSION,
+        emotion2vec_agreed=emotion2vec_agreed,accuracy=accuracy,paired=comparisons),indent=2)+'\n')
     print('P-values and 95% paired bootstrap intervals are unadjusted; parse failures count as incorrect.')
 
 
@@ -72,8 +81,12 @@ def main():
     p.add_argument('--vectors',type=Path,help='Existing angry-minus-neutral mean; apply L31 answer x1 without fitting on ARC')
     p.add_argument('--prepare-only',action='store_true')
     p.add_argument('--summary-only',action='store_true')
+    p.add_argument('--emotion2vec-agreed',action='store_true',help='With --summary-only, require intended emotion on each paired input clip')
     args=p.parse_args();args.output.mkdir(parents=True,exist_ok=True)
-    if args.summary_only:report(args.output,args.source);return
+    if args.emotion2vec_agreed and not args.summary_only:p.error('--emotion2vec-agreed is a saved-results audit; use --summary-only')
+    if args.summary_only:
+        report(args.output,args.source,summary_name='summary-emotion2vec.json' if args.emotion2vec_agreed else 'summary.json',
+            emotion2vec_agreed=args.emotion2vec_agreed);return
     bank={r['question_id']:r for r in read_rows(args.source/'questions.jsonl')}
     tasks=[];excluded=[]
     for row in read_rows(args.source/'plan.jsonl'):
