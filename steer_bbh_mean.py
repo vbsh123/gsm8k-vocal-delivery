@@ -173,10 +173,14 @@ def run(args, plan):
     import torch
     from extract_vectors import gen_chunked, load_model
 
+    pair_count = len(plan['extraction'])
+    answer_tokens = plan['max_new_tokens']
+    steered_condition = plan.get('steered_condition', CONDITION)
+    conditions = ('neutral', 'angry', steered_condition)
     pairs_dir = args.output/'pairs'; pairs_dir.mkdir(exist_ok=True)
     pending = [(i, p) for i, p in enumerate(plan['extraction']) if not (pairs_dir/f'{i:05d}.pt').exists()]
     complete = {(r['question_id'], r['voice'], r['condition']) for r in read_rows(args.output/'results.jsonl', repair=True)}
-    needed = [(p, c) for p in plan['test'] for c in CONDITIONS
+    needed = [(p, c) for p in plan['test'] for c in conditions
               if (p['question_id'], p['neutral']['voice'], c) not in complete]
     print(f'{2*len(pending)} collection generations and {len(needed)} evaluation generations pending.', flush=True)
     if not pending and not needed:
@@ -195,12 +199,12 @@ def run(args, plan):
             raise ValueError('BBH audio changed.')
         audio, sr = sf.read(path, dtype='float32')
         random.seed(42); np.random.seed(42); torch.manual_seed(42); torch.cuda.manual_seed_all(42)
-        return gen_chunked(audio, sr, model, tokenizer, features, prompt, 512, 30)
+        return gen_chunked(audio, sr, model, tokenizer, features, prompt, answer_tokens, 30)
 
     def capture(task):
         states = []
         def hook(module, inputs, result):
-            states.append(result[0][0, -512:].float().mean(0).cpu())
+            states.append(result[0][0, -answer_tokens:].float().mean(0).cpu())
         handle = layers[31].register_forward_hook(hook)
         try:
             response, _ = generate(task)
@@ -209,33 +213,35 @@ def run(args, plan):
         return response, torch.stack(states)
 
     for i, pair in pending:
-        print(f'Collect [{i+1}/125] {pair["question_id"]} neutral + angry', flush=True)
+        print(f'Collect [{i+1}/{pair_count}] {pair["question_id"]} neutral + angry', flush=True)
         nr, neutral = capture(pair['neutral']); ar, angry = capture(pair['angry'])
         steps = min(len(neutral), len(angry))
         save_tensor(torch, dict(question_id=pair['question_id'], difference=(angry[:steps]-neutral[:steps]).mean(0),
             neutral_forwards=len(neutral), angry_forwards=len(angry), matched_forwards=steps,
             neutral_response=nr, angry_response=ar), pairs_dir/f'{i:05d}.pt')
-    values = [torch.load(pairs_dir/f'{i:05d}.pt', map_location='cpu', weights_only=True) for i in range(125)]
+    values = [torch.load(pairs_dir/f'{i:05d}.pt', map_location='cpu', weights_only=True) for i in range(pair_count)]
     if any(v['question_id'] != p['question_id'] for v, p in zip(values, plan['extraction'])):
         raise ValueError('Pair cache differs from fixed split.')
     total = torch.stack([v['difference'] for v in values]).sum(0)
     sums = torch.zeros(len(layers), len(GROUPS), len(total)); sums[31, GROUPS.index('answer')] = total
-    counts = torch.zeros(len(layers), dtype=torch.long); counts[31] = 125
+    counts = torch.zeros(len(layers), dtype=torch.long); counts[31] = pair_count
     save_tensor(torch, dict(pair_mean_sums={'angry': sums}, pair_counts={'angry': counts}, groups=GROUPS,
-        prompt=prompt, seed=42, max_new_tokens=512, method='mean', mode='fixed',
+        prompt=prompt, seed=42, max_new_tokens=answer_tokens, method='mean', mode='fixed',
         collected_targets=[(31, 'answer')], extraction_question_ids=[p['question_id'] for p in plan['extraction']],
         averaging=plan['averaging'], audio_encoding=plan['audio_encoding']), args.output/'style-vectors.pt')
-    directions = {(31, 'answer'): (total/125).to(device='cuda', dtype=torch.bfloat16)}
+    directions = {(31, 'answer'): (total/pair_count).to(device='cuda', dtype=torch.bfloat16)}
     bank = {q['question_id']: q for q in read_rows(args.source/'questions.jsonl')}
     for i, (pair, condition) in enumerate(needed, 1):
         task = pair['angry' if condition == 'angry' else 'neutral']
         print(f'Evaluate [{i}/{len(needed)}] {pair["question_id"]} {condition}', flush=True)
-        interventions = [dict(layer=31, group='answer', strength=1)] if condition == CONDITION else []
-        with install_interventions(layers, directions, interventions, {}, 512):
+        interventions = [dict(layer=31, group='answer', strength=1)] if condition == steered_condition else []
+        with install_interventions(layers, directions, interventions, {}, answer_tokens):
             response, encoding = generate(task)
         row = dict(question_id=pair['question_id'], voice=task['voice'], style=task['style'], condition=condition,
-            audio_path=task['audio_path'], prompt=prompt, seed=42, max_new_tokens=512, decoder='fast_dllm',
-            audio_encoding=encoding, response=response, reference_answer=bank[pair['question_id']]['answer'])
+            audio_path=task['audio_path'], prompt=prompt, seed=42, max_new_tokens=answer_tokens, decoder='fast_dllm',
+            audio_encoding=encoding, response=response, reference_answer=bank[pair['question_id']].get('answer', ''))
+        if plan.get('record_response_tokens'):
+            row['response_tokens'] = len(tokenizer.encode(response, add_special_tokens=False))
         with (args.output/'results.jsonl').open('a') as stream:
             stream.write(json.dumps(row)+'\n')
         print(response, flush=True)

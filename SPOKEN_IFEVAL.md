@@ -64,3 +64,30 @@ Main artifacts:
   request plan, audio, listening page and duration eligibility.
 - `outputs/spoken-ifeval-diffa2/`: generation configuration, raw `results.jsonl`,
   separate `official-scored.jsonl`, and `summary.json`.
+
+## Angry-minus-neutral mean steering
+
+`steer_ifeval_mean.py` preserves the previous four-style eligible cohort, shuffles
+question IDs with seed 42 and divides them into disjoint halves. For 508 eligible
+questions this is 254 collection / 254 test questions. It collects the usual
+matched-forward angry-minus-neutral mean at L31, giving each question equal
+weight, then steers the neutral test recordings at answer strength 1. The prompt,
+1024-token budget, native audio encoding and fast_dllm decoding remain the same.
+Saved neutral/angry test responses are reused. No new TTS or Azure key is needed.
+
+The script waits for active IFEval, IFBench and reasoning-transfer processes,
+then takes the shared GPU lock and checks GPU availability. Resume by rerunning.
+
+```bash
+nohup .venv-diffa/bin/python -u steer_ifeval_mean.py \
+  > outputs/ifeval-steering.log 2>&1 < /dev/null &
+tail -f outputs/ifeval-steering.log
+.venv-diffa/bin/python steer_ifeval_mean.py --mode summary
+```
+
+Split, collection pairs, `style-vectors.pt`, raw responses and official-checker
+summaries are saved separately in `outputs/ifeval-angry-mean`. Strict whole-prompt
+accuracy remains primary; instruction-level accuracy and loose checks are also
+reported. The split is exploratory because aggregate delivery results were
+inspected before choosing this follow-up. Requirements within one prompt are
+not independent samples; the displayed paired tests remain prompt-level tests.

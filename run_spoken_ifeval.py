@@ -113,10 +113,10 @@ def score(example, response, evaluator):
 
 
 def report(args, styles=STYLES, evaluator=None, benchmark='IFEval', revision=REVISION,
-           primary_metric='strict_prompt'):
+           primary_metric='strict_prompt', condition_field='style'):
     examples = {e['question_id']: e for e in read_rows(args.source / 'questions.jsonl')}
     evaluator = evaluator if evaluator is not None else official_scorer()
-    latest = {(r['question_id'], r['voice'], r['style']): r for r in read_rows(args.output / 'results.jsonl')}
+    latest = {(r['question_id'], r['voice'], r[condition_field]): r for r in read_rows(args.output / 'results.jsonl')}
     groups = {style: {} for style in styles}
     scored = []
     for (qid, voice, style), row in latest.items():
@@ -161,7 +161,7 @@ def report(args, styles=STYLES, evaluator=None, benchmark='IFEval', revision=REV
                   f' {100*(w-l)/n:+7.2f} {w:5} {l:6} {p:8.4f} [{ci[0]:+.1f}, {ci[1]:+.1f}]')
     print('Intervals and p-values are unadjusted. No semantic/factual correctness judgment.')
     near_budget = {s: sum(r.get('response_tokens', 0) >= r.get('max_new_tokens', 1024)-8
-                         for r in latest.values() if r['style'] == s) for s in styles}
+                         for r in latest.values() if r[condition_field] == s) for s in styles}
     print('Responses within eight tokens of the output budget (possible truncation):', near_budget)
     (args.output / 'summary.json').write_text(json.dumps(dict(revision=revision, benchmark=benchmark,
         primary_metric=primary_metric, totals=totals,
