@@ -15,7 +15,7 @@ import wave
 
 from compare_cloud_accuracy import PROMPT as GSM_COLLECTION_PROMPT
 from extract_audio_vectors import GROUPS, save_tensor
-from rescore_audio_steering import HarnessTaskScorer, download, numeric_equal, paired
+from rescore_audio_steering import HarnessTaskScorer, download, numeric_equal, numeric_within_tolerance, paired
 from run_bbh_logical200 import REVISION as BBH_REVISION, PROMPT as BBH_COLLECTION_PROMPT
 from run_svamp500 import HASH_PROMPT, SOURCE_SHA256 as SVAMP_SHA, select_questions as svamp_questions
 from score_bbh_harness import HarnessScorer
@@ -228,7 +228,10 @@ def score_response(scorer, plan, row):
     if plan['task'] == 'bbh5':
         values = scorer.score([row['response']], [dict(input=q['original_input'], target=q['original_target'])])
         return {name: v[0]['correct'] for name, v in values.items()}, {name: v[0]['prediction'] for name, v in values.items()}
-    return scorer.score(row['response'], q['answer'])
+    metrics, predictions = scorer.score(row['response'], q['answer'])
+    if plan['task'] == 'svamp':
+        metrics['author-tolerance'] = numeric_within_tolerance(predictions['flexible-extract'], q['answer'])
+    return metrics, predictions
 
 
 def report(folder):

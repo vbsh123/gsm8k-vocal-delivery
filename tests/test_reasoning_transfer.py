@@ -189,7 +189,7 @@ class EvaluationTests(unittest.TestCase):
             class Scorer:
                 provenance = dict(test=True)
                 def score(self, response, gold):
-                    return {'flexible-numeric': response == gold}, {'extracted': response}
+                    return {'flexible-numeric': response == gold}, {'flexible-extract': response}
             initial = [dict(question_id='q1', voice='Jenny', condition=c, reference_answer='5', response=r)
                        for c, r in [('neutral', '4'), (run.STEERED, '5')]]
             rows(root/'results.jsonl', initial)

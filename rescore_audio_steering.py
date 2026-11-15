@@ -40,6 +40,9 @@ class HarnessTaskScorer:
         root = Path(lm_eval.__file__).parent
         if task_name == 'gsm8k':
             config_path = root/'tasks/gsm8k/gsm8k.yaml'
+        elif task_name in ('bbh_cot_zeroshot_web_of_lies', 'bbh_cot_zeroshot_tracking_shuffled_objects_three_objects'):
+            name = task_name.removeprefix('bbh_cot_zeroshot_')
+            config_path = root/f'tasks/bbh/cot_zeroshot/{name}.yaml'
         else:
             objects = task_name.removeprefix('bbh_cot_zeroshot_logical_deduction_').removesuffix('_objects')
             if objects not in ('three', 'five', 'seven'):
@@ -101,6 +104,15 @@ def paired(values):
 def numeric_equal(a,b):
     try:return Fraction(a.replace(',','').replace('$','').strip())==Fraction(b.replace(',','').replace('$','').strip())
     except (ValueError,ZeroDivisionError):return False
+
+
+def numeric_within_tolerance(a, b, tolerance='0.1'):
+    try:
+        left = Fraction(a.replace(',', '').replace('$', '').strip())
+        right = Fraction(b.replace(',', '').replace('$', '').strip())
+        return abs(left-right) <= Fraction(tolerance)
+    except (ValueError, ZeroDivisionError):
+        return False
 
 
 def report(rows,task,bank,output,label,RegexFilter=None):

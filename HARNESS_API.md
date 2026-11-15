@@ -59,6 +59,9 @@ GSM8K uses the upstream `gsm8k` task. This pinned harness has no dedicated SVAMP
 task: SVAMP is explicitly scored with GSM8K numeric filters/metric against
 SVAMP gold answers. `flexible-numeric` is a separate custom numeric-equivalence
 metric and must not be described as an official SVAMP metric.
+The additional SVAMP `author-tolerance` metric accepts absolute error <=0.1,
+matching the authors' numerical criterion after our answer extraction. It does
+not invoke the authors' predicted-equation parser or require a new prompt.
 
 This is official task scoring on our spoken adaptation, not the full official
 text inference protocol: our audio input, generation prompt, zero-shot context,

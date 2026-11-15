@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-from rescore_audio_steering import HarnessTaskScorer, numeric_equal, paired
+from rescore_audio_steering import HarnessTaskScorer, numeric_equal, numeric_within_tolerance, paired
 from score_bbh_harness import report_saved
 from steer import read_rows
 from steer_bbh_mean import summarize as steering_summary
@@ -75,6 +75,7 @@ def audit_svamp(run, source, destination):
         scores = {name: result[i]['correct'] for name, result in values.items()}
         predictions = {name: result[i]['prediction'] for name, result in values.items()}
         scores['flexible-numeric'] = numeric_equal(predictions['flexible-extract'], row['reference_answer'])
+        scores['author-tolerance'] = numeric_within_tolerance(predictions['flexible-extract'], row['reference_answer'])
         scores['format-compliant'] = predictions['strict-match'] != '[invalid]'
         entry = dict(row, api_scores=scores, api_predictions=predictions)
         rescored.append(entry)
@@ -86,7 +87,8 @@ def audit_svamp(run, source, destination):
     summary = dict(scorer=scorer.provenance, accuracy=[], paired=[])
     print(f'\nSVAMP: {len(matched)} matched pairs; installed GSM8K task scoring on SVAMP references.', flush=True)
     print('No dedicated SVAMP task exists in this pinned harness. Numeric equivalence is additional.', flush=True)
-    for metric in ('flexible-numeric', 'flexible-extract', 'strict-match', 'format-compliant'):
+    print('author-tolerance: extracted numeric answer within 0.1 of gold; authors\' numeric criterion, not their equation parser.', flush=True)
+    for metric in ('flexible-numeric', 'flexible-extract', 'strict-match', 'format-compliant', 'author-tolerance'):
         groups = {c: {(r['question_id'], r['voice']): r['api_scores'][metric]
                       for r in rescored if r['condition'] == c} for c in ('neutral', 'angry')}
         for c, answers in groups.items():
