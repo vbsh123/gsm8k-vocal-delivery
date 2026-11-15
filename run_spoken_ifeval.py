@@ -7,7 +7,6 @@ import fcntl
 import hashlib
 from itertools import combinations
 import json
-from math import comb
 import os
 from pathlib import Path
 import random
@@ -18,6 +17,7 @@ from urllib.request import urlopen
 import wave
 
 from steer import read_rows
+from rescore_audio_steering import paired
 
 REVISION = 'e6890f85757dd84e27ca6df2dd30651dafad28e0'
 OFFICIAL = Path('external/ifeval')
@@ -114,7 +114,6 @@ def score(example, response, evaluator):
 
 def report(args, styles=STYLES, evaluator=None, benchmark='IFEval', revision=REVISION,
            primary_metric='strict_prompt'):
-    import numpy as np
     examples = {e['question_id']: e for e in read_rows(args.source / 'questions.jsonl')}
     evaluator = evaluator if evaluator is not None else official_scorer()
     latest = {(r['question_id'], r['voice'], r['style']): r for r in read_rows(args.output / 'results.jsonl')}
@@ -152,12 +151,9 @@ def report(args, styles=STYLES, evaluator=None, benchmark='IFEval', revision=REV
                 continue
             left = [groups[a][k][mode]['prompt'] for k in keys]
             right = [groups[b][k][mode]['prompt'] for k in keys]
-            w = sum(y and not x for x, y in zip(left, right))
-            l = sum(x and not y for x, y in zip(left, right))
-            d = w + l
-            p = min(1., 2 * sum(comb(d, i) for i in range(min(w, l) + 1)) / 2 ** d)
-            draws = np.random.default_rng(42).multinomial(n, [w/n, l/n, (n-d)/n], size=200000)
-            ci = np.percentile(100 * (draws[:, 0] - draws[:, 1]) / n, [2.5, 97.5]).tolist()
+            result = paired(list(zip(left, right)))
+            w, l, p = result['wins'], result['losses'], result['mcnemar_exact_p']
+            ci = result['ci95_gain_pp']
             comparisons.append(dict(mode=mode, reference=a, test=b, pairs=n, ref_correct=sum(left),
                                     test_correct=sum(right), wins=w, losses=l, gain_pp=100*(w-l)/n,
                                     mcnemar_exact_p=p, ci95_gain_pp=ci))

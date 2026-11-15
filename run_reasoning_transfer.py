@@ -302,7 +302,9 @@ def evaluate(plan, folder):
 
     completed = {(r['question_id'], r['voice'], r['condition']) for r in read_rows(folder/'results.jsonl', repair=True)}
     needed = [r for r in plan['recordings'] if (r['question_id'], r['voice'], r['condition']) not in completed]
-    pairs_dir = folder/'pairs'; pairs_dir.mkdir(exist_ok=True)
+    pairs_dir = folder/'pairs'
+    if plan['extraction']:
+        pairs_dir.mkdir(exist_ok=True)
     pending = [(i, p) for i, p in enumerate(plan['extraction']) if not (pairs_dir/f'{i:05d}.pt').exists()]
     if not pending and not needed and Path(plan['vector']).exists():
         return

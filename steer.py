@@ -1,14 +1,9 @@
 """Shared steering hooks and paired reports; the historical CLI is archived."""
 
-import argparse
 from contextlib import contextmanager
-import hashlib
 import json
 import math
-from pathlib import Path
 import random
-
-from scoring import score_response
 
 
 def read_rows(path, repair=False):

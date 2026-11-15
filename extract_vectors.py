@@ -7,7 +7,6 @@ import librosa
 import torch
 
 def load_model():
-    import torch
     from huggingface_hub import hf_hub_download
     from transformers import AutoTokenizer, WhisperFeatureExtractor, WhisperModel
     from peft import LoraConfig, get_peft_model
@@ -84,14 +83,12 @@ def load_model():
     model.llm_model = llm.merge_and_unload()
     model = model.cuda().eval()
     model.requires_grad_(False)
-
-
     return model, tokenizer, feature_extractor
 
 
 def gen(audio,sample_rate, model, tokenizer, fextractor, prompt, max_new_tokens):
     if audio.ndim == 2:
-            audio = audio.mean(axis=1)
+        audio = audio.mean(axis=1)
 
     if sample_rate != 16000:
         audio = librosa.resample(audio, orig_sr = sample_rate, target_sr=16000)

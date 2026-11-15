@@ -1,4 +1,4 @@
-"""BBH: learn an angry-minus-neutral L31 mean on 125 questions, test on the other 125."""
+"""BBH: collect an angry-minus-neutral L31 mean on 125 questions, test on the other 125."""
 
 import argparse
 import fcntl
@@ -89,11 +89,11 @@ def make_plan(source):
 
 
 def compatible(row, allow_native=False):
+    encoding = row.get('audio_encoding', {})
+    modes = ('chunked-whisper-global-adapters-v1', 'native') if allow_native else ('chunked-whisper-global-adapters-v1',)
     return (row.get('seed') == 42 and row.get('prompt') == PROMPT
             and row.get('max_new_tokens') == 512 and row.get('decoder') == 'fast_dllm'
-            and row.get('audio_encoding', {}).get('mode') in
-                (('chunked-whisper-global-adapters-v1', 'native') if allow_native else ('chunked-whisper-global-adapters-v1',))
-            and row['audio_encoding'].get('chunk_seconds') == 30)
+            and encoding.get('mode') in modes and encoding.get('chunk_seconds') == 30)
 
 
 def reuse_answers(args, plan):
