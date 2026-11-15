@@ -46,7 +46,11 @@ def load_nodes(path, names, namespace):
 
 
 class HarnessScorer:
-    def __init__(self, cache):
+    def __init__(self, cache, objects='three'):
+        if objects not in ('three', 'five', 'seven'):
+            raise ValueError('BBH logical deduction supports three, five or seven objects')
+        task = f'bbh_cot_zeroshot_logical_deduction_{objects}_objects'
+        files = dict(FILES, **{'task.yaml': BASE+f'logical_deduction_{objects}_objects.yaml'})
         cache = Path(cache); cache.mkdir(parents=True, exist_ok=True)
         revision_file = cache/'revision.txt'
         if not revision_file.exists():
@@ -55,11 +59,11 @@ class HarnessScorer:
         revision = revision_file.read_text().strip()
         if not re.fullmatch(r'[0-9a-f]{40}', revision):
             raise ValueError('Invalid pinned harness revision')
-        for name, remote in FILES.items():
+        for name, remote in files.items():
             if not (cache/name).exists():
                 (cache/name).write_bytes(download(HARNESS+revision+'/'+remote))
         self.provenance = dict(repository='EleutherAI/lm-evaluation-harness', revision=revision,
-            task=TASK, files={name: hashlib.sha256((cache/name).read_bytes()).hexdigest() for name in FILES},
+            task=task, files={name: hashlib.sha256((cache/name).read_bytes()).hexdigest() for name in files},
             adaptation='Unchanged upstream AST filter/metric bodies; registry decorators and abstract Filter base omitted. Raw responses and official parenthesized targets unchanged. No generation stop truncation added retrospectively.')
         provenance_file = cache/'provenance.json'
         if provenance_file.exists() and json.loads(provenance_file.read_text()) != self.provenance:
@@ -70,7 +74,7 @@ class HarnessScorer:
         Loader.add_constructor('!function', lambda loader,node: loader.construct_scalar(node))
         config = yaml.load((cache/'template.yaml').read_text(), Loader=Loader)
         config.update(yaml.load((cache/'task.yaml').read_text(), Loader=Loader))
-        if config['task'] != TASK or config['num_fewshot'] != 0:
+        if config['task'] != task or config['num_fewshot'] != 0:
             raise ValueError('Unexpected upstream BBH task variant')
         metric, = config['metric_list']
         if metric['metric'] != 'exact_match':
