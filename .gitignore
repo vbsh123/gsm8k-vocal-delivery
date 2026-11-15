@@ -3,6 +3,7 @@
 .venv-fish/
 .venv-index/
 .venv-emotion/
+.venv-moss/
 external/
 __pycache__/
 *.pyc
