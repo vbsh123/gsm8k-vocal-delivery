@@ -15,10 +15,10 @@ import wave
 
 from compare_cloud_accuracy import PROMPT as GSM_COLLECTION_PROMPT
 from extract_audio_vectors import GROUPS, save_tensor
-from rescore_audio_steering import HARNESS, download, harness_filter, numeric_equal, paired
+from rescore_audio_steering import HarnessTaskScorer, download, numeric_equal, paired
 from run_bbh_logical200 import REVISION as BBH_REVISION, PROMPT as BBH_COLLECTION_PROMPT
 from run_svamp500 import HASH_PROMPT, SOURCE_SHA256 as SVAMP_SHA, select_questions as svamp_questions
-from score_bbh_harness import HarnessScorer, load_nodes
+from score_bbh_harness import HarnessScorer
 from steer import install_interventions, read_rows
 
 STAGES = ('bbh5', 'svamp', 'gsm8k')
@@ -199,39 +199,16 @@ def prepare_gsm(args, folder):
 
 
 class NumericScorer:
-    """Pinned upstream GSM8K filters and exact-match metric; numeric equivalence is separate."""
+    """Official GSM8K task scoring; numeric equivalence is an additional metric."""
     def __init__(self, cache):
-        import numpy as np
-        import string
-        import unicodedata
-        import yaml
-        self.Filter = harness_filter(cache)
-        revision = (cache/'revision.txt').read_text().strip()
-        metrics = cache/'metrics.py'
-        if not metrics.exists():
-            metrics.write_bytes(download(HARNESS+revision+'/lm_eval/api/metrics.py'))
-        namespace = dict(re=re, sys=sys, unicodedata=unicodedata, np=np, string=string)
-        load_nodes(metrics, ['exact_match_hf_evaluate'], namespace)
-        self.metric = namespace['exact_match_hf_evaluate']
-        config = yaml.safe_load((cache/'gsm8k.yaml').read_text())
-        metric, = config['metric_list']
-        if metric['metric'] != 'exact_match':
-            raise ValueError('Expected GSM8K exact_match metric.')
-        self.options = {k: v for k, v in metric.items() if k not in ('metric', 'aggregation', 'higher_is_better')}
-        self.filters = {}
-        for pipeline in config['filter_list']:
-            regex, take_first = pipeline['filter']
-            if regex['function'] != 'regex' or take_first != {'function': 'take_first'}:
-                raise ValueError('Unexpected upstream GSM8K filter pipeline.')
-            self.filters[pipeline['name']] = self.Filter(**{k: v for k, v in regex.items() if k != 'function'})
-        self.provenance = dict(repository='EleutherAI/lm-evaluation-harness', revision=revision,
-            files={name: digest(cache/name) for name in ('extraction.py', 'gsm8k.yaml', 'metrics.py')},
-            adaptation='Upstream GSM8K regex filters and exact-match metric on audio-adapted saved generations. Numeric equivalence and marker extraction are additional metrics, not official SVAMP metrics.')
+        self.harness = HarnessTaskScorer('gsm8k', cache)
+        self.provenance = dict(self.harness.provenance,
+            numeric_equivalence='Additional custom Fraction comparison; not an official SVAMP metric')
 
     def score(self, response, gold):
-        predictions = {name: filter_.apply([[response]], [{}])[0][0] for name, filter_ in self.filters.items()}
-        metrics = {name: bool(self.metric(predictions=[prediction], references=[gold], **self.options)['exact_match'])
-                   for name, prediction in predictions.items()}
+        values = self.harness.score([response], [dict(question='Saved spoken math question', answer=gold)])
+        predictions = {name: rows[0]['prediction'] for name, rows in values.items()}
+        metrics = {name: rows[0]['correct'] for name, rows in values.items()}
         metrics['flexible-numeric'] = numeric_equal(predictions['flexible-extract'], gold)
         metrics['format-compliant'] = predictions['strict-match'] != '[invalid]'
         return metrics, predictions

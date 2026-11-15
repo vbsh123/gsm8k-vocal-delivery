@@ -37,6 +37,7 @@ On the steering machine, with Azure environment variables exported:
 
 ```bash
 git pull --ff-only
+bash setup_harness.sh
 mkdir -p outputs
 nohup .venv-diffa/bin/python -u run_svamp500.py --answer-format hashes \
   > outputs/svamp500-hashes.log 2>&1 < /dev/null &

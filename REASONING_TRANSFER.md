@@ -6,6 +6,7 @@ No original extraction files, vectors, answers or audio are changed.
 
 ```bash
 git pull --ff-only
+bash setup_harness.sh
 nohup .venv-diffa/bin/python -u run_reasoning_transfer.py \
   > outputs/reasoning-transfer.log 2>&1 < /dev/null &
 tail -f outputs/reasoning-transfer.log
@@ -47,7 +48,7 @@ Prompt and evaluator
   Baselines, angry answers and steered answers are generated fresh. The original
   vector, collected under the old prompt, is unchanged: this is also a test of
   transferring that vector to a new output-format instruction.
-- BBH strict/flexible filters and exact-match metrics come from the upstream
+- Installed harness task APIs apply BBH strict/flexible filters and exact-match metrics from the upstream
   EleutherAI five-object task. GSM8K uses upstream GSM8K filters and exact-match
   metric. SVAMP uses those same GSM8K filters/metric on its numeric references;
   this is not a dedicated official SVAMP inference task. Numeric equivalence is

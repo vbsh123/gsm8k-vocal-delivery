@@ -5,6 +5,7 @@ Run on the machine holding `outputs/azure-bbh-logical200` and the completed
 `outputs/bbh-logical200-diffa2-harness-chunked` benchmark.
 
 ```bash
+bash setup_harness.sh
 nohup .venv-diffa/bin/python -u steer_bbh_mean.py \
   > outputs/bbh-steering125.log 2>&1 < /dev/null &
 tail -f outputs/bbh-steering125.log

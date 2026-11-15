@@ -121,7 +121,7 @@ def reuse_answers(args, plan):
         shutil.copytree(cache, args.output/'harness/upstream')
 
 
-def summarize(args):
+def summarize(args, destination=None):
     from score_bbh_harness import HarnessScorer
     plan = json.loads((args.output/'split.json').read_text())
     allowed = {p['question_id'] for p in plan['test']}
@@ -133,6 +133,10 @@ def summarize(args):
     values = scorer.score([r['response'] for r in rows],
         [dict(input=bank[r['question_id']]['original_input'], target=bank[r['question_id']]['original_target']) for r in rows])
     summary = dict(extraction_questions=125, test_questions=125, scorer=scorer.provenance, accuracy=[], paired=[])
+    destination = Path(destination) if destination else args.output
+    destination.mkdir(parents=True, exist_ok=True)
+    rescored = [dict(row, harness={name: result[i] for name, result in values.items()})
+                for i, row in enumerate(rows)]
     print('\nBBH: 125 extraction / 125 held-out test questions; L31 answer x1; seed42.')
     print('Same prompt and upstream harness strict/flexible scoring; completed pairs only. No classifier/outcome filter.')
     for metric, scores in values.items():
@@ -154,7 +158,9 @@ def summarize(args):
             print(f'  {condition} vs neutral: N={len(keys)}; gain={result["gain_pp"]:+.2f} pp; '
                   f'W/L={result["wins"]}/{result["losses"]}; p={result["mcnemar_exact_p"]:.4f}; CI=[{lo:+.1f}, {hi:+.1f}]')
     print('Exploratory split: aggregate delivery results on 200 of these questions were previously examined. P-values/intervals unadjusted.')
-    write_json(args.output/'summary.json', summary)
+    write_json(destination/'summary.json', summary)
+    (destination/'rescored.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rescored))
+    return summary
 
 
 def run(args, plan):

@@ -34,27 +34,14 @@ class ExtensionTests(unittest.TestCase):
                 split=dict(extraction=[],test=[]);split[field]=[dict(question_id='new')]
                 with self.assertRaisesRegex(ValueError,'overlap'):select_records(root,split)
 
-    @unittest.skipUnless(importlib.util.find_spec('numpy'),'Needs NumPy for confidence intervals')
-    def test_upstream_filter_loaded_and_paired_rescoring_exposes_format_gain(self):
-        source='''import re
-@register_filter("regex")
-class RegexFilter(Filter):
-    def __init__(self, regex_pattern, group_select=0):
-        self.regex=re.compile(regex_pattern);self.group_select=group_select
-    def apply(self,resps,docs):
-        def extract(s):
-            m=self.regex.findall(s)
-            if not m:return "[invalid]"
-            v=m[self.group_select]
-            return next(x for x in v if x) if isinstance(v,tuple) else v
-        return [[extract(s) for s in r] for r in resps]
-'''
+    @unittest.skipUnless(importlib.util.find_spec('lm_eval'),'Needs installed harness')
+    def test_installed_filter_and_paired_rescoring_exposes_format_gain(self):
+        from lm_eval.filters.extraction import RegexFilter
         with tempfile.TemporaryDirectory() as d,redirect_stdout(io.StringIO()):
-            root=Path(d);(root/'revision.txt').write_text('fixture')
-            (root/'extraction.py').write_text(source)
-            (root/'gsm8k.yaml').write_text(r'(-?[$0-9.,]{2,})|(-?[0-9]+)')
+            root=Path(d)
             with patch('rescore_audio_steering.download',side_effect=AssertionError('No download expected')):
                 Filter=harness_filter(root)
+            self.assertIs(Filter,RegexFilter)
             bank=[dict(answer='Worked solution #### 42')]
             rows=[dict(question_id='gsm8k_test_00000',condition=c,reference_answer='42',response=r,correct=v)
                 for c,r,v in [('baseline','The answer is 42',False),('L31-answer-a1','Final answer: 42',True)]]

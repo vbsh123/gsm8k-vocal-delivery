@@ -30,6 +30,7 @@ using the same saved audio and a separate output folder.
 ```bash
 cd /workspace/gsm8k-vocal-delivery
 source .venv-diffa/bin/activate
+bash setup_harness.sh
 python score_bbh_harness.py \
   --source outputs/azure-bbh-logical200 \
   --output outputs/bbh-logical200-diffa2
@@ -41,17 +42,15 @@ The usual summary command also uses this scorer:
 python run_bbh_logical200.py --mode summary
 ```
 
-No GPU, Azure key, model downloads or new model environment are needed. The first
-call fetches a few small upstream source/config files. Their Git revision and
-SHA256 hashes are saved under each result folder’s `harness/upstream/`.
-Existing caches are checked for source changes on subsequent calls.
+No GPU, Azure key or model downloads are needed. Install the pinned harness once
+with `setup_harness.sh`. Scoring uses the installed task's `apply_filters()` and
+`process_results()` methods. No AST definitions are extracted or rewritten.
+Installed task source hashes and version information are saved in
+`harness/upstream/api-provenance.json`.
 
-To avoid installing the full harness and its model dependencies, the adapter
-executes selected upstream AST definitions: RegexFilter, TakeFirstFilter,
-ExtendedRegexFilter, MultiChoiceRegexFilter and exact_match_hf_evaluate. Their
-bodies are unchanged; registration decorators and abstract Filter inheritance
-are omitted. Configuration is read from the pinned upstream YAML, not manually
-recreated. The upstream license is retained with the downloaded files.
+To compare the completed three-object delivery/steering runs and SVAMP against
+their prior summaries without overwriting those summaries, use
+`audit_harness_api.py`; see `HARNESS_API.md`.
 
 Outputs are `harness/summary.json` and `harness/rescored.jsonl`. Original results
 are untouched. All four deliveries must be complete for a question/voice to enter

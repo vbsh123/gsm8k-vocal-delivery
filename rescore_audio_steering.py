@@ -1,7 +1,7 @@
 """Rescore saved answers, using upstream GSM8K extraction and independent choice parsing. No GPU."""
 
 import argparse
-import ast
+from copy import deepcopy
 import csv
 from fractions import Fraction
 import hashlib
@@ -26,26 +26,65 @@ def download(url):
 
 
 def harness_filter(cache):
-    cache.mkdir(parents=True,exist_ok=True)
-    revision=cache/'revision.txt'
-    if not revision.exists():
-        sha=json.loads(download('https://api.github.com/repos/EleutherAI/lm-evaluation-harness/commits/main'))['sha']
-        revision.write_text(sha+'\n')
-    sha=revision.read_text().strip()
-    files={'extraction.py':'lm_eval/filters/extraction.py','gsm8k.yaml':'lm_eval/tasks/gsm8k/gsm8k.yaml'}
-    for name,path in files.items():
-        if not (cache/name).exists():(cache/name).write_bytes(download(HARNESS+sha+'/'+path))
-    # Execute the upstream RegexFilter class unchanged, with only its registry/base dependencies removed.
-    tree=ast.parse((cache/'extraction.py').read_text())
-    cls=next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name=='RegexFilter')
-    cls.bases=[];cls.decorator_list=[]
-    module=ast.Module(body=[ast.ImportFrom(module='__future__',names=[ast.alias(name='annotations')],level=0),
-        ast.Import(names=[ast.alias(name='re')]),cls],type_ignores=[])
-    namespace={};exec(compile(ast.fix_missing_locations(module),str(cache/'extraction.py'),'exec'),namespace)
-    if FLEXIBLE not in (cache/'gsm8k.yaml').read_text():raise ValueError('Upstream GSM8K flexible filter changed; inspect before using')
-    (cache/'provenance.json').write_text(json.dumps(dict(repository='EleutherAI/lm-evaluation-harness',revision=sha,
-        files={name:hashlib.sha256((cache/name).read_bytes()).hexdigest() for name in files}),indent=2)+'\n')
-    return namespace['RegexFilter']
+    from lm_eval.filters.extraction import RegexFilter
+    HarnessTaskScorer('gsm8k', cache)
+    return RegexFilter
+
+
+class HarnessTaskScorer:
+    """Score saved responses through the installed task's filters and process_results API."""
+    def __init__(self, task_name, cache):
+        import importlib.metadata
+        import lm_eval
+        from lm_eval.tasks._yaml_loader import load_yaml
+        root = Path(lm_eval.__file__).parent
+        if task_name == 'gsm8k':
+            config_path = root/'tasks/gsm8k/gsm8k.yaml'
+        else:
+            objects = task_name.removeprefix('bbh_cot_zeroshot_logical_deduction_').removesuffix('_objects')
+            if objects not in ('three', 'five', 'seven'):
+                raise ValueError('Unsupported saved-answer task')
+            config_path = root/f'tasks/bbh/cot_zeroshot/logical_deduction_{objects}_objects.yaml'
+        self.config = load_yaml(config_path)
+        self.task_name = task_name
+        distribution = importlib.metadata.distribution('lm_eval')
+        direct_url = json.loads(distribution.read_text('direct_url.json') or '{}')
+        self.provenance = dict(repository='EleutherAI/lm-evaluation-harness',
+            installed_version=lm_eval.__version__, revision=direct_url.get('vcs_info', {}).get('commit_id'),
+            task=task_name, api='ConfigurableTask.build_all_requests/apply_filters/process_results',
+            files={str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
+                   for p in [config_path, root/'api/task.py', root/'api/metrics.py', root/'filters/extraction.py']},
+            adaptation='Saved audio-generated responses supplied as task instances; official filters and exact-match metric unchanged. No new model inference or retrospective response truncation. Few-shot prompting is not rerun.')
+        if task_name != 'gsm8k':
+            for name in ('_cot_zeroshot_template_yaml', 'utils.py'):
+                p = config_path.parent/name
+                self.provenance['files'][str(p.relative_to(root))] = hashlib.sha256(p.read_bytes()).hexdigest()
+        cache = Path(cache); cache.mkdir(parents=True, exist_ok=True)
+        (cache/'api-provenance.json').write_text(json.dumps(self.provenance, indent=2)+'\n')
+
+    def score(self, responses, docs):
+        from datasets import Dataset, DatasetDict
+        from lm_eval.api.task import ConfigurableTask
+        if len(responses) != len(docs):
+            raise ValueError('Response/document count differs')
+        results = {entry['name']: [] for entry in self.config['filter_list']}
+        if not responses:
+            return results
+        config = deepcopy(self.config)
+        config.update(custom_dataset=lambda **kwargs: DatasetDict({'test': Dataset.from_list(docs)}),
+            training_split=None, validation_split=None, test_split='test', fewshot_split=None, num_fewshot=0)
+        task = ConfigurableTask(config=config)
+        task.build_all_requests()
+        if len(task.instances) != len(responses):
+            raise ValueError('Saved responses and harness task instances differ')
+        for instance, response in zip(task.instances, responses):
+            instance.resps = [response]
+        task.apply_filters()
+        for instance in task.instances:
+            for name, prediction in instance.filtered_resps.items():
+                correct = task.process_results(instance.doc, [prediction])['exact_match']
+                results[name].append(dict(prediction=prediction, correct=bool(correct)))
+        return results
 
 
 def paired(values):

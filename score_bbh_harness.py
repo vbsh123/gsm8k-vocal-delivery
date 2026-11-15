@@ -1,111 +1,25 @@
-"""CPU-only BBH saved-answer scoring with pinned EleutherAI harness code/config.
+"""CPU-only BBH saved-answer scoring through installed EleutherAI task APIs.
 
-Executes upstream filter/metric bodies unchanged, extracting their AST nodes to
-avoid installing the full harness/model stack. Only registry decorators and the
-abstract Filter base are removed. This is audio-adapted scoring, not the official
-text/few-shot generation protocol. Original response strings are never rewritten.
+Audio-adapted generations, not the official text/few-shot inference protocol.
+Original response strings are never rewritten.
 """
 import argparse
-import ast
 import hashlib
 import json
 from pathlib import Path
-import re
-import string
-import sys
-import unicodedata
 
-import numpy as np
-import yaml
 
-from rescore_audio_steering import HARNESS, download, paired
+from rescore_audio_steering import HarnessTaskScorer, paired
 from steer import read_rows
 
-TASK = 'bbh_cot_zeroshot_logical_deduction_three_objects'
-BASE = 'lm_eval/tasks/bbh/cot_zeroshot/'
-FILES = {'task.yaml': BASE+'logical_deduction_three_objects.yaml',
-         'template.yaml': BASE+'_cot_zeroshot_template_yaml',
-         'utils.py': BASE+'utils.py', 'extraction.py': 'lm_eval/filters/extraction.py',
-         'selection.py': 'lm_eval/filters/selection.py', 'metrics.py': 'lm_eval/api/metrics.py',
-         'LICENSE.md': 'LICENSE.md'}
 STYLES = ('neutral', 'angry', 'sad', 'happy')
 
 
-def load_nodes(path, names, namespace):
-    tree = ast.parse(path.read_text())
-    selected = []
-    for name in names:
-        node = next(n for n in tree.body if isinstance(n, (ast.ClassDef, ast.FunctionDef)) and n.name == name)
-        node.decorator_list = []
-        if isinstance(node, ast.ClassDef) and name in ('RegexFilter', 'TakeFirstFilter'):
-            node.bases = []
-        selected.append(node)
-    future = ast.ImportFrom(module='__future__', names=[ast.alias(name='annotations')], level=0)
-    module = ast.Module(body=[future, *selected], type_ignores=[])
-    exec(compile(ast.fix_missing_locations(module), str(path), 'exec'), namespace)
-
-
-class HarnessScorer:
+class HarnessScorer(HarnessTaskScorer):
     def __init__(self, cache, objects='three'):
         if objects not in ('three', 'five', 'seven'):
             raise ValueError('BBH logical deduction supports three, five or seven objects')
-        task = f'bbh_cot_zeroshot_logical_deduction_{objects}_objects'
-        files = dict(FILES, **{'task.yaml': BASE+f'logical_deduction_{objects}_objects.yaml'})
-        cache = Path(cache); cache.mkdir(parents=True, exist_ok=True)
-        revision_file = cache/'revision.txt'
-        if not revision_file.exists():
-            revision = json.loads(download('https://api.github.com/repos/EleutherAI/lm-evaluation-harness/commits/main'))['sha']
-            revision_file.write_text(revision+'\n')
-        revision = revision_file.read_text().strip()
-        if not re.fullmatch(r'[0-9a-f]{40}', revision):
-            raise ValueError('Invalid pinned harness revision')
-        for name, remote in files.items():
-            if not (cache/name).exists():
-                (cache/name).write_bytes(download(HARNESS+revision+'/'+remote))
-        self.provenance = dict(repository='EleutherAI/lm-evaluation-harness', revision=revision,
-            task=task, files={name: hashlib.sha256((cache/name).read_bytes()).hexdigest() for name in files},
-            adaptation='Unchanged upstream AST filter/metric bodies; registry decorators and abstract Filter base omitted. Raw responses and official parenthesized targets unchanged. No generation stop truncation added retrospectively.')
-        provenance_file = cache/'provenance.json'
-        if provenance_file.exists() and json.loads(provenance_file.read_text()) != self.provenance:
-            raise ValueError('Cached upstream source changed; use a new scorer cache')
-        provenance_file.write_text(json.dumps(self.provenance, indent=2)+'\n')
-        class Loader(yaml.SafeLoader):
-            pass
-        Loader.add_constructor('!function', lambda loader,node: loader.construct_scalar(node))
-        config = yaml.load((cache/'template.yaml').read_text(), Loader=Loader)
-        config.update(yaml.load((cache/'task.yaml').read_text(), Loader=Loader))
-        if config['task'] != task or config['num_fewshot'] != 0:
-            raise ValueError('Unexpected upstream BBH task variant')
-        metric, = config['metric_list']
-        if metric['metric'] != 'exact_match':
-            raise ValueError('Upstream metric changed')
-        self.metric_options = {k:v for k,v in metric.items() if k not in ('metric','aggregation','higher_is_better')}
-        namespace = dict(re=re, sys=sys, unicodedata=unicodedata, np=np, string=string)
-        load_nodes(cache/'extraction.py', ['RegexFilter'], namespace)
-        load_nodes(cache/'selection.py', ['TakeFirstFilter'], namespace)
-        load_nodes(cache/'utils.py', ['ExtendedRegexFilter','MultiChoiceRegexFilter'], namespace)
-        load_nodes(cache/'metrics.py', ['exact_match_hf_evaluate'], namespace)
-        factories = {'regex': namespace['RegexFilter'], 'take_first': namespace['TakeFirstFilter'],
-                     'utils.MultiChoiceRegexFilter': namespace['MultiChoiceRegexFilter']}
-        self.pipelines = {}
-        for entry in config['filter_list']:
-            self.pipelines[entry['name']] = [factories[step['function']](**{k:v for k,v in step.items() if k != 'function'})
-                                             for step in entry['filter']]
-        self.metric = namespace['exact_match_hf_evaluate']
-
-    def score(self, responses, docs):
-        results = {}
-        if len(responses) != len(docs):
-            raise ValueError('Response/document count differs')
-        for name, pipeline in self.pipelines.items():
-            values = [[response] for response in responses]
-            for filter_ in pipeline:
-                values = list(filter_.apply(values, docs))
-            results[name] = [dict(prediction=prediction,
-                                 correct=bool(self.metric(predictions=[prediction], references=[doc['target']],
-                                                          **self.metric_options)['exact_match']))
-                             for prediction, doc in zip(values, docs, strict=True)]
-        return results
+        super().__init__(f'bbh_cot_zeroshot_logical_deduction_{objects}_objects', cache)
 
 
 def report_saved(output, source, destination=None, cache=None):
