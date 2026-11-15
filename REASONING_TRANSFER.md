@@ -121,3 +121,27 @@ The default queue waits for active SVAMP, BBH, finalist and Azure-emotion jobs,
 then takes the shared GPU lock and waits for GPU availability. Saved answers
 and extraction pairs are reused individually after interruption. Use `--help`
 to override existing input paths if files were moved.
+
+## Five-object vector collected from five-object questions
+
+`run_bbh_five_mean.py` waits for the entire active reasoning-transfer queue
+(including SVAMP and GSM8K) to exit, then acquires the shared GPU lock. It reuses
+the existing five-object audio, prompt, and saved neutral/angry answers. A fixed
+seed-42 shuffle assigns 125 questions to matched-forward mean collection and
+125 different questions to L31 answer x1 evaluation. This is a separate output
+folder; the previous three-object-vector transfer experiment remains intact.
+No new TTS is needed. Since earlier five-object results were inspected, this
+follow-up is exploratory.
+
+```bash
+nohup .venv-diffa/bin/python -u run_bbh_five_mean.py \
+  > outputs/bbh-five-mean.log 2>&1 < /dev/null &
+tail -f outputs/bbh-five-mean.log
+.venv-diffa/bin/python run_bbh_five_mean.py --mode summary
+```
+
+New results, collection pairs, split/configuration and `style-vectors.pt` are
+saved under `outputs/bbh-five250-angry-mean`. The installed upstream five-object
+BBH task scores both strict and flexible answers. Collection uses up to 250
+generations and evaluation up to 125 steered generations, plus any missing
+neutral/angry test answers. Restarting resumes completed work.
