@@ -145,3 +145,30 @@ saved under `outputs/bbh-five250-angry-mean`. The installed upstream five-object
 BBH task scores both strict and flexible answers. Collection uses up to 250
 generations and evaluation up to 125 steered generations, plus any missing
 neutral/angry test answers. Restarting resumes completed work.
+
+## GSM8K strength sensitivity sweep
+
+`run_gsm_strength_sweep.py` waits for active reasoning-transfer and mean-steering
+follow-ups in this repository to exit, then takes the shared GPU lock. Run this
+on the GSM8K/steering machine after launching the earlier follow-ups. Waiting
+observes processes on that machine only; it does not coordinate a second machine.
+
+The sweep uses the aligned `####` prompt, the same 718 evaluation questions and
+original GSM8K vector, L31 answer tokens, seed 42 and unchanged decoding. Strengths
+are -2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5 and 2. Compatible neutral (strength 0)
+and strength +1 responses are copied from `outputs/reasoning-transfer/gsm8k`.
+With both complete, seven additional strengths require 5,026 generations.
+No audio generation or vector recollection is needed.
+
+```bash
+nohup .venv-diffa/bin/python -u run_gsm_strength_sweep.py \
+  > outputs/gsm-strength-sweep.log 2>&1 < /dev/null &
+tail -f outputs/gsm-strength-sweep.log
+.venv-diffa/bin/python run_gsm_strength_sweep.py --mode summary
+```
+
+Outputs are separate under `outputs/gsm8k-L31-strength-sweep`. Each strength is
+compared against the same neutral baseline using upstream strict and flexible
+scoring, additional numeric equivalence, paired confidence intervals and exact
+McNemar tests. These are exploratory, unadjusted sensitivity comparisons; a newly
+selected best strength is not independent validation of a tuned method.
