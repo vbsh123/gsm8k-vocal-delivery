@@ -129,7 +129,11 @@ def summarize(args, destination=None):
     rows = read_rows(args.output/'results.jsonl')
     if any(r['question_id'] not in allowed for r in rows):
         raise ValueError('Extraction question found in held-out results.')
-    scorer = HarnessScorer(args.output/'harness/upstream')
+    if 'harness_task' in plan:
+        from rescore_audio_steering import HarnessTaskScorer
+        scorer = HarnessTaskScorer(plan['harness_task'], args.output/'harness/upstream')
+    else:
+        scorer = HarnessScorer(args.output/'harness/upstream')
     values = scorer.score([r['response'] for r in rows],
         [dict(input=bank[r['question_id']]['original_input'], target=bank[r['question_id']]['original_target']) for r in rows])
     summary = dict(extraction_questions=125, test_questions=125, scorer=scorer.provenance, accuracy=[], paired=[])
@@ -183,6 +187,7 @@ def run(args, plan):
     os.environ.pop('TRANSFORMERS_CACHE', None)
     model, tokenizer, features = load_model()
     layers = model.llm_model.model.transformer.blocks
+    prompt = plan['prompt']
 
     def generate(task):
         path = Path(task['audio_file'])
@@ -190,7 +195,7 @@ def run(args, plan):
             raise ValueError('BBH audio changed.')
         audio, sr = sf.read(path, dtype='float32')
         random.seed(42); np.random.seed(42); torch.manual_seed(42); torch.cuda.manual_seed_all(42)
-        return gen_chunked(audio, sr, model, tokenizer, features, PROMPT, 512, 30)
+        return gen_chunked(audio, sr, model, tokenizer, features, prompt, 512, 30)
 
     def capture(task):
         states = []
@@ -217,7 +222,7 @@ def run(args, plan):
     sums = torch.zeros(len(layers), len(GROUPS), len(total)); sums[31, GROUPS.index('answer')] = total
     counts = torch.zeros(len(layers), dtype=torch.long); counts[31] = 125
     save_tensor(torch, dict(pair_mean_sums={'angry': sums}, pair_counts={'angry': counts}, groups=GROUPS,
-        prompt=PROMPT, seed=42, max_new_tokens=512, method='mean', mode='fixed',
+        prompt=prompt, seed=42, max_new_tokens=512, method='mean', mode='fixed',
         collected_targets=[(31, 'answer')], extraction_question_ids=[p['question_id'] for p in plan['extraction']],
         averaging=plan['averaging'], audio_encoding=plan['audio_encoding']), args.output/'style-vectors.pt')
     directions = {(31, 'answer'): (total/125).to(device='cuda', dtype=torch.bfloat16)}
@@ -229,7 +234,7 @@ def run(args, plan):
         with install_interventions(layers, directions, interventions, {}, 512):
             response, encoding = generate(task)
         row = dict(question_id=pair['question_id'], voice=task['voice'], style=task['style'], condition=condition,
-            audio_path=task['audio_path'], prompt=PROMPT, seed=42, max_new_tokens=512, decoder='fast_dllm',
+            audio_path=task['audio_path'], prompt=prompt, seed=42, max_new_tokens=512, decoder='fast_dllm',
             audio_encoding=encoding, response=response, reference_answer=bank[pair['question_id']]['answer'])
         with (args.output/'results.jsonl').open('a') as stream:
             stream.write(json.dumps(row)+'\n')
