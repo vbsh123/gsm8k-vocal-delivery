@@ -28,15 +28,6 @@ class BBHTests(unittest.TestCase):
         self.assertEqual(selected[0]['original_target'], '(A)')
         self.assertEqual(selected[0]['answer'], 'A')
 
-    def test_correctness_is_separate_from_output_format(self):
-        q = run.select_questions(json.dumps(dict(examples=[self.example()])), 1)[0]
-        bare = run.score('(A)', q)
-        formatted = run.score('Final answer: A', q)
-        self.assertTrue(bare['answer_correct']); self.assertFalse(bare['correct'])
-        self.assertTrue(formatted['answer_correct']); self.assertTrue(formatted['correct'])
-        self.assertFalse(run.score('Final answer: B', q)['answer_correct'])
-        self.assertTrue(run.score('Final answer: E', q)['answer_parse_failed'])
-
     def test_all_four_deliveries_required_to_fit_no_cropping(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d); plan = []; bank = {}

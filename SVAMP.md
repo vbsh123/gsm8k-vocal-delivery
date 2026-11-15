@@ -1,4 +1,4 @@
-# SVAMP: 500-question frozen transfer experiment
+# SVAMP: 500-question neutral/angry delivery evaluation
 
 `run_svamp500.py` selects 500 of the official 1,000 SVAMP challenge problems by
 shuffling once with seed 42. It preserves Body + Question and the numeric gold
@@ -14,13 +14,10 @@ By default, only two conditions run on the same eligible questions:
 - Neutral audio, no steering.
 - Angry audio, no steering.
 
-Steering is disabled by default. Only explicit `--steer` adds the same neutral audio
-with frozen GSM8K L31 answer steering at strength 1.
-
-No SVAMP vector extraction or tuning. When `--steer` is explicitly requested, the original mean checkpoint is discovered
-from the existing GSM8K winner config or original vector folders, or supplied with
-`--vectors`. It is fingerprinted in the run configuration. Do not substitute the
-CommonsenseQA, SVD, forward-window or reversed/random checkpoints.
+This script performs no steering or vector collection. The obsolete GSM8K-vector
+transfer branch has been removed. Current SVAMP vector collection and steering
+on the other 500 questions live in `run_reasoning_transfer.py`; see
+`REASONING_TRANSFER.md`.
 
 DIFFA uses the existing shared loader/generator, the identical GSM8K math prompt,
 512 output tokens, 128 steps, 32-token blocks, fast-dLLM, temperature zero, and
@@ -29,7 +26,8 @@ first; inference waits for the shared GPU lock and existing GPU processes.
 
 The primary score is **flexible numeric correctness**: the upstream GSM8K harness
 extractor, followed by our numeric-equivalence comparison. The report also includes
-upstream-style string matching and our existing explicit-final-answer strict score.
+upstream-style flexible string matching, strict `####` extraction accuracy, and
+the rate of extractable `####` numeric answers.
 This is not an official SVAMP harness inference task. Saved responses are scored
 without using gold answers to choose the extracted prediction. All comparisons
 against neutral include paired McNemar p-values and paired bootstrap confidence
@@ -40,9 +38,9 @@ On the steering machine, with Azure environment variables exported:
 ```bash
 git pull --ff-only
 mkdir -p outputs
-nohup .venv-diffa/bin/python -u run_svamp500.py \
-  > outputs/svamp500.log 2>&1 < /dev/null &
-tail -f outputs/svamp500.log
+nohup .venv-diffa/bin/python -u run_svamp500.py --answer-format hashes \
+  > outputs/svamp500-hashes.log 2>&1 < /dev/null &
+tail -f outputs/svamp500-hashes.log
 ```
 
 Run only generation with `--mode generate`, or only evaluation with `--mode
@@ -52,13 +50,15 @@ saved audio and answers. Configuration changes require a separate output folder.
 Check completed results at any time, without GPU work:
 
 ```bash
-.venv-diffa/bin/python -u run_svamp500.py --mode summary
+.venv-diffa/bin/python -u run_svamp500.py --mode summary --answer-format hashes
 ```
 
 Recordings and a listening page: `outputs/azure-svamp500/`.
 Raw answers, frozen config, upstream scorer provenance, rescored answers and
-summaries: `outputs/svamp500-diffa2/`.
+summaries: `outputs/svamp500-diffa2-hashes/`.
 
-An earlier three-condition run can resume without `--steer`: only pending neutral/angry
-answers are generated. Its original config and all raw answers are preserved; the
-default summary excludes steering.
+The legacy `Final answer:` prompt remains available with `--answer-format
+final-answer`, using `outputs/svamp500-diffa2/`. Summary mode can still read old
+saved responses and ignores old steering-condition rows. Original raw responses
+are not rewritten. The obsolete `--steer`, `--vectors`, and `--unsteered-only`
+options are no longer needed or accepted.

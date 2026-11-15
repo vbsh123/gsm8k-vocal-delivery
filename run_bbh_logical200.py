@@ -14,7 +14,6 @@ import time
 from urllib.request import urlopen
 import wave
 
-from evaluate_arc_audio import report, score
 from steer import read_rows
 
 REVISION = '9ee07bd481feebf959a6b59d61ea57bdcf30964d'
@@ -183,7 +182,7 @@ def run(pending, bank, output, chunked=False, chunk_seconds=30, smoke_test=False
             reset_seed()
             response, encoding = gen_chunked(audio, sr, model, tokenizer, features, PROMPT, 512, boundary)
             checks['boundary_checks'].append(dict(question_id=long_task['question_id'], style=long_task['style'],
-                response=response, encoding=encoding, custom_scores=score(response, bank[long_task['question_id']])))
+                response=response, encoding=encoding))
         (output/'chunking-preflight.json').write_text(json.dumps(checks, indent=2)+'\n')
         print('Short-audio check: identical response. 20s/30s boundary diagnostics saved to chunking-preflight.json.', flush=True)
     for index, task in enumerate(pending, 1):
@@ -202,7 +201,7 @@ def run(pending, bank, output, chunked=False, chunk_seconds=30, smoke_test=False
         row = dict(question_id=task['question_id'], voice=task['voice'], style=task['style'],
             condition=task['style'], audio_path=task['audio_path'], seed=42, prompt=PROMPT,
             max_new_tokens=512, decoder='fast_dllm', response=response,
-            generation_seconds=time.monotonic()-started, **score(response, bank[task['question_id']]))
+            generation_seconds=time.monotonic()-started, reference_answer=bank[task['question_id']]['answer'])
         question = bank[task['question_id']]
         values = harness.score([response], [dict(input=question['original_input'], target=question['original_target'])])
         row['harness'] = {name: results[0] for name, results in values.items()}

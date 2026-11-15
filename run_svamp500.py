@@ -1,4 +1,4 @@
-"""Generate 500 SVAMP neutral/angry pairs and test delivery accuracy; steering is opt-in."""
+"""Generate 500 SVAMP neutral/angry pairs and evaluate delivery accuracy."""
 
 import argparse
 from decimal import Decimal
@@ -17,13 +17,11 @@ import wave
 
 from compare_cloud_accuracy import PROMPT
 from rescore_audio_steering import FLEXIBLE, harness_filter, numeric_equal, paired
-from scoring import score_response
-from steer import install_interventions, read_rows
+from steer import read_rows
 
 SOURCE_REVISION = '7827fb803c3f6b017086f75024515b15bf31900f'
 SOURCE_URL = f'https://raw.githubusercontent.com/arkilpatel/SVAMP/{SOURCE_REVISION}/SVAMP.json'
 SOURCE_SHA256 = '5be77703a6d891ae476d7c082787ad361392aa02453b132516cdd5f4e7934e3e'
-STEERED = 'neutral-GSM8K-L31-answer-a1'
 HARNESS_STRICT = r'#### (\-?[0-9\.\,]+)'
 HASH_PROMPT = PROMPT.replace('Final answer: <number>.', '#### <number>.')
 
@@ -77,27 +75,7 @@ def generate(args):
     subprocess.run(command, check=True)
 
 
-def find_vectors(explicit):
-    if explicit:
-        if not explicit.is_file():
-            raise FileNotFoundError(explicit)
-        return explicit.absolute()
-    for config in [Path('outputs/steer-jenny-late-layers/original_mean/run_config.json'),
-                   Path('outputs/steer-jenny-original-vector-L12-seed42/original_mean/run_config.json')]:
-        if config.exists():
-            values = json.loads(config.read_text())
-            path = Path(values.get('settings', {}).get('vectors', 'MISSING'))
-            if path.is_file():
-                return path.absolute()
-    for path in [Path('outputs/jenny-angry-vectors/style-vectors.pt'),
-                 Path('outputs/steer-jenny-angry-L0-25-n50/jenny-angry-vectors/style-vectors.pt')]:
-        if path.is_file():
-            return path.absolute()
-    raise FileNotFoundError('Original GSM8K vector not found. Pass --vectors /path/to/style-vectors.pt, '
-                            'or --unsteered-only to evaluate only neutral/angry audio.')
-
-
-def recordings(source, bank, steering):
+def recordings(source, bank):
     groups = {}; durations = []
     for row in read_rows(source/'plan.jsonl'):
         if row['provider'] != 'azure' or row['style'] not in ('neutral', 'angry'):
@@ -123,8 +101,6 @@ def recordings(source, bank, steering):
             excluded.append(qid)
             continue
         tasks.extend(dict(group[s], condition=s) for s in ('neutral', 'angry'))
-        if steering:
-            tasks.append(dict(group['neutral'], condition=STEERED))
     if not tasks:
         raise ValueError('No complete neutral/angry pairs fit 30 seconds.')
     return tasks, dict(rule='Both deliveries must fit 30 seconds; no cropping',
@@ -135,17 +111,15 @@ def score(response, gold, Filter):
     prediction = Filter(regex_pattern=FLEXIBLE, group_select=-1).apply([[response]], [{}])[0][0]
     strict_prediction = Filter(regex_pattern=HARNESS_STRICT, group_select=0).apply([[response]], [{}])[0][0]
     normalize = lambda s: re.sub(r'\.$', '', s.replace(',', '').replace('$', '').strip()).lower()
-    return dict(strict=score_response(response, gold)['correct'],
-        harness_flexible=normalize(prediction) == normalize(gold),
+    return dict(harness_flexible=normalize(prediction) == normalize(gold),
         flexible_numeric=numeric_equal(prediction, gold), flexible_prediction=prediction,
         harness_strict=normalize(strict_prediction) == normalize(gold),
         harness_strict_prediction=strict_prediction,
         harness_format_compliant=strict_prediction != '[invalid]')
 
 
-def report(output, bank, Filter, include_steering=False):
-    rows = [r for r in read_rows(output/'results.jsonl')
-            if include_steering or r['condition'] in ('neutral', 'angry')]
+def report(output, bank, Filter):
+    rows = [r for r in read_rows(output/'results.jsonl') if r['condition'] in ('neutral', 'angry')]
     latest = {(r['question_id'], r['voice'], r['condition']): r for r in rows}
     groups = {}; scored = []
     for (qid, voice, condition), row in latest.items():
@@ -161,16 +135,16 @@ def report(output, bank, Filter, include_steering=False):
     print('This is saved-answer scoring, not an official SVAMP harness inference task.')
     print('Only completed neutral/angry question+voice pairs are included in the tables.')
     print(f'{"Condition":30} {"N":>5} {"Numeric accuracy":>17} {"Harness string":>16} '
-          f'{"Our Final answer":>17} {"Harness ####":>14} {"#### extracted":>15}')
+          f'{"Harness ####":>14} {"#### extracted":>15}')
     totals = []
     for condition, values in groups.items():
         n = len(values)
         if not n:
             continue
         correct = {m: sum(v[m] for v in values.values()) for m in
-                   ('flexible_numeric', 'harness_flexible', 'strict', 'harness_strict', 'harness_format_compliant')}
+                   ('flexible_numeric', 'harness_flexible', 'harness_strict', 'harness_format_compliant')}
         print(f'{condition:30} {n:5} {correct["flexible_numeric"]/n:17.1%}'
-              f' {correct["harness_flexible"]/n:16.1%} {correct["strict"]/n:17.1%}'
+              f' {correct["harness_flexible"]/n:16.1%}'
               f' {correct["harness_strict"]/n:14.1%} {correct["harness_format_compliant"]/n:15.1%}')
         totals.append(dict(condition=condition, n=n, correct=correct))
     comparisons = []
@@ -181,7 +155,7 @@ def report(output, bank, Filter, include_steering=False):
         keys = sorted(base.keys() & values.keys())
         if not keys:
             continue
-        for metric in ('flexible_numeric', 'harness_flexible', 'strict', 'harness_strict', 'harness_format_compliant'):
+        for metric in ('flexible_numeric', 'harness_flexible', 'harness_strict', 'harness_format_compliant'):
             result = paired([(base[k][metric], values[k][metric]) for k in keys])
             lo, hi = result['ci95_gain_pp']
             n = result['pairs']
@@ -195,28 +169,22 @@ def report(output, bank, Filter, include_steering=False):
     (output/'summary.json').write_text(json.dumps(dict(accuracy=totals, paired=comparisons), indent=2)+'\n')
 
 
-def evaluate(args, vectors, bank, Filter):
-    tasks, eligibility = recordings(args.source, bank, vectors is not None)
-    vector = dict(path=str(vectors), sha256=hashlib.sha256(vectors.read_bytes()).hexdigest()) if vectors else None
-    config = dict(recordings=tasks, eligibility=eligibility, vector=vector,
+def evaluate(args, bank, Filter):
+    tasks, eligibility = recordings(args.source, bank)
+    config = dict(recordings=tasks, eligibility=eligibility, vector=None,
         seed=42, prompt=prompt_for_format(getattr(args, 'answer_format', 'final-answer')),
         max_new_tokens=512, decoder='fast_dllm', steps=128,
         block_length=32, temperature=0., primary_metric='flexible_numeric')
     path = args.output/'run_config.json'
     if path.exists():
-        original = json.loads(path.read_text())
-        if original != config:
-            narrowed = dict(original, vector=None, recordings=[r for r in original['recordings']
-                if r['condition'] in ('neutral', 'angry')])
-            if vectors is not None or narrowed != config:
-                raise ValueError('Settings or audio changed; use a separate result folder.')
-            print('Resuming only neutral/angry; original three-condition config and all saved answers retained.', flush=True)
+        if json.loads(path.read_text()) != config:
+            raise ValueError('Settings or audio changed; use a separate result folder.')
     else:
         path.write_text(json.dumps(config, indent=2)+'\n')
     done = {(r['question_id'], r['voice'], r['condition']) for r in read_rows(args.output/'results.jsonl', repair=True)}
     pending = [r for r in tasks if (r['question_id'], r['voice'], r['condition']) not in done]
-    print(f'{len(tasks)//(3 if vectors else 2)} matched questions; {len(pending)}/{len(tasks)} generations pending.', flush=True)
-    print(f'Overlength/empty pairs excluded: {len(eligibility["excluded_questions"])}. Frozen vector: {vectors}', flush=True)
+    print(f'{len(tasks)//2} matched questions; {len(pending)}/{len(tasks)} generations pending.', flush=True)
+    print(f'Overlength/empty pairs excluded: {len(eligibility["excluded_questions"])}.', flush=True)
     if pending:
         with Path('outputs/jenny-task-vectors.lock').open('w') as lock:
             print('Waiting for shared GPU lock.', flush=True)
@@ -225,7 +193,7 @@ def evaluate(args, vectors, bank, Filter):
                 print('Waiting for active GPU work.', flush=True)
                 time.sleep(30)
             run(config, pending, bank, args.output, Filter)
-    report(args.output, bank, Filter, include_steering=vectors is not None)
+    report(args.output, bank, Filter)
 
 
 def run(config, pending, bank, output, Filter):
@@ -237,33 +205,17 @@ def run(config, pending, bank, output, Filter):
     import soundfile as sf
     import torch
     from extract_vectors import gen, load_model
-    directions = {}
     prompt = config.get('prompt', PROMPT)
-    if config['vector']:
-        state = torch.load(config['vector']['path'], map_location='cpu', weights_only=True)
-        if state['prompt'] != PROMPT or state['max_new_tokens'] != 512 or state.get('mode', 'fixed') != 'fixed':
-            raise ValueError('Expected the frozen original GSM8K mean vector and generation recipe.')
-        if set(state.get('extraction_question_ids', [])) & set(bank):
-            raise ValueError('Evaluation/extraction overlap.')
-        count = state['pair_counts']['angry'][31]
-        if count <= 0:
-            raise ValueError('No L31 direction in the selected vector.')
-        direction = state['pair_mean_sums']['angry'][31, state['groups'].index('answer')]/count
-        directions[31, 'answer'] = direction.to(device='cuda', dtype=torch.bfloat16)
-        del state
     model, tokenizer, features = load_model()
-    layers = model.llm_model.model.transformer.blocks
     for index, task in enumerate(pending, 1):
         path = Path(task['audio_file'])
         if hashlib.sha256(path.read_bytes()).hexdigest() != task['audio_sha256']:
             raise ValueError('SVAMP audio changed.')
         audio, sr = sf.read(path, dtype='float32')
         random.seed(42); np.random.seed(42); torch.manual_seed(42); torch.cuda.manual_seed_all(42)
-        intervention = [dict(layer=31, group='answer', strength=1)] if task['condition'] == STEERED else []
         print(f'[{index}/{len(pending)}] {task["question_id"]} {task["condition"]}', flush=True)
         started = time.monotonic()
-        with install_interventions(layers, directions, intervention, {}, 512):
-            response = gen(audio, sr, model, tokenizer, features, prompt, 512)
+        response = gen(audio, sr, model, tokenizer, features, prompt, 512)
         metrics = score(response, bank[task['question_id']]['answer'], Filter)
         row = dict(question_id=task['question_id'], voice=task['voice'], style=task['style'],
             audio_path=task['audio_path'], condition=task['condition'], response=response,
@@ -271,7 +223,7 @@ def run(config, pending, bank, output, Filter):
             max_new_tokens=512, decoder='fast_dllm', generation_seconds=time.monotonic()-started, **metrics)
         with (output/'results.jsonl').open('a') as stream:
             stream.write(json.dumps(row)+'\n')
-        print(f'  numeric_correct={metrics["flexible_numeric"]}; final_label_correct={metrics["strict"]}; '
+        print(f'  numeric_correct={metrics["flexible_numeric"]}; '
               f'harness_strict_correct={metrics["harness_strict"]}\n{response}', flush=True)
 
 
@@ -283,33 +235,22 @@ def main():
     p.add_argument('--answer-format', choices=['final-answer', 'hashes'], default='final-answer',
                    help='Change only the requested answer marker; hashes requests #### <number>')
     p.add_argument('--num-examples', type=int, default=500)
-    p.add_argument('--vectors', type=Path, help='Frozen original GSM8K mean; otherwise find the existing winner checkpoint')
-    p.add_argument('--steer', action='store_true', help='Explicitly add frozen GSM8K L31 steering (default: only neutral/angry)')
-    p.add_argument('--unsteered-only', action='store_true', help='Only neutral/angry delivery accuracy, no steering')
     args = p.parse_args()
     if args.output is None:
         args.output = Path('outputs/svamp500-diffa2-hashes' if args.answer_format == 'hashes' else 'outputs/svamp500-diffa2')
-    if args.answer_format == 'hashes' and args.steer:
-        p.error('The hash-format control is unsteered; the frozen vector used the original prompt.')
-    if args.steer and args.unsteered_only:
-        p.error('Choose either --steer or --unsteered-only.')
-    if args.vectors and not args.steer:
-        p.error('--vectors requires explicit --steer.')
     args.output.mkdir(parents=True, exist_ok=True)
     if args.mode == 'summary':
         Filter = harness_filter(args.output/'upstream')
-        report(args.output, {r['question_id']: r for r in read_rows(args.source/'questions.jsonl')}, Filter,
-               include_steering=args.steer)
+        report(args.output, {r['question_id']: r for r in read_rows(args.source/'questions.jsonl')}, Filter)
         return
     with (args.output/'queue.lock').open('w') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        vectors = find_vectors(args.vectors) if args.mode in ('all', 'evaluate') and args.steer else None
         if args.mode in ('all', 'prepare', 'generate'):
             generate(args)
         if args.mode in ('all', 'evaluate'):
             Filter = harness_filter(args.output/'upstream')
             bank = {r['question_id']: r for r in read_rows(args.source/'questions.jsonl')}
-            evaluate(args, vectors, bank, Filter)
+            evaluate(args, bank, Filter)
 
 
 if __name__ == '__main__':

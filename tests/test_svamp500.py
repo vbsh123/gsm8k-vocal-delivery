@@ -28,20 +28,19 @@ class RegexFilterFixture:
 
 
 class SVAMPTests(unittest.TestCase):
-    def test_hash_strict_differs_from_flexible_and_custom_scorer(self):
+    def test_hash_strict_differs_from_flexible_numeric(self):
         cases = [
-            ('Final answer: 51', '51', True, True, False),
-            ('We get 51.\n#### 51', '51', False, True, True),
-            ('#### 51.00', '51', False, True, False),
-            ('#### 1,234', '1234', False, True, True),
-            ('#### -5', '-5', False, True, True),
-            ('The result is 51', '51', False, True, False),
-            ('#### 4\n#### 5', '5', False, True, False),
+            ('Final answer: 51', '51', True, False),
+            ('We get 51.\n#### 51', '51', True, True),
+            ('#### 51.00', '51', True, False),
+            ('#### 1,234', '1234', True, True),
+            ('#### -5', '-5', True, True),
+            ('The result is 51', '51', True, False),
+            ('#### 4\n#### 5', '5', True, False),
         ]
-        for response,gold,custom,numeric,strict in cases:
+        for response,gold,numeric,strict in cases:
             with self.subTest(response=response):
                 values = run.score(response, gold, RegexFilterFixture)
-                self.assertEqual(values['strict'], custom)
                 self.assertEqual(values['flexible_numeric'], numeric)
                 self.assertEqual(values['harness_strict'], strict)
 
@@ -51,10 +50,10 @@ class SVAMPTests(unittest.TestCase):
             args = SimpleNamespace(source=root, output=root, answer_format='final-answer')
             eligibility = dict(excluded_questions=[])
             with patch.object(run, 'recordings', return_value=([], eligibility)), patch.object(run, 'report'):
-                run.evaluate(args, None, {}, None)
+                run.evaluate(args, {}, None)
                 args.answer_format = 'hashes'
                 with self.assertRaisesRegex(ValueError, 'separate result folder'):
-                    run.evaluate(args, None, {}, None)
+                    run.evaluate(args, {}, None)
 
     def test_hash_mode_passes_new_prompt_to_decoder_and_reuses_audio(self):
         with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
@@ -67,8 +66,7 @@ class SVAMPTests(unittest.TestCase):
             shared = SimpleNamespace(load_model=MagicMock(return_value=(MagicMock(), 'tokenizer', 'features')),
                                      gen=MagicMock(return_value='#### 5'))
             with patch.dict('sys.modules', {'torch': MagicMock(), 'soundfile': sf,
-                                           'numpy': np, 'extract_vectors': shared}), \
-                 patch.object(run, 'install_interventions'):
+                                           'numpy': np, 'extract_vectors': shared}):
                 run.run(dict(vector=None, prompt=run.HASH_PROMPT), [task],
                         {'svamp_chal-1': dict(answer='5')}, root, RegexFilterFixture)
             self.assertEqual(shared.gen.call_args.args[-2:], (run.HASH_PROMPT, 512))
@@ -76,7 +74,7 @@ class SVAMPTests(unittest.TestCase):
             saved = json.loads((root/'results.jsonl').read_text())
             self.assertEqual(saved['prompt'], run.HASH_PROMPT)
             self.assertTrue(saved['harness_strict'])
-            self.assertFalse(saved['strict'])
+            self.assertNotIn('strict', saved)
 
     def test_report_uses_only_completed_pairs_for_every_metric(self):
         with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
@@ -102,7 +100,7 @@ class SVAMPTests(unittest.TestCase):
         self.assertEqual(first[0]['answer'], '51')
         self.assertNotIn('76-25', first[0]['question'])
 
-    def test_matched_eligibility_and_steering_uses_same_neutral_audio(self):
+    def test_matched_eligibility_includes_only_unsteered_neutral_and_angry(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d); tasks = []; bank = {}
             for q in ('short', 'long'):
@@ -115,14 +113,10 @@ class SVAMPTests(unittest.TestCase):
                     tasks.append(dict(question_id=q, voice='Jenny', style=style, provider='azure',
                         audio_path=name, question='Question?', answer='5'))
             (root/'plan.jsonl').write_text(''.join(json.dumps(t)+'\n' for t in tasks))
-            eligible, metadata = run.recordings(root, bank, True)
-            self.assertEqual(len(eligible), 3)
+            eligible, metadata = run.recordings(root, bank)
+            self.assertEqual(len(eligible), 2)
             self.assertEqual(metadata['excluded_questions'], ['long'])
-            neutral, angry, steering = eligible
-            self.assertEqual(neutral['audio_sha256'], steering['audio_sha256'])
-            self.assertEqual(neutral['audio_file'], steering['audio_file'])
-            self.assertEqual(steering['condition'], run.STEERED)
-            self.assertEqual(steering['style'], 'neutral')
+            self.assertEqual([r['condition'] for r in eligible], ['neutral', 'angry'])
 
     def test_uses_actual_extracted_prediction_and_numeric_equivalence(self):
         class Filter:
@@ -133,7 +127,6 @@ class SVAMPTests(unittest.TestCase):
         values = run.score('The result is 51.00', '51', Filter)
         self.assertTrue(values['flexible_numeric'])
         self.assertFalse(values['harness_flexible'])
-        self.assertFalse(values['strict'])
         self.assertFalse(run.score('The result is 51.00', '52', Filter)['flexible_numeric'])
 
     def test_summarizing_does_not_wait_for_gpu_or_read_vector(self):
@@ -142,27 +135,18 @@ class SVAMPTests(unittest.TestCase):
             (source/'questions.jsonl').write_text('')
             with patch('sys.argv', ['test', '--mode', 'summary', '--source', str(source), '--output', str(root/'out')]), \
                  patch.object(run, 'harness_filter'), patch.object(run, 'report') as report, \
-                 patch.object(run.fcntl, 'flock') as lock, patch.object(run, 'find_vectors') as vectors:
+                 patch.object(run.fcntl, 'flock') as lock:
                 run.main()
-            report.assert_called_once(); lock.assert_not_called(); vectors.assert_not_called()
+            report.assert_called_once(); lock.assert_not_called()
 
-    def test_original_vector_discovery_from_existing_winner_config(self):
-        with tempfile.TemporaryDirectory() as d:
-            vector = Path(d)/'original.pt'; vector.touch()
-            self.assertEqual(run.find_vectors(vector), vector.absolute())
-            with self.assertRaises(FileNotFoundError):
-                run.find_vectors(Path(d)/'missing.pt')
-
-    def test_inference_reuses_one_model_same_prompt_seed_and_neutral_audio(self):
+    def test_inference_reuses_one_model_and_resets_seed_for_both_deliveries(self):
         with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
             root = Path(d); audio = root/'neutral.wav'; audio.write_bytes(b'audio')
             bank = {'svamp_chal-1': dict(answer='5')}
             tasks = [dict(question_id='svamp_chal-1', voice='Jenny', style='neutral',
                 audio_path='neutral.wav', audio_file=str(audio), condition=c,
-                audio_sha256=run.hashlib.sha256(b'audio').hexdigest()) for c in ['neutral', run.STEERED]]
-            state = dict(prompt=run.PROMPT, max_new_tokens=512, mode='fixed', groups=['answer'],
-                pair_counts={'angry': {31: 425}}, pair_mean_sums={'angry': MagicMock()})
-            torch = MagicMock(); torch.load.return_value = state
+                audio_sha256=run.hashlib.sha256(b'audio').hexdigest()) for c in ['neutral', 'angry']]
+            torch = MagicMock()
             sf = SimpleNamespace(read=MagicMock(return_value=([0.0], 16000)))
             np = SimpleNamespace(random=SimpleNamespace(seed=MagicMock()))
             shared = SimpleNamespace(load_model=MagicMock(return_value=(MagicMock(), 'tokenizer', 'features')),
@@ -170,51 +154,24 @@ class SVAMPTests(unittest.TestCase):
             class Filter:
                 def __init__(self, **kwargs): pass
                 def apply(self, *args): return [['5']]
-            with patch.dict('sys.modules', {'torch': torch, 'soundfile': sf, 'numpy': np, 'extract_vectors': shared}), \
-                 patch.object(run, 'install_interventions') as interventions:
-                run.run(dict(vector=dict(path='original.pt')), tasks, bank, root, Filter)
+            with patch.dict('sys.modules', {'torch': torch, 'soundfile': sf, 'numpy': np, 'extract_vectors': shared}):
+                run.run(dict(prompt=run.PROMPT), tasks, bank, root, Filter)
             shared.load_model.assert_called_once()
             self.assertEqual(shared.gen.call_count, 2)
             for call in shared.gen.call_args_list:
                 self.assertEqual(call.args[-2:], (run.PROMPT, 512))
             self.assertEqual(torch.manual_seed.call_args_list[0].args, (42,))
             self.assertEqual(torch.manual_seed.call_args_list[1].args, (42,))
-            self.assertEqual(interventions.call_args_list[0].args[2], [])
-            self.assertEqual(interventions.call_args_list[1].args[2], [dict(layer=31, group='answer', strength=1)])
+            torch.load.assert_not_called()
             self.assertEqual(sf.read.call_args_list[0], sf.read.call_args_list[1])
-
-    def test_narrowing_existing_run_keeps_answers_and_skips_steering(self):
-        with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
-            root = Path(d); output = root/'results'; output.mkdir(); vector = root/'vector.pt'; vector.write_bytes(b'vector')
-            task = dict(question_id='svamp_chal-1', voice='Jenny', condition='neutral', audio_path='n.wav')
-            tasks = [task, dict(task, condition='angry'), dict(task, condition=run.STEERED)]
-            eligibility = dict(excluded_questions=[])
-            args = SimpleNamespace(source=root, output=output)
-            with patch.object(run, 'recordings', side_effect=lambda source, bank, steering: (tasks if steering else tasks[:2], eligibility)), \
-                 patch.object(run.fcntl, 'flock'), patch.object(run.subprocess, 'check_output', return_value=''), \
-                 patch.object(run, 'run'), patch.object(run, 'report') as report:
-                run.evaluate(args, vector, {}, None)
-                frozen = (output/'run_config.json').read_text()
-                saved = ''.join(json.dumps(r)+'\n' for r in [task, tasks[2]])
-                (output/'results.jsonl').write_text(saved)
-                with patch.object(run, 'run') as inference:
-                    run.evaluate(args, None, {}, None)
-                pending = inference.call_args.args[1]
-                self.assertEqual([r['condition'] for r in pending], ['angry'])
-                self.assertIsNone(inference.call_args.args[0]['vector'])
-                self.assertEqual((output/'run_config.json').read_text(), frozen)
-                self.assertEqual((output/'results.jsonl').read_text(), saved)
-                self.assertFalse(report.call_args.kwargs['include_steering'])
 
     def test_default_run_does_not_load_vector(self):
         with tempfile.TemporaryDirectory() as d:
             source = Path(d)/'source'; source.mkdir(); (source/'questions.jsonl').write_text('')
             with patch('sys.argv', ['test', '--mode', 'evaluate', '--source', str(source), '--output', str(Path(d)/'out')]), \
-                 patch.object(run, 'harness_filter'), patch.object(run, 'evaluate') as evaluate, \
-                 patch.object(run, 'find_vectors') as vectors:
+                 patch.object(run, 'harness_filter'), patch.object(run, 'evaluate') as evaluate:
                 run.main()
-            vectors.assert_not_called()
-            self.assertIsNone(evaluate.call_args.args[1])
+            self.assertEqual(evaluate.call_args.args[1], {})
 
 
 if __name__ == '__main__':
