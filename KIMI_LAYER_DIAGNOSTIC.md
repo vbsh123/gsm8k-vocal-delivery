@@ -41,29 +41,35 @@ If necessary refresh the baseline scored file first, on CPU:
 1. Reproduce neutral and angry answers for the 125 collection questions with the same pinned
    Kimi-Instruct checkpoint, native greedy decoder, prompt, seed42 and 512-token
    budget. Stop and retain an explicit mismatch report if an answer differs.
-2. Capture all 28 shared text-decoder layer outputs at the last position of each
-   forward: the prefill's next-answer prediction state, then cached answer steps,
-   including the EOS-prediction step. Average steps within a recording, subtract
-   angry minus neutral within each question, then average questions equally.
-   These raw mean differences are the steering vectors; no norm rescaling.
+2. Capture **both token groups separately at all 28 shared multimodal layers**:
+   **audio** means over the native `is_continuous_mask` positions during prefill
+   (not the text instruction or special delimiters), and **answer** means over
+   the last prediction position across native generation forwards, including
+   prefill and EOS prediction. Subtract angry minus neutral within each question,
+   then average the 125 questions equally. Keep raw magnitudes; no norm rescaling.
 3. Also replay the **actual neutral answer token inputs**, without retokenizing
    the response string, with angry audio. This gives a matched-answer-history
    emotion difference. Audio-prefix offsets may differ between deliveries, but
    the answer tokens and number of prediction steps are identical. An unchanged
-   neutral replay must reproduce native neutral activation means.
+   neutral replay must reproduce BOTH native audio and answer activation means.
 4. Load pinned `moonshotai/Kimi-Audio-7B` base and replay exactly the frozen
    Instruct-encoded neutral inputs and neutral answer histories. Instruct minus
    base is a **decoder-checkpoint difference**, holding audio encoder features
    fixed. Base free generation and independently re-encoded base audio are not
    part of this comparison. The raw mean checkpoint difference is saved and
-   compared with both emotion differences on those same 125 questions by layerwise cosine. It is never used
+   compared separately for AUDIO and ANSWER on those same 125 questions by layerwise cosine. It is never used
    for steering. Checkpoint differences include post-training effects broadly;
    similarity alone does not demonstrate an alignment mechanism or a causal role.
-5. Reload Instruct and add angry-minus-neutral x1 at one text-decoder layer at a
-   time to the last prediction position, on prefill and all cached answer steps.
-   The other prompt/audio positions are unchanged. For 30 recoveries, this is
-   **840 steered answers**, plus collection/replay passes. Six extra audio-output
-   branch layers do not feed text logits and are excluded.
+5. Reload Instruct and sweep each layer and token group independently at x1:
+   **audio-vector to audio positions** during prefill only, and **answer-vector to
+   the last prediction position** during prefill and cached answer steps.
+   Audio steering does not modify instructions or answer slots; cached steps have
+   no input audio positions. For 30 recoveries this is **1,680 steered answers**
+   (30 × 28 × 2), plus collection/replay passes. The six speech-output branch
+   layers do not feed text logits and are excluded. Post-block audio steering at
+   the final shared layer has no downstream text-attention block to propagate
+   through, so that row is an expected no-effect control, not an implementation
+   failure.
 
 All capture points are decoder block outputs **before** final RMS normalization.
 Kimi is autoregressive: these are cached next-token prediction states, not
@@ -72,15 +78,17 @@ Kimi audio pipeline handles the full recordings without the custom DIFFA encoder
 
 ## Outputs and resume
 
-Everything goes under `outputs/kimi-bbh3-collect125-steer30/`:
+Everything goes under `outputs/kimi-bbh3-collect125-audio-answer-steer30/`:
 
 - `run_config.json`: selection, original responses, audio hashes, prompt, model
   and tokenizer/source revision pins, collection definition and intervention.
 - `pairs/*.pt`: resumable per-question means, native neutral input token trace,
   frozen neutral encoded features, and base comparison data. These are small
   activation caches, not model weights.
-- `style-vectors.pt`: all 28 native and matched-history emotion mean differences.
-- `checkpoint-differences.pt` and `layer-cosines.csv`: checkpoint comparison.
+- `style-vectors.pt`: all 28 audio, native-answer, and matched-history-answer
+  emotion mean differences, stored under distinct keys.
+- `checkpoint-differences.pt` and `layer-cosines.csv`: separate audio/answer
+  checkpoint comparisons; CSV has 56 rows, with explicit group and layer columns.
 - `results.jsonl`: raw steered responses and original unsteered references.
 - `rescored.jsonl`, `summary.json`, `harness/`: installed upstream BBH scoring,
   strict/flexible correctness and the extra strict-format-extractability diagnostic.
@@ -104,7 +112,8 @@ Kimi Python, in that order. `all` is the default. `--max-generations 4` limits o
 the steering sweep for a resumable smoke check. All original experiments remain
 separate from this diagnostic.
 
-The obsolete 30-question collection run is preserved separately under
-`outputs/kimi-bbh3-recovery-layer-diagnostic/`. Its caches and vectors are never
-reused by this corrected 125-collection / 30-test run. Stop the old diagnostic
-before pulling and restarting the wrapper.
+The obsolete runs are preserved separately under
+`outputs/kimi-bbh3-recovery-layer-diagnostic/` and
+`outputs/kimi-bbh3-collect125-steer30/`. Their answer-only caches and vectors are
+never reused by this audio+answer run. Stop the old diagnostic before pulling
+and restarting the wrapper.

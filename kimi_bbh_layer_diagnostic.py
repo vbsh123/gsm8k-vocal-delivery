@@ -1,6 +1,6 @@
 """Recovery-only Kimi BBH-3 layer diagnostic, NOT a held-out accuracy experiment.
 
-Collect on 125 matched pairs; steer only the disjoint 30 recovery questions.
+Collect AUDIO and ANSWER on 125 pairs; steer each on 30 disjoint recoveries.
 Compare with Instruct-minus-base descriptively, on identical encoded inputs and
 teacher-forced answer histories. Never steer with the checkpoint difference.
 """
@@ -24,7 +24,8 @@ from steer import read_rows
 BASE_MODEL = 'moonshotai/Kimi-Audio-7B'
 BASE_REVISION = 'd90be7113cd5be6bcf54fae2aabcad060a23f6cf'
 LAYERS = tuple(range(28))
-PROTOCOL = 'kimi-bbh3-collect125-test-recoveries-v2'
+PROTOCOL = 'kimi-bbh3-collect125-audio-answer-test30-v3'
+GROUPS = ('audio', 'answer')
 PARAMS = dict(output_type='text', max_new_tokens=512, text_temperature=0., audio_temperature=0.,
               text_top_k=5, audio_top_k=5, text_repetition_penalty=1., audio_repetition_penalty=1.)
 
@@ -97,17 +98,18 @@ def prepare(benchmark, output):
         source_rescored_sha256=digest(benchmark/'rescored.jsonl'),
         instruct_model=MODEL, instruct_revision=REVISION, base_model=BASE_MODEL, base_revision=BASE_REVISION,
         source_revision=SOURCE_REVISION, tokenizer_model=TOKENIZER_MODEL, tokenizer_revision=TOKENIZER_REVISION,
-        prompt=previous['prompt'], seed=42, generation=PARAMS, layers=list(LAYERS), strength=1.,
+        prompt=previous['prompt'], seed=42, generation=PARAMS, layers=list(LAYERS), groups=list(GROUPS), strength=1.,
         bank={p['question_id']: previous['bank'][p['question_id']] for p in collection+pairs},
         collection_pairs=collection, pairs=pairs,
         selection='125 seed42 collection pairs chosen from the remaining questions after excluding ALL flexible-score angry-correct/neutral-wrong test questions. Both emotion and checkpoint differences use these SAME 125 collection questions. Sweep uses ONLY the disjoint recovery test questions. Test outcomes are selected; diagnostic only, not overall accuracy.',
         emotion_vector='Equal-question average of mean angry minus mean neutral last-position decoder outputs during their native greedy generations, including prefill and EOS-prediction forwards.',
+        audio_vector='Equal-question average of angry minus neutral mean AUDIO token outputs during prefill, at positions selected by the native is_continuous_mask. Excludes text instructions and special delimiter tokens.',
         matched_emotion='Angry minus neutral using the same neutral-Instruct answer-token history; audio positions retain their own offsets.',
         checkpoint_difference='Instruct minus base on identical frozen Instruct-encoded neutral audio/text inputs and identical neutral-Instruct answer-token history. Decoder-checkpoint comparison; no base generation or base steering.',
-        intervention='One of 28 shared text decoder layers at a time; add the raw collected mean vector x1 to the last position on prefill and every cached answer forward. Six audio-output-branch layers excluded.')
+        intervention='One of 28 shared multimodal decoder layers and one token group at a time. AUDIO: add the audio vector x1 to native masked audio positions during prefill ONLY. ANSWER: add the answer vector x1 to the last position on prefill and every cached answer forward. Six speech-output-branch layers excluded.')
     output.mkdir(parents=True, exist_ok=True)
     freeze(output/'run_config.json', plan)
-    print(f'Collect on {len(collection)} pairs; steer {len(pairs)} DISJOINT neutral recovery recordings; 28 layers × x1. DIAGNOSTIC ONLY.', flush=True)
+    print(f'Collect AUDIO + ANSWER on {len(collection)} pairs; steer {len(pairs)} DISJOINT neutral recovery recordings; 28 layers × 2 groups × x1. DIAGNOSTIC ONLY.', flush=True)
     return plan
 
 
@@ -139,7 +141,7 @@ def device_copy(value, device):
 def decoder_layers(model):
     layers = model.alm.model.layers
     if len(layers) != 28 or model.alm.config.hidden_size != 3584:
-        raise ValueError('Kimi text decoder architecture differs from the inspected checkpoints.')
+        raise ValueError('Kimi shared multimodal decoder architecture differs from the inspected checkpoints.')
     return layers
 
 
@@ -172,6 +174,36 @@ def finish_means(sums, counts):
     return torch.stack([(sums[i]/counts[i]).cpu() for i in range(len(sums))])
 
 
+@contextmanager
+def capture_audio_means(layers, state):
+    """Capture only native audio slots in prefill, never instructions or answer tokens."""
+    values, handles = {}, []
+    def make_hook(index):
+        def hook(module, inputs, outputs):
+            mask = state.get('mask')
+            if index in values or mask is None:
+                return
+            hidden = outputs[0]
+            if mask.shape != hidden.shape[:2] or not mask.any():
+                raise ValueError('Native audio mask is empty or differs from prefill positions.')
+            values[index] = hidden[0, mask[0].bool()].detach().float().mean(0).cpu()
+        return hook
+    try:
+        for i, layer in enumerate(layers):
+            handles.append(layer.register_forward_hook(make_hook(i)))
+        yield values
+    finally:
+        for handle in handles:
+            handle.remove()
+
+
+def finish_audio(values, count):
+    import torch
+    if set(values) != set(range(count)):
+        raise ValueError('Missing audio-token captures; refusing to substitute answer activations.')
+    return torch.stack([values[i] for i in range(count)])
+
+
 def seed():
     import numpy as np
     import torch
@@ -187,19 +219,22 @@ def generate(model, row, prompt):
 
 def trace_generation(model, row, prompt):
     """Use the unmodified upstream greedy loop; record actual token inputs, not retokenized prose."""
-    calls, first = [], {}
+    calls, first, audio_state = [], {}, {}
     original = model.alm.forward
     def forward(*args, **kwargs):
+        audio_state['mask'] = kwargs.get('is_continuous_mask')
         if not calls:
             first.update({k: cpu_copy(kwargs[k]) for k in ('input_ids', 'text_input_ids',
                 'whisper_input_feature', 'is_continuous_mask', 'position_ids')})
         calls.append((int(kwargs['input_ids'][0, -1]), int(kwargs['text_input_ids'][0, -1])))
         return original(*args, **kwargs)
-    with capture_means(decoder_layers(model)) as (sums, counts), patch.object(model.alm, 'forward', forward):
+    layers = decoder_layers(model)
+    with capture_means(layers) as (sums, counts), capture_audio_means(layers, audio_state) as audio, patch.object(model.alm, 'forward', forward):
         response = generate(model, row, prompt)
     if next(iter(counts.values())) != len(calls):
         raise ValueError('Decoder layer and native forward counts differ.')
-    return dict(response=response, means=finish_means(sums, counts), inputs=first, calls=calls)
+    return dict(response=response, means=finish_means(sums, counts),
+                audio_means=finish_audio(audio, len(layers)), inputs=first, calls=calls)
 
 
 def encode(model, row, prompt):
@@ -212,14 +247,15 @@ def encode(model, row, prompt):
                 position_ids=torch.arange(audio.shape[1]).unsqueeze(0))
 
 
-def replay_means(model, inputs, calls):
+def replay_means(model, inputs, calls, include_audio=False):
     """Same answer token history, own audio-prefix offset, KV cache reset for every replay."""
     import torch
     device = next(model.alm.parameters()).device
     initial = {k: device_copy(v, device) for k, v in inputs.items()}
     first_length = initial['input_ids'].shape[1]
-    past = None
-    with torch.inference_mode(), capture_means(decoder_layers(model)) as (sums, counts):
+    past, state = None, {}
+    layers = decoder_layers(model)
+    with torch.inference_mode(), capture_means(layers) as (sums, counts), capture_audio_means(layers, state) as audio:
         for step, (audio_token, text_token) in enumerate(calls):
             if step == 0:
                 kwargs = initial
@@ -228,16 +264,33 @@ def replay_means(model, inputs, calls):
                     text_input_ids=torch.tensor([[text_token]], device=device),
                     whisper_input_feature=None, is_continuous_mask=None,
                     position_ids=torch.tensor([[first_length+step-1]], device=device))
+            state['mask'] = kwargs.get('is_continuous_mask')
             result = model.alm.forward(**kwargs, past_key_values=past, return_dict=False)
             past = result[2]
-    return finish_means(sums, counts)
+    means = finish_means(sums, counts)
+    if include_audio:
+        return dict(means=means, audio_means=finish_audio(audio, len(layers)))
+    return means
 
 
 @contextmanager
-def steer_layer(layer, direction, strength=1.):
+def steer_layer(layer, direction, strength=1., group='answer', audio_state=None):
     def hook(module, inputs, outputs):
+        mask = None
+        if group == 'audio':
+            mask = audio_state.get('mask') if audio_state is not None else None
+            if mask is None:
+                return outputs  # Cached answer steps contain no input audio positions.
+            if mask.shape != outputs[0].shape[:2] or not mask.any():
+                raise ValueError('Cannot steer audio without a valid native audio-position mask.')
+        elif group != 'answer':
+            raise ValueError(f'Unknown steering group: {group}')
         hidden = outputs[0].clone()
-        hidden[:, -1, :] += direction.to(device=hidden.device, dtype=hidden.dtype)*strength
+        delta = direction.to(device=hidden.device, dtype=hidden.dtype)*strength
+        if group == 'audio':
+            hidden[mask.bool()] += delta
+        else:
+            hidden[:, -1, :] += delta
         return (hidden, *outputs[1:])
     handle = layer.register_forward_hook(hook)
     try:
@@ -284,12 +337,13 @@ def collect(plan, output, model):
                 raise ValueError('Native rerun differs from saved Kimi answer. Inspect reproduction-mismatch.json before continuing.')
         matched_angry = replay_means(model, encode(model, pair['angry'], plan['prompt']), neutral['calls'])
         # Exact unchanged-input replay is an implementation check, not another generation.
-        replay = replay_means(model, neutral['inputs'], neutral['calls'])
-        replay_error = (replay-neutral['means']).abs().max().item()
-        if not torch.allclose(replay, neutral['means'], rtol=1e-5, atol=1e-5):
+        replay = replay_means(model, neutral['inputs'], neutral['calls'], include_audio=True)
+        replay_error = max((replay[k]-neutral[k]).abs().max().item() for k in ('means', 'audio_means'))
+        if any(not torch.allclose(replay[k], neutral[k], rtol=1e-5, atol=1e-5) for k in ('means', 'audio_means')):
             raise ValueError(f'Native neutral/replay activation mismatch: {replay_error}')
         atomic_save(path, dict(question_id=pair['question_id'], voice=pair['voice'], neutral=neutral,
             angry_means=angry['means'], emotion=angry['means']-neutral['means'],
+            angry_audio_means=angry['audio_means'], audio_emotion=angry['audio_means']-neutral['audio_means'],
             matched_emotion=matched_angry-neutral['means'], replay_max_abs_error=replay_error))
 
 
@@ -301,14 +355,15 @@ def collect_base(plan, output, model):
             continue
         print(f'Base comparison [{i}/{len(plan["collection_pairs"])}] {pair["question_id"]}: fixed neutral history', flush=True)
         data = torch.load(cache_file(output, pair), map_location='cpu', weights_only=True)
-        base = replay_means(model, data['neutral']['inputs'], data['neutral']['calls'])
-        atomic_save(path, dict(base_means=base, checkpoint_difference=data['neutral']['means']-base))
+        base = replay_means(model, data['neutral']['inputs'], data['neutral']['calls'], include_audio=True)
+        atomic_save(path, dict(base_means=base['means'], checkpoint_difference=data['neutral']['means']-base['means'],
+            base_audio_means=base['audio_means'], audio_checkpoint_difference=data['neutral']['audio_means']-base['audio_means']))
 
 
 def mean_vectors(plan, output):
     import torch
     data = [torch.load(cache_file(output, p), map_location='cpu', weights_only=True) for p in plan['collection_pairs']]
-    vectors = {name: torch.stack([d[name] for d in data]).mean(0) for name in ('emotion', 'matched_emotion')}
+    vectors = {name: torch.stack([d[name] for d in data]).mean(0) for name in ('emotion', 'matched_emotion', 'audio_emotion')}
     atomic_save(output/'style-vectors.pt', dict(**vectors, layers=list(LAYERS), protocol=PROTOCOL,
         question_ids=[p['question_id'] for p in plan['collection_pairs']], strength=1.))
     return data, vectors
@@ -321,23 +376,43 @@ def cosine_report(plan, output, data, vectors):
     if not all(p.exists() for p in bases):
         return
     rows = [torch.load(p, map_location='cpu', weights_only=True) for p in bases]
-    checkpoint = torch.stack([d['checkpoint_difference'] for d in rows]).mean(0)
-    neutral = torch.stack([d['neutral']['means'] for d in data]).mean(0)
-    base = torch.stack([d['base_means'] for d in rows]).mean(0)
-    atomic_save(output/'checkpoint-differences.pt', dict(checkpoint_difference=checkpoint,
-        instruct_neutral_mean=neutral, base_neutral_mean=base, layers=list(LAYERS), protocol=PROTOCOL))
+    differences = {}
     records = []
-    for layer in LAYERS:
-        cos = lambda a, b: float(cosine_similarity(a[layer], b[layer], dim=0))
-        records.append(dict(layer=layer, matched_emotion_vs_checkpoint_cosine=cos(vectors['matched_emotion'], checkpoint),
-            native_emotion_vs_checkpoint_cosine=cos(vectors['emotion'], checkpoint),
-            instruct_vs_base_representation_cosine=cos(neutral, base),
-            emotion_norm=float(vectors['emotion'][layer].norm()),
-            matched_emotion_norm=float(vectors['matched_emotion'][layer].norm()),
-            checkpoint_difference_norm=float(checkpoint[layer].norm())))
+    for group in GROUPS:
+        audio = group == 'audio'
+        key = 'audio_checkpoint_difference' if audio else 'checkpoint_difference'
+        checkpoint = torch.stack([d[key] for d in rows]).mean(0)
+        neutral = torch.stack([d['neutral']['audio_means' if audio else 'means'] for d in data]).mean(0)
+        base = torch.stack([d['base_audio_means' if audio else 'base_means'] for d in rows]).mean(0)
+        emotion = vectors['audio_emotion' if audio else 'emotion']
+        matched = emotion if audio else vectors['matched_emotion']
+        differences[group] = dict(checkpoint_difference=checkpoint, instruct_neutral_mean=neutral, base_neutral_mean=base)
+        for layer in LAYERS:
+            cos = lambda a, b: float(cosine_similarity(a[layer], b[layer], dim=0))
+            records.append(dict(group=group, layer=layer, matched_emotion_vs_checkpoint_cosine=cos(matched, checkpoint),
+                native_emotion_vs_checkpoint_cosine=cos(emotion, checkpoint),
+                instruct_vs_base_representation_cosine=cos(neutral, base),
+                emotion_norm=float(emotion[layer].norm()), matched_emotion_norm=float(matched[layer].norm()),
+                checkpoint_difference_norm=float(checkpoint[layer].norm())))
+    atomic_save(output/'checkpoint-differences.pt', dict(**differences, layers=list(LAYERS), protocol=PROTOCOL))
     with (output/'layer-cosines.csv').open('w', newline='') as stream:
         writer = csv.DictWriter(stream, fieldnames=list(records[0])); writer.writeheader(); writer.writerows(records)
     print('Saved layer-cosines.csv: descriptive checkpoint comparison, not proof of an alignment mechanism.', flush=True)
+
+
+def condition_name(layer, group):
+    return f'neutral-Kimi-L{layer}-{group}-a1'
+
+
+def generate_steered(model, row, prompt, layer, group, direction):
+    state = {}
+    original = model.alm.forward
+    def forward(*args, **kwargs):
+        state['mask'] = kwargs.get('is_continuous_mask')
+        return original(*args, **kwargs)
+    with patch.object(model.alm, 'forward', forward), steer_layer(
+            decoder_layers(model)[layer], direction, group=group, audio_state=state):
+        return generate(model, row, prompt)
 
 
 def sweep(plan, output, model, vectors, max_generations=0):
@@ -353,19 +428,19 @@ def sweep(plan, output, model, vectors, max_generations=0):
                     done.add(key)
         stream.flush()
         completed = 0
-        for layer in LAYERS:
-            condition = f'neutral-Kimi-L{layer}-a1'
+        for layer, group in [(i, g) for i in LAYERS for g in GROUPS]:
+            condition = condition_name(layer, group)
             for pair in plan['pairs']:
                 key = pair['question_id'], pair['voice'], condition
                 if key in done:
                     continue
-                print(f'Steer L{layer} x1 [{completed+1}] {pair["question_id"]}', flush=True)
+                print(f'Steer L{layer} {group} x1 [{completed+1}] {pair["question_id"]}', flush=True)
                 started = time.monotonic()
-                with steer_layer(decoder_layers(model)[layer], vectors['emotion'][layer]):
-                    response = generate(model, pair['neutral'], plan['prompt'])
+                response = generate_steered(model, pair['neutral'], plan['prompt'], layer, group,
+                    vectors['audio_emotion' if group == 'audio' else 'emotion'][layer])
                 row = dict(pair['neutral'], condition=condition, response=response,
                     generation_seconds=time.monotonic()-started, reused_from=None,
-                    interventions=[dict(layer=layer, group='last-answer-prediction-position', strength=1.)],
+                    interventions=[dict(layer=layer, group=group, strength=1.)],
                     diagnostic=PROTOCOL)
                 row.pop('harness', None)
                 row.pop('strict-format-extractable', None)
@@ -395,7 +470,7 @@ def report(output):
     print('\nRECOVERY-SELECTED LAYER DIAGNOSTIC. 125 collection questions; disjoint recovery-only test questions. No population-level p-values.')
     print('Condition                       N  Flexible   Strict   Format')
     summaries = []
-    for condition in ['neutral', 'angry', *[f'neutral-Kimi-L{i}-a1' for i in LAYERS]]:
+    for condition in ['neutral', 'angry', *[condition_name(i, g) for i in LAYERS for g in GROUPS]]:
         group = [r for r in records if r['condition'] == condition]
         if not group:
             continue
@@ -424,7 +499,8 @@ def run(args, plan):
     cosine_report(plan, args.output, data, vectors)
     if args.mode in ('all', 'sweep'):
         done = {(r['question_id'], r['voice'], r['condition']) for r in read_rows(args.output/'results.jsonl')}
-        pending = any((p['question_id'], p['voice'], f'neutral-Kimi-L{i}-a1') not in done for p in plan['pairs'] for i in LAYERS)
+        pending = any((p['question_id'], p['voice'], condition_name(i, g)) not in done
+                      for p in plan['pairs'] for i in LAYERS for g in GROUPS)
         if pending:
             model = load_model(args.model_source)
             sweep(plan, args.output, model, vectors, args.max_generations)
@@ -434,10 +510,10 @@ def run(args, plan):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--benchmark', type=Path, default=Path('outputs/bbh-three-regenerated-models/kimi'))
-    p.add_argument('--output', type=Path, default=Path('outputs/kimi-bbh3-collect125-steer30'))
+    p.add_argument('--output', type=Path, default=Path('outputs/kimi-bbh3-collect125-audio-answer-steer30'))
     p.add_argument('--model-source', type=Path, default=Path('external/Kimi-Audio'))
     p.add_argument('--mode', choices=['all', 'prepare', 'collect', 'compare', 'sweep', 'summary'], default='all')
-    p.add_argument('--max-generations', type=int, default=0, help='Optional resumable sweep smoke limit; 0 means all 28 layers.')
+    p.add_argument('--max-generations', type=int, default=0, help='Optional resumable sweep smoke limit; 0 means all 28 layers for BOTH audio and answer positions.')
     args = p.parse_args()
     if args.max_generations < 0:
         p.error('--max-generations must be nonnegative')
