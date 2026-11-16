@@ -55,9 +55,9 @@ def audio(args):
     return selection
 
 
-def prepare(args):
+def prepare(args, selection=None, dataset='MultiArith', steered_condition=STEERED):
     from evaluate_kimi_audio import MODEL, REVISION, SOURCE_REVISION, TOKENIZER_MODEL, TOKENIZER_REVISION
-    selection = select(args.source, args.output)
+    selection = select(args.source, args.output) if selection is None else selection
     questions = selection['collection']+selection['test']
     bank = {q['question_id']: q for q in questions}
     groups = {}
@@ -65,7 +65,7 @@ def prepare(args):
         if row['provider'] != 'azure' or row['style'] not in ('neutral', 'angry'):
             continue
         q = bank[row['question_id']]
-        if row['question'] != q['question'] or str(row['answer']) != str(q['answer']):
+        if row['question'] != q['question'] or str(row['answer']).rsplit('####', 1)[-1].strip() != str(q['answer']):
             raise ValueError('MultiArith audio wording or gold differs from the frozen source.')
         path = (args.source/row['audio_path']).absolute()
         with wave.open(str(path)) as stream:
@@ -87,7 +87,7 @@ def prepare(args):
     test = [pair(q) for q in selection['test']]
     if {p['question_id'] for p in train} & {p['question_id'] for p in test}:
         raise ValueError('Collection and test questions overlap.')
-    plan = dict(protocol=PROTOCOL, selection=selection, prompt=multiarith.PROMPT, seed=42,
+    plan = dict(protocol=selection.get('protocol', PROTOCOL), selection=selection, prompt=multiarith.PROMPT, seed=42,
         model=MODEL, revision=REVISION, source_revision=SOURCE_REVISION,
         tokenizer_model=TOKENIZER_MODEL, tokenizer_revision=TOKENIZER_REVISION,
         generation=kimi.PARAMS, layer=LAYER, group='answer', strength=1.,
@@ -95,10 +95,14 @@ def prepare(args):
         bank={q['question_id']: q for q in selection['test']},
         vector=str((args.output/'style-vectors.pt').absolute()),
         vector_definition='Per-question mean angry minus neutral L17 block-output answer-prediction state, '
-                          'then equal mean across all 290 collection pairs. Native greedy histories; raw magnitude retained.',
+                          f'then equal mean across all {len(train)} collection pairs. Native greedy histories; raw magnitude retained.',
         audio_encoding='Full recordings through native Kimi encoders; no DIFFA adapter or 30-second eligibility filter.',
         scoring='Installed upstream GSM8K extraction/metric on MultiArith numeric references; additional numeric equivalence. '
                 'Audio-adapted inference, not a dedicated official MultiArith harness task.')
+    if dataset != 'MultiArith':
+        plan.update(dataset=dataset, steered_condition=steered_condition,
+            scoring='Installed upstream GSM8K extraction/metric on GSM8K references; additional numeric equivalence. '
+                    'Audio-adapted inference, not full official text-harness inference.')
     kimi.freeze(args.output/'run_config.json', plan)
     return plan
 
@@ -109,12 +113,13 @@ def text_tokens(model, response):
 
 def collect(plan, output, model):
     import torch
+    protocol = plan.get('protocol', PROTOCOL)
     folder = output/'pairs'; folder.mkdir(exist_ok=True)
     for i, pair in enumerate(plan['collection']):
         path = folder/f'{i:05d}.pt'
         if path.exists():
             cached = torch.load(path, map_location='cpu', weights_only=True)
-            if (cached['protocol'] != PROTOCOL or cached['question_id'] != pair['question_id']
+            if (cached['protocol'] != protocol or cached['question_id'] != pair['question_id']
                     or cached['audio_sha256'] != {s: pair[s]['audio_sha256'] for s in ('neutral', 'angry')}):
                 raise ValueError('Collection cache differs from the frozen 290-pair split.')
             continue
@@ -125,7 +130,7 @@ def collect(plan, output, model):
                 raise ValueError('Collection audio changed.')
             traces[style] = kimi.trace_generation(model, pair[style], plan['prompt'])
         # Do not store 28-layer traces or large encoded-audio tensors: only L17 summaries.
-        saved = dict(protocol=PROTOCOL, question_id=pair['question_id'], voice=pair['voice'],
+        saved = dict(protocol=protocol, question_id=pair['question_id'], voice=pair['voice'],
             audio_sha256={s: pair[s]['audio_sha256'] for s in traces},
             responses={s: traces[s]['response'] for s in traces},
             response_tokens={s: text_tokens(model, traces[s]['response']) for s in traces},
@@ -134,7 +139,7 @@ def collect(plan, output, model):
             audio_difference=traces['angry']['audio_means'][LAYER]-traces['neutral']['audio_means'][LAYER])
         kimi.atomic_save(path, saved)
     cached = [torch.load(folder/f'{i:05d}.pt', map_location='cpu', weights_only=True) for i in range(len(plan['collection']))]
-    vector = dict(protocol=PROTOCOL, model=plan['model'], revision=plan['revision'],
+    vector = dict(protocol=protocol, model=plan['model'], revision=plan['revision'],
         layer=LAYER, strength=1., prompt=plan['prompt'],
         collection_question_ids=[p['question_id'] for p in plan['collection']],
         answer_direction=torch.stack([r['answer_difference'] for r in cached]).mean(0),
@@ -143,7 +148,7 @@ def collect(plan, output, model):
     vector_path = Path(plan['vector'])
     if vector_path.exists():
         stored = torch.load(vector_path, map_location='cpu', weights_only=True)
-        if (stored['protocol'] != PROTOCOL or stored['collection_question_ids'] != vector['collection_question_ids']
+        if (stored['protocol'] != protocol or stored['collection_question_ids'] != vector['collection_question_ids']
                 or stored['prompt'] != vector['prompt']
                 or any(not torch.equal(stored[k], vector[k]) for k in ('answer_direction', 'audio_direction'))):
             raise ValueError('Saved vector differs from the frozen collection; use a new output folder.')
@@ -153,10 +158,11 @@ def collect(plan, output, model):
 
 
 def evaluate(plan, output, model, vector):
+    steered = plan.get('steered_condition', STEERED)
     if vector['collection_question_ids'] != [p['question_id'] for p in plan['collection']]:
         raise ValueError('Vector collection IDs differ from the frozen split.')
     done = {(r['question_id'], r['voice'], r['condition']) for r in read_rows(output/'results.jsonl', repair=True)}
-    tasks = [(p, c) for p in plan['test'] for c in ('neutral', 'angry', STEERED)
+    tasks = [(p, c) for p in plan['test'] for c in ('neutral', 'angry', steered)
              if (p['question_id'], p['voice'], c) not in done]
     with (output/'results.jsonl').open('a') as stream:
         for i, (pair, condition) in enumerate(tasks, 1):
@@ -165,15 +171,15 @@ def evaluate(plan, output, model, vector):
                 raise ValueError('Test audio changed.')
             print(f'Evaluate [{i}/{len(tasks)}] {pair["question_id"]} {condition}', flush=True)
             started = time.monotonic()
-            if condition == STEERED:
+            if condition == steered:
                 response = kimi.generate_steered(model, row, plan['prompt'], LAYER, 'answer', vector['answer_direction'])
             else:
                 response = kimi.generate(model, row, plan['prompt'])
             saved = dict(row, condition=condition, response=response, prompt=plan['prompt'], seed=42,
                 max_new_tokens=512, model=plan['model'], revision=plan['revision'],
-                vector_sha256=kimi.digest(Path(plan['vector'])) if condition == STEERED else None,
+                vector_sha256=kimi.digest(Path(plan['vector'])) if condition == steered else None,
                 response_tokens=text_tokens(model, response), generation_seconds=time.monotonic()-started,
-                interventions=[dict(layer=LAYER, group='answer', strength=1.)] if condition == STEERED else [])
+                interventions=[dict(layer=LAYER, group='answer', strength=1.)] if condition == steered else [])
             stream.write(json.dumps(saved)+'\n'); stream.flush()
             print(response, flush=True)
 
@@ -184,6 +190,7 @@ def report(output):
     if not path.exists():
         print('Kimi MultiArith: audio preparation / waiting; no model evaluation configuration yet.'); return
     plan = json.loads(path.read_text())
+    steered = plan.get('steered_condition', STEERED)
     rows = read_rows(output/'results.jsonl')
     if not rows:
         print('Kimi MultiArith: collection / waiting; no test answers saved yet.'); return
@@ -203,9 +210,9 @@ def report(output):
         metrics['format-compliant'] = values['strict-match'][i]['prediction'] != '[invalid]'
         scored.append(dict(row, scores=metrics, predictions={m: v[i]['prediction'] for m, v in values.items()}))
     groups = {c: {(r['question_id'], r['voice']): r for r in scored if r['condition'] == c}
-              for c in ('neutral', 'angry', STEERED)}
+              for c in ('neutral', 'angry', steered)}
     common = sorted(set.intersection(*(set(g) for g in groups.values())))
-    print(f'\nKimi MultiArith: {len(rows)}/{len(plan["test"])*3} test answers; '
+    print(f'\nKimi {plan.get("dataset", "MultiArith")}: {len(rows)}/{len(plan["test"])*3} test answers; '
           f'{len(common)} questions completed in ALL THREE conditions. L17 answer x1 fixed before outcomes.')
     print('Condition                              N  Numeric   Flexible  Strict  Format  Mean tokens  Median tokens')
     accuracy, comparisons = [], []
@@ -221,7 +228,7 @@ def report(output):
               f' {counts["strict-match"]/n:7.1%} {counts["format-compliant"]/n:7.1%}'
               f' {statistics.mean(lengths):11.1f} {statistics.median(lengths):14.1f}')
     for metric in ('flexible-numeric', 'flexible-extract', 'strict-match', 'format-compliant'):
-        for condition in ('angry', STEERED):
+        for condition in ('angry', steered):
             keys = sorted(groups['neutral'].keys() & groups[condition].keys())
             if not keys:
                 continue
@@ -230,10 +237,10 @@ def report(output):
             print(f'{metric} / {condition}: N={len(keys)}; gain={result["gain_pp"]:+.2f} pp; '
                   f'W/L={result["wins"]}/{result["losses"]}; p={result["mcnemar_exact_p"]:.4f}; CI={result["ci95_gain_pp"]}')
     (output/'rescored.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in scored))
-    (output/'summary.json').write_text(json.dumps(dict(protocol=PROTOCOL, primary_metric='flexible-numeric',
+    (output/'summary.json').write_text(json.dumps(dict(protocol=plan.get('protocol', PROTOCOL), primary_metric='flexible-numeric',
         primary_comparison=plan['selection']['primary_comparison'], matched_all_three=len(common), accuracy=accuracy,
         paired=comparisons, scorer=scorer.provenance,
-        note=plan['scoring']+' Secondary comparisons are exploratory/unadjusted. All 290 test questions are disjoint '
+        note=plan['scoring']+f' Secondary comparisons are exploratory/unadjusted. All {len(plan["test"])} test questions are disjoint '
              'from vector collection and were not selected by Kimi outcomes.'), indent=2)+'\n')
 
 
