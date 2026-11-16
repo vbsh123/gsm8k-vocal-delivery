@@ -139,9 +139,23 @@ class BBHAudioModelTests(unittest.TestCase):
             (output/'results.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rows[:-1]))
             run.report(output)
             summary = json.loads((output/'summary.json').read_text())
-            self.assertEqual(len(summary['paired']), 2)
+            self.assertEqual(len(summary['paired']), 3)
             for result in summary['paired']:
-                self.assertEqual((result['pairs'], result['wins'], result['losses']), (3, 3, 0))
+                expected = (3, 0, 0) if result['metric'] == run.FORMAT_METRIC else (3, 3, 0)
+                self.assertEqual((result['pairs'], result['wins'], result['losses']), expected)
+
+    def test_format_diagnostic_uses_official_strict_rules_but_is_independent_of_gold(self):
+        from score_bbh_harness import HarnessScorer
+        responses = ['The answer is (A).', 'The answer is (B).', '(A)',
+                     'The answer is (D).', 'No answer.', 'The answer is (A) because it is red.']
+        doc = dict(input='Which?\nOptions:\n(A) Red\n(B) Blue\n(C) Green', target='(A)')
+        with tempfile.TemporaryDirectory() as d:
+            scorer = HarnessScorer(Path(d))
+            self.assertEqual(run.strict_format_bits(scorer, responses, [doc]*len(responses)),
+                             [True, True, False, False, False, False])
+            values = scorer.score(responses, [doc]*len(responses))
+            self.assertTrue(values['strict-match'][0]['correct'])
+            self.assertFalse(values['strict-match'][1]['correct'])
 
     def test_kimi_uses_full_audio_path_fixed_prompt_and_existing_greedy_recipe(self):
         import torch

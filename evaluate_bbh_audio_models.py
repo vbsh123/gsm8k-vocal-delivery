@@ -21,6 +21,7 @@ MOSS_MODEL = 'OpenMOSS-Team/MOSS-Audio-8B-Instruct'
 MOSS_REVISION = 'd4dc5a6d8cd79b43dcd82884c75e303b1ecd016d'
 MOSS_SOURCE_REVISION = '66326e6e0db34f036c86a76ba005efa4830c69dd'
 STYLES = ('neutral', 'angry')
+FORMAT_METRIC = 'strict-format-extractable'
 
 
 def generate_audio(source):
@@ -171,6 +172,16 @@ def run(plan, output, model, source, max_generations=0):
         print(response, flush=True)
 
 
+def strict_format_bits(scorer, responses, docs):
+    """Would upstream strict scoring accept any valid choice? Ignore the true answer."""
+    # Reuse both upstream extraction AND metric normalization. This is an added
+    # diagnostic; the real-reference accuracy calculation remains unchanged.
+    expanded = [response for response in responses for _ in 'ABC']
+    references = [dict(doc, target=f'({choice})') for doc in docs for choice in 'ABC']
+    results = scorer.score(expanded, references)['strict-match']
+    return [any(r['correct'] for r in results[i:i+3]) for i in range(0, len(results), 3)]
+
+
 def report(output):
     from score_bbh_harness import HarnessScorer
     from rescore_audio_steering import paired
@@ -184,16 +195,19 @@ def report(output):
     if any(r['reference_answer'] != plan['bank'][r['question_id']]['answer'] for r in rows):
         raise ValueError('Saved reference differs from the frozen question bank.')
     values = scorer.score([r['response'] for r in rows], docs)
-    scored = [dict(row, harness={m: results[i] for m, results in values.items()}) for i, row in enumerate(rows)]
-    summary = dict(model=plan['recipe'], scorer=scorer.provenance, primary_metric='flexible-extract', accuracy=[], paired=[])
+    format_bits = strict_format_bits(scorer, [r['response'] for r in rows], docs)
+    scored = [dict(row, harness={m: results[i] for m, results in values.items()},
+                   **{FORMAT_METRIC: format_bits[i]}) for i, row in enumerate(rows)]
+    summary = dict(model=plan['recipe'], scorer=scorer.provenance, primary_metric='flexible-extract', accuracy=[], paired=[],
+        format_diagnostic='Additional statistic: upstream strict extraction/metric accepts one of (A)/(B)/(C), regardless of gold. Not a separate official benchmark metric or a check of exact final-line placement.')
     subsets = {'all': set(plan['bank'])}
     if len(plan['bank']) == 250:
         subsets['original-125-test-half'] = set(list(plan['bank'])[125:])
     print(f'\n{plan["recipe"]["model"]}: {len(rows)}/{len(plan["recordings"])} answers; no steering.', flush=True)
     for subset, ids in subsets.items():
         print('\nCohort:', subset, flush=True)
-        for metric in values:
-            groups = {s: {(r['question_id'], r['voice']): r['harness'][metric]['correct']
+        for metric in [*values, FORMAT_METRIC]:
+            groups = {s: {(r['question_id'], r['voice']): (r[FORMAT_METRIC] if metric == FORMAT_METRIC else r['harness'][metric]['correct'])
                           for r in scored if r['style'] == s and r['question_id'] in ids} for s in STYLES}
             keys = sorted(groups['neutral'].keys() & groups['angry'].keys())
             if not keys:
@@ -210,6 +224,7 @@ def report(output):
     (output/'summary.json').write_text(json.dumps(summary, indent=2)+'\n')
     (output/'rescored.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in scored))
     print('Audio-adapted generations scored verbatim by the installed upstream task API. Tests/intervals unadjusted.')
+    print('strict-format-extractable is an additional diagnostic: a valid strict-extracted choice, independent of correctness.')
     if len(subsets) > 1:
         print('The 125-question table is a subset of the full table, not an independent cohort.')
     if rows and all(r.get('response_tokens') is not None for r in rows):

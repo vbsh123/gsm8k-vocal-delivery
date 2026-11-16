@@ -117,6 +117,15 @@ when all 250 recordings are available. They overlap and are not independent
 cohorts. This is an audio adaptation scored by upstream APIs, not the original
 text-harness inference protocol.
 
+The summary also reports `strict-format-extractable`, an additional diagnostic:
+does upstream strict extraction/metric normalization accept any valid choice
+(A)/(B)/(C), independent of the true answer? A wrong but well-formatted option
+counts as compliant. This uses the installed scorer with all three possible
+references as a separate computation; real-reference accuracy is unchanged.
+It measures strict-score-compatible answer formatting, not every instruction
+or exact final-line placement, and is not a separate official BBH metric.
+The diagnostic includes paired gains, confidence intervals and McNemar tests.
+
 Official implementations:
 
 - MOSS source: `66326e6e0db34f036c86a76ba005efa4830c69dd`
