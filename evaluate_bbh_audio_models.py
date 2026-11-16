@@ -22,6 +22,8 @@ MOSS_REVISION = 'd4dc5a6d8cd79b43dcd82884c75e303b1ecd016d'
 MOSS_SOURCE_REVISION = '66326e6e0db34f036c86a76ba005efa4830c69dd'
 STYLES = ('neutral', 'angry')
 FORMAT_METRIC = 'strict-format-extractable'
+EXPLICIT_REASONING_PROMPT = PROMPT.replace("Let's think step by step.",
+    'Give concise step-by-step reasoning with only the necessary deductions.')
 
 
 def generate_audio(source):
@@ -98,7 +100,7 @@ def make_plan(source, model):
         interventions=[])
 
 
-def moss_generator(source):
+def moss_generator(source, prompt=PROMPT):
     import torch
     actual = subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD'], text=True).strip()
     if actual != MOSS_SOURCE_REVISION:
@@ -114,7 +116,7 @@ def moss_generator(source):
 
     def generate(task):
         audio = load_audio(task['audio_file'], sample_rate=processor.config.mel_sr)
-        inputs = processor(text=PROMPT, audios=[audio], return_tensors='pt').to(model.device)
+        inputs = processor(text=prompt, audios=[audio], return_tensors='pt').to(model.device)
         if inputs.get('audio_data') is not None:
             inputs['audio_data'] = inputs['audio_data'].to(model.dtype)
         inputs['audio_input_mask'] = inputs['input_ids'] == processor.audio_token_id
@@ -125,7 +127,7 @@ def moss_generator(source):
     return generate
 
 
-def kimi_generator(source):
+def kimi_generator(source, prompt=PROMPT):
     import torch
     from evaluate_kimi_audio import assets, messages
     model_path, tokenizer_path, KimiAudio = assets(source)
@@ -136,7 +138,7 @@ def kimi_generator(source):
 
     def generate(task):
         with torch.inference_mode():
-            _, response = model.generate(messages(Path(task['audio_file']), PROMPT), output_type='text',
+            _, response = model.generate(messages(Path(task['audio_file']), prompt), output_type='text',
                 max_new_tokens=512, text_temperature=0., audio_temperature=0., text_top_k=5, audio_top_k=5,
                 text_repetition_penalty=1., audio_repetition_penalty=1.)
         return response, None
@@ -156,7 +158,7 @@ def run(plan, output, model, source, max_generations=0):
     (output/'runtime.json').write_text(json.dumps(dict(python=sys.version, torch=torch.__version__,
         numpy=np.__version__, transformers=version('transformers'),
         audio_loader='soundfile-float32-moss-mono-torchaudio-resample-v1' if model == 'moss' else 'upstream-kimi'), indent=2)+'\n')
-    generate = moss_generator(source) if model == 'moss' else kimi_generator(source)
+    generate = moss_generator(source, plan['prompt']) if model == 'moss' else kimi_generator(source, plan['prompt'])
     for i, task in enumerate(pending, 1):
         if hashlib.sha256(Path(task['audio_file']).read_bytes()).hexdigest() != task['audio_sha256']:
             raise ValueError('Audio changed after preparation.')
@@ -164,7 +166,7 @@ def run(plan, output, model, source, max_generations=0):
         print(f'[{i}/{len(pending)}] {task["question_id"]} {task["style"]} ({task["seconds"]:.2f}s)', flush=True)
         started = time.monotonic()
         response, tokens = generate(task)
-        row = dict(task, response=response, response_tokens=tokens, prompt=PROMPT, seed=42,
+        row = dict(task, response=response, response_tokens=tokens, prompt=plan['prompt'], seed=42,
                    model=plan['recipe']['model'], revision=plan['recipe']['revision'],
                    max_new_tokens=512, generation_seconds=time.monotonic()-started, interventions=[])
         with (output/'results.jsonl').open('a') as stream:
@@ -240,6 +242,8 @@ def main():
     p.add_argument('--output', type=Path, default=Path('outputs/bbh-three-audio-models'))
     p.add_argument('--model-source', type=Path)
     p.add_argument('--max-generations', type=int, default=0, help='Optional smoke limit; 0 resumes all missing answers')
+    p.add_argument('--explicit-reasoning', action='store_true',
+                   help='Replace only Let\'s think step by step with an explicit concise reasoning instruction. Use a separate output directory.')
     args = p.parse_args()
     if args.max_generations < 0:
         p.error('--max-generations cannot be negative')
@@ -250,6 +254,8 @@ def main():
     if args.mode == 'summary':
         report(output); return
     plan = make_plan(source_folder(args.source), args.model)
+    if args.explicit_reasoning:
+        plan['prompt'] = EXPLICIT_REASONING_PROMPT
     config = output/'run_config.json'
     if config.exists() and json.loads(config.read_text()) != plan:
         raise ValueError('Experiment settings changed; use a new output folder.')

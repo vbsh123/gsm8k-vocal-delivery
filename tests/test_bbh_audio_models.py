@@ -15,6 +15,12 @@ import evaluate_bbh_audio_models as run
 
 
 class BBHAudioModelTests(unittest.TestCase):
+    def test_explicit_reasoning_changes_only_reasoning_sentence(self):
+        self.assertEqual(run.EXPLICIT_REASONING_PROMPT.replace(
+            'Give concise step-by-step reasoning with only the necessary deductions.',
+            "Let's think step by step."), run.PROMPT)
+        self.assertIn('The answer is (<letter>).', run.EXPLICIT_REASONING_PROMPT)
+
     def test_regeneration_uses_all_250_same_seeded_questions_and_only_neutral_angry(self):
         example = dict(input='Three birds.\nOptions:\n(A) Red\n(B) Blue\n(C) Green', target='(A)')
         data = json.dumps(dict(examples=[example]*250)).encode()
@@ -67,22 +73,25 @@ class BBHAudioModelTests(unittest.TestCase):
             root = Path(d); source, checksum = self.fixture(root); output = root/'out'; output.mkdir()
             with patch.object(run, 'SOURCE_SHA256', checksum):
                 plan = run.make_plan(source, 'moss')
+            plan['prompt'] = run.EXPLICIT_REASONING_PROMPT
             calls = []
             def generate(task):
                 self.assertNotIn('question', task)
                 calls.append((task['question_id'], task['style'], torch.initial_seed(), random.random(), float(np.random.random())))
                 return 'The answer is (A).', 7
-            with patch.object(run, 'moss_generator', return_value=generate), patch.object(run, 'kimi_generator') as kimi:
+            with patch.object(run, 'moss_generator', return_value=generate) as factory, patch.object(run, 'kimi_generator') as kimi:
                 run.run(plan, output, 'moss', Path('src'), max_generations=2)
                 run.run(plan, output, 'moss', Path('src'))
                 run.run(plan, output, 'moss', Path('src'))
                 kimi.assert_not_called()
+                factory.assert_called_with(Path('src'), run.EXPLICIT_REASONING_PROMPT)
             self.assertEqual(len(calls), 8)
             self.assertEqual(len({c[2:] for c in calls}), 1)
             self.assertEqual(calls[0][2], 42)
             saved = run.read_rows(output/'results.jsonl')
             self.assertEqual(len(saved), 8)
             self.assertTrue(all(r['response'] == 'The answer is (A).' and r['interventions'] == [] for r in saved))
+            self.assertTrue(all(r['prompt'] == run.EXPLICIT_REASONING_PROMPT for r in saved))
 
     def test_moss_uses_author_processor_full_waveform_and_decodes_only_new_tokens(self):
         import numpy as np
@@ -177,12 +186,17 @@ class BBHAudioModelTests(unittest.TestCase):
         with patch.dict(sys.modules, modules):
             generate = run.kimi_generator(Path('external/Kimi-Audio'))
             self.assertEqual(generate(dict(audio_file='/audio/full-40-seconds.wav')), ('The answer is (C).', None))
+            explicit = run.kimi_generator(Path('external/Kimi-Audio'), run.EXPLICIT_REASONING_PROMPT)
+            self.assertEqual(explicit(dict(audio_file='/audio/full-40-seconds.wav')), ('The answer is (C).', None))
         provided, settings = calls[0]
         self.assertEqual(provided[0]['content'], run.PROMPT)
         self.assertEqual(provided[1]['content'], '/audio/full-40-seconds.wav')
         self.assertEqual((settings['output_type'], settings['max_new_tokens']), ('text', 512))
         self.assertEqual((settings['text_temperature'], settings['audio_temperature']), (0., 0.))
         self.assertEqual(settings['text_repetition_penalty'], 1.)
+        self.assertEqual(calls[1][0][0]['content'], run.EXPLICIT_REASONING_PROMPT)
+        self.assertEqual(calls[1][0][1], provided[1])
+        self.assertEqual(calls[1][1], settings)
 
 
 if __name__ == '__main__':
