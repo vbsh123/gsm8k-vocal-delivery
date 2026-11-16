@@ -159,7 +159,7 @@ def evaluate(plan, args):
                     stream.write(json.dumps(dict(pair[style], condition=style,
                         in_vector_collection=pair['in_vector_collection'], reused_from=plan['benchmark']))+'\n')
                     done.add(key)
-    print(f'{len(pending)} regression generations pending; no new collection or base checkpoint.', flush=True)
+    print(f'{len(pending)} {plan.get("evaluation_label", "regression")} generations pending; no new collection or base checkpoint.', flush=True)
     if not pending:
         return
     vectors = torch.load(plan['vector_source'], map_location='cpu', weights_only=True)
@@ -176,7 +176,7 @@ def evaluate(plan, args):
             for i, (pair, target) in enumerate(pending, 1):
                 row = pair['neutral']
                 if diagnostic.digest(row['audio_file']) != row['audio_sha256']:
-                    raise ValueError('Regression audio changed.')
+                    raise ValueError('Evaluation audio changed.')
                 vector = vectors['audio_emotion' if target['group'] == 'audio' else 'emotion'][target['layer']]
                 print(f'[{i}/{len(pending)}] {pair["question_id"]} {target["condition"]}', flush=True)
                 started = time.monotonic()

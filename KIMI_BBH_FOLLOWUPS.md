@@ -93,3 +93,41 @@ be rerun during or after the prompt experiment:
 ```
 
 The source raw response files are never rewritten by this analysis.
+
+## Full original-prompt steering on all 250 questions
+
+```bash
+nohup bash run_kimi_bbh_full_steering.sh \
+  > outputs/kimi-bbh-full-steering.log 2>&1 < /dev/null &
+tail -f outputs/kimi-bbh-full-steering.log
+```
+
+This queue waits for the current follow-up controller, explicit-reasoning wrapper,
+and new-prompt worker before starting. It tests L16, L17 and L18 **answer x1
+separately**, always using the **old original prompt** and the same 125-pair mean
+vectors. It does not recollect vectors, load base, steer angry audio, or apply the
+new explicit-reasoning prompt.
+
+`kimi_bbh_full_steering.py --mode prepare` freezes all original matched questions
+without outcome filtering and reuses exact-compatible saved steering answers from
+the 30-recovery sweep and the 24-regression follow-up. With both completed, this
+is 162 reused steered answers and **588 new answers**, completing 250 × 3 layers.
+Original neutral/angry references are reused. Generation resumes per answer.
+Prompt, audio, model, generation recipe, vector hash, target group/layer/strength,
+and conflicting duplicate responses are checked before reuse.
+
+Results go under `outputs/kimi-bbh3-full-L16-L17-L18/`. The CPU report is:
+
+```bash
+.venv-diffa/bin/python kimi_bbh_full_steering.py --mode summary
+```
+
+It reports upstream strict/flexible scores, valid-answer-format diagnostics,
+response word lengths, exact McNemar p-values and paired bootstrap intervals for
+each intervention against the same neutral question/voice. Partial-run paired
+statistics use only completed matching neutral questions.
+
+Tables distinguish all 250, the 125 collection-unseen questions and the 125
+collection-seen questions. **Collection-unseen is not untouched confirmation**:
+it includes the recovery cases used to select these layers and inspected
+regressions. All significance values remain exploratory and unadjusted.
