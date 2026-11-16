@@ -25,6 +25,7 @@ NAMES={
     'ifbench':{'run_spoken_ifbench.py','run_ifbench_after_ifeval.sh'},
     'reasoning-transfer':{'run_reasoning_transfer.py'},
     'mean-steering':{'run_bbh_five_mean.py','steer_ifeval_mean.py','run_bbh_tracking250.py'},
+    'strength-sweep':{'run_gsm_strength_sweep.py'},
 }
 
 
@@ -48,7 +49,7 @@ def active_jobs(kind, root, proc=Path('/proc')):
             if 'run_azure_followups.py' in names and '--stage' in args:
                 stages={'classification':('classify',),'steering':('steering',),
                         'azure-emotions':('classify','diffa'),'finalist-queue':('steering',),
-                        'audio-models':('qwen','kimi'),'pitch-speed':(),'commonsense':(),'svamp':(),'bbh':(),'ifeval':(),'ifbench':(),'reasoning-transfer':(),'mean-steering':()}
+                        'audio-models':('qwen','kimi'),'pitch-speed':(),'commonsense':(),'svamp':(),'bbh':(),'ifeval':(),'ifbench':(),'reasoning-transfer':(),'mean-steering':(),'strength-sweep':()}
                 matches |= args[args.index('--stage')+1] in stages[kind]
             if matches:
                 active.append(int(entry.name))

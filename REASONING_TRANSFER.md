@@ -172,3 +172,34 @@ compared against the same neutral baseline using upstream strict and flexible
 scoring, additional numeric equivalence, paired confidence intervals and exact
 McNemar tests. These are exploratory, unadjusted sensitivity comparisons; a newly
 selected best strength is not independent validation of a tuned method.
+
+## Seven-object logical deduction
+
+`run_bbh_seven_mean.py` generates all 250 official seven-object questions in
+neutral and angry Azure Jenny delivery. A checksum-pinned source and seed-42
+shuffle fix 125 collection / 125 test questions before any seven-object results.
+It collects the usual equal-question matched-forward mean, then evaluates
+neutral, angry and L31 answer x1 steered-neutral on the 125 test questions.
+The seven-choice prompt ends with `The answer is (<letter>).` and the installed
+upstream seven-object BBH task supplies strict/flexible scoring. Long recordings
+use the same full-audio chunked Whisper/global-adapter path as BBH-three/five.
+
+Azure TTS can run alongside existing GPU work. Model inference waits for active
+reasoning, mean-steering and strength-sweep queues, then the shared GPU lock.
+No other run waits for this process by those names, avoiding a circular wait.
+
+With `AZURE_SPEECH_KEY` and singular `AZURE_SPEECH_REGION` exported:
+
+```bash
+nohup .venv-diffa/bin/python -u run_bbh_seven_mean.py \
+  > outputs/bbh-seven-mean.log 2>&1 < /dev/null &
+tail -f outputs/bbh-seven-mean.log
+.venv-diffa/bin/python run_bbh_seven_mean.py --mode summary
+```
+
+Audio is under `outputs/azure-bbh-seven250`; split/configuration, pair caches,
+`style-vectors.pt`, raw answers and summaries are under
+`outputs/bbh-seven250-angry-mean`. There are 500 TTS clips, up to 250 collection
+generations and 375 held-out evaluation generations. Work resumes per clip,
+collection pair and answer. This is a seven-object extension of the prior
+task-specific protocol; it is not a new independent benchmark collection.

@@ -88,3 +88,28 @@ Official implementations:
 - [Kimi long-audio Whisper encoder](https://github.com/MoonshotAI/Kimi-Audio/blob/349251e1d8f4f98d58fda59246381faecd7392e0/kimia_infer/models/tokenizer/whisper_Lv3/whisper.py)
 
 Kimi code, model and tokenizer revisions remain those in `evaluate_kimi_audio.py`.
+
+## Transfer the existing BBH audio to another machine
+
+On the steering machine, package the source directory with symlinks dereferenced
+so that recordings reused from the older 200-question directory become real
+files in the archive:
+
+```bash
+tar --dereference -czf outputs/bbh-three-audio.tar.gz \
+  -C outputs azure-bbh-logical250-steering
+```
+
+Download `outputs/bbh-three-audio.tar.gz` and upload it to `/workspace` on the
+other machine. Extract into a separate location, then run the same queue there:
+
+```bash
+cd /workspace/gsm8k-vocal-delivery
+git pull --ff-only
+mkdir -p outputs/bbh-audio-transfer
+tar -xzf /workspace/bbh-three-audio.tar.gz -C outputs/bbh-audio-transfer
+nohup bash run_bbh_moss_then_kimi.sh \
+  --source outputs/bbh-audio-transfer/azure-bbh-logical250-steering \
+  > outputs/bbh-moss-then-kimi.log 2>&1 < /dev/null &
+tail -f outputs/bbh-moss-then-kimi.log
+```

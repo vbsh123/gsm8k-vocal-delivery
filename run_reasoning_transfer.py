@@ -87,18 +87,19 @@ def tasks_for(records, ids, angry=True):
             for qid in ids for c in (('neutral', 'angry', STEERED) if angry else ('neutral', STEERED))]
 
 
-def bbh_questions(data):
+def bbh_questions(data, objects='five'):
+    letters = {'five': 'ABCDE', 'seven': 'ABCDEFG'}[objects]
     examples = json.loads(data)['examples']
     if len(examples) != 250:
-        raise ValueError('Expected 250 official BBH five-object questions.')
+        raise ValueError(f'Expected 250 official BBH {objects}-object questions.')
     questions = []
     for i, row in enumerate(examples):
         stem, options = row['input'].rsplit('\nOptions:\n', 1)
         choices = [dict(label=m[1], text=m[2]) for line in options.splitlines()
-                   if (m := re.fullmatch(r'\(([A-E])\) (.+)', line))]
-        if [c['label'] for c in choices] != list('ABCDE') or row['target'] not in [f'({c})' for c in 'ABCDE']:
-            raise ValueError('Unexpected BBH five-object options.')
-        questions.append(dict(question_id=f'bbh_logical_five_{i:03d}', source_index=i,
+                   if (m := re.fullmatch(rf'\(([{letters}])\) (.+)', line))]
+        if [c['label'] for c in choices] != list(letters) or row['target'] not in [f'({c})' for c in letters]:
+            raise ValueError(f'Unexpected BBH {objects}-object options.')
+        questions.append(dict(question_id=f'bbh_logical_{objects}_{i:03d}', source_index=i,
             original_input=row['input'], original_target=row['target'], answer=row['target'][1], choices=choices,
             question=stem+'\nOptions:\n'+'\n'.join(f'Option {c["label"]}: {c["text"]}' for c in choices)))
     return questions
@@ -216,8 +217,8 @@ class NumericScorer:
 
 def scorer_for(plan, folder):
     cache = folder/'harness/upstream'
-    if plan['task'] == 'bbh5':
-        return HarnessScorer(cache, objects='five')
+    if plan['task'] in ('bbh5', 'bbh7'):
+        return HarnessScorer(cache, objects='seven' if plan['task'] == 'bbh7' else 'five')
     return NumericScorer(cache)
 
 
@@ -225,7 +226,7 @@ def score_response(scorer, plan, row):
     q = plan['bank'][row['question_id']]
     if row['reference_answer'] != q['answer']:
         raise ValueError('Saved answer reference differs from frozen source.')
-    if plan['task'] == 'bbh5':
+    if plan['task'] in ('bbh5', 'bbh7'):
         values = scorer.score([row['response']], [dict(input=q['original_input'], target=q['original_target'])])
         return {name: v[0]['correct'] for name, v in values.items()}, {name: v[0]['prediction'] for name, v in values.items()}
     metrics, predictions = scorer.score(row['response'], q['answer'])
@@ -249,7 +250,7 @@ def report(folder):
         scored.append(dict(row, scores=metrics, predictions=predictions))
     steering_label = f'L31 answer strengths {plan["strengths"]}' if 'strengths' in plan else 'L31 answer x1'
     print(f'\n{plan["task"]}: {len(rows)}/{len(expected)} evaluation answers saved. {steering_label}; seed42.', flush=True)
-    summary = dict(task=plan['task'], scorer=scorer.provenance, primary_metric='flexible-extract' if plan['task'] == 'bbh5' else 'flexible-numeric',
+    summary = dict(task=plan['task'], scorer=scorer.provenance, primary_metric='flexible-extract' if plan['task'] in ('bbh5', 'bbh7') else 'flexible-numeric',
         accuracy=[], paired=[], planned_answers=len(expected), saved_answers=len(rows))
     metrics = next(iter(next(iter(groups.values())).values())) if groups else {}
     for metric in metrics:
