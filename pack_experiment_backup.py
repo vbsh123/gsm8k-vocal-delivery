@@ -30,6 +30,12 @@ RUNS = {
     'MOSS regenerated': 'bbh-three-regenerated-models/moss',
     'Kimi regenerated': 'bbh-three-regenerated-models/kimi',
 }
+GROUPS = {
+    'multiarith': ('multiarith580-angry-mean', 'azure-multiarith580'),
+    'ifeval': ('ifeval-angry-mean', 'spoken-ifeval-diffa2', 'azure-spoken-ifeval'),
+    'moss': ('bbh-three-regenerated-models/moss', 'bbh-three-audio-models/moss', 'azure-bbh-three-models-regenerated'),
+    'kimi': ('bbh-three-regenerated-models/kimi', 'bbh-three-audio-models/kimi', 'azure-bbh-three-models-regenerated'),
+}
 
 
 def walk(root):
@@ -115,7 +121,7 @@ def status(repo):
     return result
 
 
-def package(repo, destination, samples=3, sample_mb=256, full_audio=False):
+def package(repo, destination, samples=3, sample_mb=256, full_audio=False, only=None):
     repo, destination = repo.resolve(), destination.resolve()
     outputs = repo/'outputs'
     if destination == outputs or outputs in destination.parents:
@@ -123,13 +129,20 @@ def package(repo, destination, samples=3, sample_mb=256, full_audio=False):
     destination.mkdir(parents=True, exist_ok=True)
     host = ''.join(c if c.isalnum() or c in '-_' else '-' for c in socket.gethostname())
     stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
-    path = destination/f'experiment-evidence-{host}-{stamp}.zip'
+    label = '-'+ '-'.join(only) if only else ''
+    path = destination/f'experiment-evidence{label}-{host}-{stamp}.zip'
     partial = path.with_suffix('.zip.partial')
     manifest = dict(created_utc=stamp, host=host, repo=str(repo), files=[], issues=[], audio_samples=[],
         runs=status(repo), note='Live read-only snapshot; incomplete final JSONL fragments omitted in archive only. Pair activation caches/model weights excluded.')
+    roots = [outputs, repo/'recovery-backups']
+    if only:
+        roots = sorted({root/name for root in roots for group in only for name in GROUPS[group]})
+        manifest['only_groups'] = list(only)
+        manifest['runs'] = [r for r in manifest['runs'] if any(
+            Path(r['directory']) == root or root in Path(r['directory']).parents for root in roots)]
     audio_files = {}; seen_samples = set(); sampled_bytes = 0
     metadata_files = []
-    for root in (outputs, repo/'recovery-backups'):
+    for root in roots:
         if root.exists():
             for file in walk(root):
                 if file.suffix.lower() in TEXT:
@@ -286,10 +299,11 @@ def main():
     p.add_argument('--samples', type=int, default=3, help='First N question groups per audio plan/config, preserving available paired styles')
     p.add_argument('--sample-mb', type=int, default=256, help='Maximum total sampled-audio size before compression')
     p.add_argument('--full-audio', action='store_true', help='Also create a separate ZIP of all available original TTS-plan audio')
+    p.add_argument('--only', nargs='+', choices=GROUPS, help='Focus data/config/vector folders on selected recent runs; still include the source snapshot and root logs')
     args = p.parse_args()
     if args.samples < 0 or args.sample_mb < 0:
         p.error('Sample limits must be nonnegative.')
-    package(Path.cwd(), args.destination, args.samples, args.sample_mb, args.full_audio)
+    package(Path.cwd(), args.destination, args.samples, args.sample_mb, args.full_audio, args.only)
 
 
 if __name__ == '__main__':

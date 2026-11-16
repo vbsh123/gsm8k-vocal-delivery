@@ -64,3 +64,21 @@ full audio archive can be several GiB; download the smaller evidence ZIP first.
 Use `--destination /another/path/outside/outputs` to choose another archive
 location; `--samples 5` increases sampled question groups and `--sample-mb 512`
 raises the sample budget. Source files are unchanged by every option.
+
+## Smaller backup of the newest results
+
+To avoid repacking the earlier experiments already downloaded, focus on the
+new MultiArith/IFEval reruns and MOSS/Kimi BBH evaluations:
+
+```bash
+.venv-diffa/bin/python pack_experiment_backup.py --only multiarith ifeval moss kimi --samples 5
+```
+
+Run on both machines. It includes whichever selected runs exist locally, their
+source question/TTS plans, all saved raw responses, configs, summaries, vectors,
+scorer metadata and matched audio samples. The source-code snapshot and root
+logs remain included. It scans matching `recovery-backups` folders too. Missing
+selected runs are reported but do not stop packaging. File names include the
+selected groups, machine ID and timestamp. Pair caches and model weights stay
+excluded. Add `--full-audio` to preserve all TTS-plan recordings for these selected
+groups in a second ZIP.

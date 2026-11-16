@@ -3,6 +3,7 @@ import hashlib
 import io
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -79,6 +80,23 @@ class EvidenceBackupTests(unittest.TestCase):
             repo, _, _, _ = self.repo(Path(d))
             with self.assertRaisesRegex(ValueError, 'outside outputs'):
                 run.package(repo, repo/'outputs/backups')
+
+    def test_focused_backup_includes_new_run_audio_vector_and_excludes_old_results(self):
+        with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
+            root = Path(d); repo, source, result, _ = self.repo(root)
+            shutil.copytree(result, repo/'outputs/multiarith580-angry-mean')
+            shutil.copytree(source, repo/'outputs/azure-multiarith580')
+            path = run.package(repo, root/'downloads', samples=1, only=['multiarith'])
+            with zipfile.ZipFile(path) as archive:
+                names = archive.namelist(); manifest = json.loads(archive.read('MANIFEST.json'))
+                self.assertIn('outputs/multiarith580-angry-mean/results.jsonl', names)
+                self.assertIn('outputs/multiarith580-angry-mean/style-vectors.pt', names)
+                self.assertIn('outputs/azure-multiarith580/plan.jsonl', names)
+                self.assertIn('code/runner.py', names)
+                self.assertFalse(any(n.startswith('outputs/bbh-logical250-angry-mean/') for n in names))
+                self.assertFalse(any(n.startswith('outputs/azure-test/') for n in names))
+                self.assertEqual({a['style'] for a in manifest['audio_samples']}, {'neutral', 'angry'})
+                self.assertEqual([r['experiment'] for r in manifest['runs']], ['MultiArith steering'])
 
 
 if __name__ == '__main__':
