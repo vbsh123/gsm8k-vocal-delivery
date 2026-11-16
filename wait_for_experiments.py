@@ -27,6 +27,7 @@ NAMES={
     'mean-steering':{'run_bbh_five_mean.py','steer_ifeval_mean.py','run_bbh_tracking250.py'},
     'strength-sweep':{'run_gsm_strength_sweep.py'},
     'seven-object':{'run_bbh_seven_mean.py'},
+    'bbh-audio-models':{'run_bbh_moss_then_kimi.sh', 'evaluate_bbh_audio_models.py', 'setup_moss_audio.sh'},
 }
 
 
