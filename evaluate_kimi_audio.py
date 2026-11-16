@@ -40,7 +40,7 @@ def messages(audio_path,prompt=PROMPT):
             {"role": "user", "message_type": "audio", "content": str(audio_path)}]
 
 
-def assets(source):
+def assets(source, model_id=MODEL, revision=REVISION):
     source = source.resolve()
     actual = subprocess.check_output(["git", "-C", str(source), "rev-parse", "HEAD"], text=True).strip()
     if actual != SOURCE_REVISION:
@@ -60,7 +60,7 @@ def assets(source):
     from transformers.dynamic_module_utils import get_class_from_dynamic_module
     from kimia_infer.api.kimia import KimiAudio
     print("Checking/downloading Kimi and input encoders; speech-output weights are excluded.", flush=True)
-    model_path = snapshot_download(MODEL, revision=REVISION,
+    model_path = snapshot_download(model_id, revision=revision,
                                   ignore_patterns=["audio_detokenizer/*", "vocoder/*"])
     tokenizer_path = snapshot_download(TOKENIZER_MODEL, revision=TOKENIZER_REVISION)
     config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)
