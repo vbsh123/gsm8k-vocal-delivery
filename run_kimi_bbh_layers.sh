@@ -21,7 +21,7 @@ fi
 for kind in ifeval ifbench mean-steering reasoning-transfer bbh-audio-models audio-models; do
     "$DIFFA_PYTHON" -u wait_for_experiments.py --kind "$kind"
 done
-echo 'Kimi BBH-3 layer diagnostic: native collection, base comparison, all 28 text layers x1.'
+echo 'Kimi BBH-3: collect on 125; compare checkpoints on those SAME 125; steer only 30 DISJOINT recoveries across all 28 text layers x1.'
 echo 'The base checkpoint needs about 17 GB extra disk. No cache or experiment files are deleted.'
 "$KIMI_PYTHON" -u kimi_bbh_layer_diagnostic.py "$@"
 "$DIFFA_PYTHON" -u kimi_bbh_layer_diagnostic.py "$@" --mode summary

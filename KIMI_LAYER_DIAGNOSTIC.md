@@ -6,10 +6,12 @@ and 24 regressions, hence six **net** additional correct answers; six is not the
 number of recovery questions. Selection is computed from saved upstream scores,
 not hard-coded IDs. Original answers, audio, and summaries are untouched.
 
-The selected questions are used for both vector collection and the layer sweep.
-This is an outcome-selected diagnostic, not a held-out estimate of benefit or a
-way to establish statistical significance. A promising layer requires subsequent
-evaluation on other questions with the layer and strength fixed.
+Collection uses **125 matched pairs**, selected with seed42 from the 220 remaining
+questions after excluding all 30 recovery test questions. Both angry-minus-neutral
+and Instruct-minus-base differences use those SAME 125 collection questions.
+The 30 recovery questions are used **only for steering**. The sets are disjoint,
+but the test set is outcome-selected: this is a recovery diagnostic rather than
+an estimate of overall accuracy benefit.
 
 ## Run on the machine with Kimi results and their original audio
 
@@ -36,7 +38,7 @@ If necessary refresh the baseline scored file first, on CPU:
 
 ## What is collected
 
-1. Reproduce each selected neutral and angry answer with the same pinned
+1. Reproduce neutral and angry answers for the 125 collection questions with the same pinned
    Kimi-Instruct checkpoint, native greedy decoder, prompt, seed42 and 512-token
    budget. Stop and retain an explicit mismatch report if an answer differs.
 2. Capture all 28 shared text-decoder layer outputs at the last position of each
@@ -54,7 +56,7 @@ If necessary refresh the baseline scored file first, on CPU:
    base is a **decoder-checkpoint difference**, holding audio encoder features
    fixed. Base free generation and independently re-encoded base audio are not
    part of this comparison. The raw mean checkpoint difference is saved and
-   compared with both emotion differences by layerwise cosine. It is never used
+   compared with both emotion differences on those same 125 questions by layerwise cosine. It is never used
    for steering. Checkpoint differences include post-training effects broadly;
    similarity alone does not demonstrate an alignment mechanism or a causal role.
 5. Reload Instruct and add angry-minus-neutral x1 at one text-decoder layer at a
@@ -70,7 +72,7 @@ Kimi audio pipeline handles the full recordings without the custom DIFFA encoder
 
 ## Outputs and resume
 
-Everything goes under `outputs/kimi-bbh3-recovery-layer-diagnostic/`:
+Everything goes under `outputs/kimi-bbh3-collect125-steer30/`:
 
 - `run_config.json`: selection, original responses, audio hashes, prompt, model
   and tokenizer/source revision pins, collection definition and intervention.
@@ -92,8 +94,8 @@ Mid-sweep CPU report (no GPU/model loading):
 ```
 
 The report intentionally gives counts/percentages without inferential p-values:
-all selected baseline answers failed flexible scoring, all angry references passed,
-and these same questions supplied the collected vector. Layer differences also
+all selected test baseline answers failed flexible scoring and all angry references
+passed. Those questions do NOT supply the collected vectors. Layer differences also
 reflect varying raw vector magnitudes; a large cosine or sweep gain does not by
 itself identify a uniquely important emotion layer.
 
@@ -101,3 +103,8 @@ Modes `prepare`, `collect`, `compare`, and `sweep` can be run separately with th
 Kimi Python, in that order. `all` is the default. `--max-generations 4` limits only
 the steering sweep for a resumable smoke check. All original experiments remain
 separate from this diagnostic.
+
+The obsolete 30-question collection run is preserved separately under
+`outputs/kimi-bbh3-recovery-layer-diagnostic/`. Its caches and vectors are never
+reused by this corrected 125-collection / 30-test run. Stop the old diagnostic
+before pulling and restarting the wrapper.

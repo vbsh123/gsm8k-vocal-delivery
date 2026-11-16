@@ -112,7 +112,7 @@ class KimiLayerTests(unittest.TestCase):
             for pair, val in zip(pairs, (2., 6.)):
                 torch.save(dict(emotion=torch.full((28, 3), val), matched_emotion=torch.full((28, 3), val)),
                            run.cache_file(output, pair))
-            _, vectors = run.mean_vectors(dict(pairs=pairs), output)
+            _, vectors = run.mean_vectors(dict(collection_pairs=pairs), output)
             torch.testing.assert_close(vectors['emotion'], torch.full((28, 3), 4.))
 
     def test_base_comparison_reuses_exact_encoded_neutral_inputs_and_history(self):
@@ -123,7 +123,7 @@ class KimiLayerTests(unittest.TestCase):
             neutral = dict(inputs=inputs(), calls=[(3, 0), (999, 91)], means=torch.ones(2, 3))
             torch.save(dict(neutral=neutral), run.cache_file(output, pair))
             with patch.object(run, 'decoder_layers', side_effect=lambda m: m.alm.model.layers):
-                run.collect_base(dict(pairs=[pair]), output, model)
+                run.collect_base(dict(collection_pairs=[pair]), output, model)
             result = torch.load(run.cache_file(output, pair, base=True), weights_only=True)
             torch.testing.assert_close(result['checkpoint_difference'], neutral['means']-result['base_means'])
             torch.testing.assert_close(model.alm.seen[0]['input_ids'], neutral['inputs']['input_ids'])
@@ -136,7 +136,7 @@ class KimiLayerTests(unittest.TestCase):
                 side_effect=[dict(response='DIFFERENT'), dict(response='old angry')]):
             output = Path(d); (output/'pairs').mkdir()
             with self.assertRaisesRegex(ValueError, 'Native rerun differs'):
-                run.collect(dict(pairs=[pair], prompt='prompt'), output, object())
+                run.collect(dict(collection_pairs=[pair], prompt='prompt'), output, object())
             self.assertFalse(run.cache_file(output, pair).exists())
             mismatch = json.loads((output/'reproduction-mismatch.json').read_text())
             self.assertEqual((mismatch['style'], mismatch['actual']), ('neutral', 'DIFFERENT'))
@@ -169,6 +169,32 @@ class KimiLayerTests(unittest.TestCase):
         self.assertEqual([r['response'] for r in rows[:2]], ['old neutral', 'old angry'])
         self.assertTrue(all('harness' not in r for r in rows[2:]))
         self.assertEqual([r['interventions'][0]['layer'] for r in rows[2:]], [0, 1])
+
+    def test_collection_is_fixed_125_and_excludes_every_recovery_test_question(self):
+        rows = []
+        for i in range(250):
+            for style in ('neutral', 'angry'):
+                rows.append(dict(question_id=f'q{i:03d}', voice='Jenny', style=style,
+                    harness={'flexible-extract': {'correct': style == 'angry' and i < 30}}))
+        test = run.recovery_pairs(rows)
+        collect = run.collection_pairs(rows, test)
+        self.assertEqual(len(test), 30)
+        self.assertEqual(len(collect), 125)
+        self.assertFalse({p['question_id'] for p in test} & {p['question_id'] for p in collect})
+        self.assertEqual(collect, run.collection_pairs(list(reversed(rows)), test))
+
+    def test_emotion_and_checkpoint_collection_never_read_sweep_question_cache(self):
+        with tempfile.TemporaryDirectory() as d:
+            output = Path(d); (output/'pairs').mkdir()
+            collect = dict(question_id='collection', voice='v')
+            test = dict(question_id='test', voice='v')
+            plan = dict(collection_pairs=[collect], pairs=[test])
+            torch.save(dict(emotion=torch.ones(28, 3), matched_emotion=torch.ones(28, 3)), run.cache_file(output, collect))
+            torch.save(dict(emotion=torch.full((28, 3), 999.), matched_emotion=torch.full((28, 3), 999.)), run.cache_file(output, test))
+            _, vectors = run.mean_vectors(plan, output)
+            torch.testing.assert_close(vectors['emotion'], torch.ones(28, 3))
+            saved = torch.load(output/'style-vectors.pt', weights_only=True)
+            self.assertEqual(saved['question_ids'], ['collection'])
 
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 """Recovery-only Kimi BBH-3 layer diagnostic, NOT a held-out accuracy experiment.
 
-Collect angry-minus-neutral at all text decoder layers; steer each independently.
+Collect on 125 matched pairs; steer only the disjoint 30 recovery questions.
 Compare with Instruct-minus-base descriptively, on identical encoded inputs and
 teacher-forced answer histories. Never steer with the checkpoint difference.
 """
@@ -24,7 +24,7 @@ from steer import read_rows
 BASE_MODEL = 'moonshotai/Kimi-Audio-7B'
 BASE_REVISION = 'd90be7113cd5be6bcf54fae2aabcad060a23f6cf'
 LAYERS = tuple(range(28))
-PROTOCOL = 'kimi-bbh3-recovery-layers-v1'
+PROTOCOL = 'kimi-bbh3-collect125-test-recoveries-v2'
 PARAMS = dict(output_type='text', max_new_tokens=512, text_temperature=0., audio_temperature=0.,
               text_top_k=5, audio_top_k=5, text_repetition_penalty=1., audio_repetition_penalty=1.)
 
@@ -39,8 +39,7 @@ def freeze(path, value):
     path.write_text(json.dumps(value, indent=2)+'\n')
 
 
-def recovery_pairs(rows):
-    """All flexible-score recoveries, not net wins and not strict-format wins."""
+def matched_pairs(rows):
     groups = {}
     for row in rows:
         if row['style'] not in ('neutral', 'angry'):
@@ -53,10 +52,24 @@ def recovery_pairs(rows):
     pairs = []
     for key, group in sorted(groups.items()):
         if set(group) == {'neutral', 'angry'}:
-            correct = {s: bool(group[s]['harness']['flexible-extract']['correct']) for s in group}
-            if correct['angry'] and not correct['neutral']:
-                pairs.append(dict(question_id=key[0], voice=key[1], **group))
+            pairs.append(dict(question_id=key[0], voice=key[1], **group))
     return pairs
+
+
+def recovery_pairs(rows):
+    """All flexible-score recoveries, not net wins and not strict-format wins."""
+    return [p for p in matched_pairs(rows)
+            if p['angry']['harness']['flexible-extract']['correct']
+            and not p['neutral']['harness']['flexible-extract']['correct']]
+
+
+def collection_pairs(rows, test, count=125):
+    excluded = {p['question_id'] for p in test}
+    candidates = [p for p in matched_pairs(rows) if p['question_id'] not in excluded]
+    random.Random(42).shuffle(candidates)
+    if len(candidates) < count:
+        raise ValueError(f'Need {count} collection pairs excluding recovery test questions; have {len(candidates)}.')
+    return candidates[:count]
 
 
 def prepare(benchmark, output):
@@ -66,10 +79,12 @@ def prepare(benchmark, output):
         raise ValueError('Expected the pinned Kimi-Instruct benchmark.')
     if previous['max_new_tokens'] != 512 or previous['seed'] != 42:
         raise ValueError('Original generation settings differ from this diagnostic.')
-    pairs = recovery_pairs(read_rows(benchmark/'rescored.jsonl'))
+    rows = read_rows(benchmark/'rescored.jsonl')
+    pairs = recovery_pairs(rows)
     if not pairs:
         raise ValueError('No flexible-score recoveries. Run the benchmark CPU summary first.')
-    for pair in pairs:
+    collection = collection_pairs(rows, pairs)
+    for pair in collection+pairs:
         for style in ('neutral', 'angry'):
             row = pair[style]
             if row['prompt'] != previous['prompt'] or row['seed'] != 42 or row['max_new_tokens'] != 512:
@@ -83,15 +98,16 @@ def prepare(benchmark, output):
         instruct_model=MODEL, instruct_revision=REVISION, base_model=BASE_MODEL, base_revision=BASE_REVISION,
         source_revision=SOURCE_REVISION, tokenizer_model=TOKENIZER_MODEL, tokenizer_revision=TOKENIZER_REVISION,
         prompt=previous['prompt'], seed=42, generation=PARAMS, layers=list(LAYERS), strength=1.,
-        bank={p['question_id']: previous['bank'][p['question_id']] for p in pairs}, pairs=pairs,
-        selection='ALL flexible-score angry-correct/neutral-wrong pairs. Outcome-selected; collection and sweep use the SAME questions. Diagnostic only; no held-out significance claims.',
+        bank={p['question_id']: previous['bank'][p['question_id']] for p in collection+pairs},
+        collection_pairs=collection, pairs=pairs,
+        selection='125 seed42 collection pairs chosen from the remaining questions after excluding ALL flexible-score angry-correct/neutral-wrong test questions. Both emotion and checkpoint differences use these SAME 125 collection questions. Sweep uses ONLY the disjoint recovery test questions. Test outcomes are selected; diagnostic only, not overall accuracy.',
         emotion_vector='Equal-question average of mean angry minus mean neutral last-position decoder outputs during their native greedy generations, including prefill and EOS-prediction forwards.',
         matched_emotion='Angry minus neutral using the same neutral-Instruct answer-token history; audio positions retain their own offsets.',
         checkpoint_difference='Instruct minus base on identical frozen Instruct-encoded neutral audio/text inputs and identical neutral-Instruct answer-token history. Decoder-checkpoint comparison; no base generation or base steering.',
         intervention='One of 28 shared text decoder layers at a time; add the raw collected mean vector x1 to the last position on prefill and every cached answer forward. Six audio-output-branch layers excluded.')
     output.mkdir(parents=True, exist_ok=True)
     freeze(output/'run_config.json', plan)
-    print(f'{len(pairs)} outcome-selected flexible recoveries; 28 layers × x1. DIAGNOSTIC ONLY.', flush=True)
+    print(f'Collect on {len(collection)} pairs; steer {len(pairs)} DISJOINT neutral recovery recordings; 28 layers × x1. DIAGNOSTIC ONLY.', flush=True)
     return plan
 
 
@@ -254,11 +270,11 @@ def cache_file(output, pair, base=False):
 
 def collect(plan, output, model):
     import torch
-    for i, pair in enumerate(plan['pairs'], 1):
+    for i, pair in enumerate(plan['collection_pairs'], 1):
         path = cache_file(output, pair)
         if path.exists():
             continue
-        print(f'Collect [{i}/{len(plan["pairs"])}] {pair["question_id"]}: all 28 layers', flush=True)
+        print(f'Collect [{i}/{len(plan["collection_pairs"])}] {pair["question_id"]}: all 28 layers', flush=True)
         neutral = trace_generation(model, pair['neutral'], plan['prompt'])
         angry = trace_generation(model, pair['angry'], plan['prompt'])
         for style, trace in [('neutral', neutral), ('angry', angry)]:
@@ -279,11 +295,11 @@ def collect(plan, output, model):
 
 def collect_base(plan, output, model):
     import torch
-    for i, pair in enumerate(plan['pairs'], 1):
+    for i, pair in enumerate(plan['collection_pairs'], 1):
         path = cache_file(output, pair, base=True)
         if path.exists():
             continue
-        print(f'Base comparison [{i}/{len(plan["pairs"])}] {pair["question_id"]}: fixed neutral history', flush=True)
+        print(f'Base comparison [{i}/{len(plan["collection_pairs"])}] {pair["question_id"]}: fixed neutral history', flush=True)
         data = torch.load(cache_file(output, pair), map_location='cpu', weights_only=True)
         base = replay_means(model, data['neutral']['inputs'], data['neutral']['calls'])
         atomic_save(path, dict(base_means=base, checkpoint_difference=data['neutral']['means']-base))
@@ -291,17 +307,17 @@ def collect_base(plan, output, model):
 
 def mean_vectors(plan, output):
     import torch
-    data = [torch.load(cache_file(output, p), map_location='cpu', weights_only=True) for p in plan['pairs']]
+    data = [torch.load(cache_file(output, p), map_location='cpu', weights_only=True) for p in plan['collection_pairs']]
     vectors = {name: torch.stack([d[name] for d in data]).mean(0) for name in ('emotion', 'matched_emotion')}
     atomic_save(output/'style-vectors.pt', dict(**vectors, layers=list(LAYERS), protocol=PROTOCOL,
-        question_ids=[p['question_id'] for p in plan['pairs']], strength=1.))
+        question_ids=[p['question_id'] for p in plan['collection_pairs']], strength=1.))
     return data, vectors
 
 
 def cosine_report(plan, output, data, vectors):
     import torch
     from torch.nn.functional import cosine_similarity
-    bases = [cache_file(output, p, base=True) for p in plan['pairs']]
+    bases = [cache_file(output, p, base=True) for p in plan['collection_pairs']]
     if not all(p.exists() for p in bases):
         return
     rows = [torch.load(p, map_location='cpu', weights_only=True) for p in bases]
@@ -365,9 +381,9 @@ def report(output):
     plan = json.loads((output/'run_config.json').read_text())
     rows = read_rows(output/'results.jsonl')
     if not rows:
-        collected = sum(cache_file(output, pair).exists() for pair in plan['pairs'])
-        compared = sum(cache_file(output, pair, base=True).exists() for pair in plan['pairs'])
-        print(f'Collection: {collected}/{len(plan["pairs"])} pairs; base comparison: {compared}/{len(plan["pairs"])}. No sweep answers yet.')
+        collected = sum(cache_file(output, pair).exists() for pair in plan['collection_pairs'])
+        compared = sum(cache_file(output, pair, base=True).exists() for pair in plan['collection_pairs'])
+        print(f'Collection: {collected}/{len(plan["collection_pairs"])} pairs; base comparison: {compared}/{len(plan["collection_pairs"])}. No sweep answers yet.')
         return
     scorer = HarnessScorer(output/'harness/upstream')
     docs = [dict(input=plan['bank'][r['question_id']]['original_input'],
@@ -376,7 +392,7 @@ def report(output):
     formats = strict_format_bits(scorer, [r['response'] for r in rows], docs)
     records = [dict(row, harness={k: v[i] for k, v in scores.items()},
                     **{'strict-format-extractable': formats[i]}) for i, row in enumerate(rows)]
-    print('\nRECOVERY-SELECTED LAYER DIAGNOSTIC. Same questions used for collection and sweep. No held-out p-values.')
+    print('\nRECOVERY-SELECTED LAYER DIAGNOSTIC. 125 collection questions; disjoint recovery-only test questions. No population-level p-values.')
     print('Condition                       N  Flexible   Strict   Format')
     summaries = []
     for condition in ['neutral', 'angry', *[f'neutral-Kimi-L{i}-a1' for i in LAYERS]]:
@@ -390,17 +406,17 @@ def report(output):
               f'  {counts["strict-match"]/len(group):7.1%}  {counts["strict-format-extractable"]/len(group):7.1%}')
     (output/'rescored.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in records))
     (output/'summary.json').write_text(json.dumps(dict(protocol=PROTOCOL, selection=plan['selection'],
-        scorer=scorer.provenance, conditions=summaries, note='Diagnostic only. Sweeping 28 layers on recovery-selected collection questions does not identify a validated best layer or overall accuracy gain.'), indent=2)+'\n')
+        scorer=scorer.provenance, conditions=summaries, note='125 collection questions and recovery-only test questions are disjoint. Test questions were selected by outcomes; the sweep does not estimate overall accuracy gain or establish a validated best layer.'), indent=2)+'\n')
 
 
 def run(args, plan):
     (args.output/'pairs').mkdir(exist_ok=True)
-    if args.mode in ('all', 'collect') and any(not cache_file(args.output, p).exists() for p in plan['pairs']):
+    if args.mode in ('all', 'collect') and any(not cache_file(args.output, p).exists() for p in plan['collection_pairs']):
         model = load_model(args.model_source)
         collect(plan, args.output, model)
         del model; clear_model()
     data, vectors = mean_vectors(plan, args.output)
-    if args.mode in ('all', 'compare') and any(not cache_file(args.output, p, True).exists() for p in plan['pairs']):
+    if args.mode in ('all', 'compare') and any(not cache_file(args.output, p, True).exists() for p in plan['collection_pairs']):
         print('Base comparison downloads another checkpoint (~17 GB). Existing weights/data are never removed.', flush=True)
         model = load_model(args.model_source, base=True)
         collect_base(plan, args.output, model)
@@ -418,7 +434,7 @@ def run(args, plan):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--benchmark', type=Path, default=Path('outputs/bbh-three-regenerated-models/kimi'))
-    p.add_argument('--output', type=Path, default=Path('outputs/kimi-bbh3-recovery-layer-diagnostic'))
+    p.add_argument('--output', type=Path, default=Path('outputs/kimi-bbh3-collect125-steer30'))
     p.add_argument('--model-source', type=Path, default=Path('external/Kimi-Audio'))
     p.add_argument('--mode', choices=['all', 'prepare', 'collect', 'compare', 'sweep', 'summary'], default='all')
     p.add_argument('--max-generations', type=int, default=0, help='Optional resumable sweep smoke limit; 0 means all 28 layers.')
