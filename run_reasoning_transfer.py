@@ -204,7 +204,7 @@ class NumericScorer:
     def __init__(self, cache):
         self.harness = HarnessTaskScorer('gsm8k', cache)
         self.provenance = dict(self.harness.provenance,
-            numeric_equivalence='Additional custom Fraction comparison; not an official SVAMP metric')
+            numeric_equivalence='Additional custom Fraction comparison; not an official benchmark metric')
 
     def score(self, response, gold):
         values = self.harness.score([response], [dict(question='Saved spoken math question', answer=gold)])
@@ -272,6 +272,8 @@ def report(folder):
     (folder/'summary.json').write_text(json.dumps(summary, indent=2)+'\n')
     (folder/'rescored.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in scored))
     print('Audio-adapted evaluation, not full official text-harness inference. P-values/intervals unadjusted.', flush=True)
+    if plan.get('scoring_note'):
+        print(plan['scoring_note'], flush=True)
     if plan['task'] == 'gsm8k':
         print('The fixed GSM8K vector was collected under the previous prompt; this tests transfer to the aligned #### prompt.', flush=True)
 
