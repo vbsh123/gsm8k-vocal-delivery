@@ -1,0 +1,30 @@
+{
+  "gsm8k": {
+    "task": "gsm8k",
+    "run": "outputs/reasoning-transfer/gsm8k",
+    "reuse_runs": ["outputs/gsm8k-L31-strength-sweep"]
+  },
+  "svamp": {
+    "task": "svamp",
+    "run": "outputs/reasoning-transfer/svamp"
+  },
+  "multiarith": {
+    "task": "multiarith",
+    "run": "outputs/multiarith580-angry-mean"
+  },
+  "ifeval": {
+    "task": "ifeval",
+    "run": "outputs/ifeval-angry-mean",
+    "source": "outputs/azure-spoken-ifeval"
+  },
+  "bbh3": {
+    "task": "bbh3",
+    "run": "outputs/bbh-logical250-angry-mean",
+    "source": "outputs/azure-bbh-logical250-steering"
+  },
+  "bbh5": {
+    "task": "bbh5",
+    "run": "outputs/bbh-five250-angry-mean",
+    "reuse_runs": ["outputs/reasoning-transfer/bbh5"]
+  }
+}

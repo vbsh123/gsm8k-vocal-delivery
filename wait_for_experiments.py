@@ -7,6 +7,10 @@ import time
 
 
 NAMES={
+    'winning-inputs':{'run_missing_experiments.sh','run_reasoning_transfer.py',
+                      'run_multiarith_mean.py','steer_ifeval_mean.py','run_spoken_ifeval.py',
+                      'run_spoken_ifeval.sh','steer_bbh_mean.py','run_bbh_five_mean.py',
+                      'run_gsm_strength_sweep.py'},
     'classification':{'classify_dataset_emotions.py','classify_cloud_smoke.py',
                       'run_dataset_emotions.sh','run_speeds_and_classification.sh'},
     'steering':{'run_jenny_promoted_third.py','evaluate_audio_steering.py','steer_audio.py',
