@@ -15,6 +15,19 @@ import evaluate_bbh_audio_models as run
 
 
 class BBHAudioModelTests(unittest.TestCase):
+    def test_regeneration_uses_all_250_same_seeded_questions_and_only_neutral_angry(self):
+        example = dict(input='Three birds.\nOptions:\n(A) Red\n(B) Blue\n(C) Green', target='(A)')
+        data = json.dumps(dict(examples=[example]*250)).encode()
+        with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
+            source = Path(d)
+            (source/'logical_deduction_three_objects-source.json').write_bytes(data)
+            with patch.object(run, 'SOURCE_SHA256', hashlib.sha256(data).hexdigest()), \
+                 patch('run_reasoning_transfer.generate_audio') as generate:
+                run.generate_audio(source)
+            self.assertEqual(generate.call_args.args, (source, run.select_questions(data, 250), ['neutral', 'angry']))
+            self.assertEqual(len(generate.call_args.args[1]), 250)
+            self.assertEqual((source/'logical_deduction_three_objects-source.json').read_bytes(), data)
+
     def fixture(self, root):
         source = root/'audio'; source.mkdir()
         example = dict(input='Red is left of blue.\nOptions:\n(A) Red\n(B) Blue\n(C) Green', target='(A)')

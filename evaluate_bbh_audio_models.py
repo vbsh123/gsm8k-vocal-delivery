@@ -11,15 +11,33 @@ import subprocess
 import sys
 import time
 from unittest.mock import patch
+from urllib.request import urlopen
 import wave
 
-from run_bbh_logical200 import PROMPT, SOURCE_SHA256, select_questions
+from run_bbh_logical200 import PROMPT, SOURCE_SHA256, SOURCE_URL, select_questions
 from steer import read_rows
 
 MOSS_MODEL = 'OpenMOSS-Team/MOSS-Audio-8B-Instruct'
 MOSS_REVISION = 'd4dc5a6d8cd79b43dcd82884c75e303b1ecd016d'
 MOSS_SOURCE_REVISION = '66326e6e0db34f036c86a76ba005efa4830c69dd'
 STYLES = ('neutral', 'angry')
+
+
+def generate_audio(source):
+    from run_reasoning_transfer import generate_audio as azure_generate
+    source.mkdir(parents=True, exist_ok=True)
+    original = source/'logical_deduction_three_objects-source.json'
+    if not original.exists():
+        with urlopen(SOURCE_URL, timeout=120) as response:
+            data = response.read()
+        if hashlib.sha256(data).hexdigest() != SOURCE_SHA256:
+            raise ValueError('Official BBH source checksum differs.')
+        original.write_bytes(data)
+    data = original.read_bytes()
+    if hashlib.sha256(data).hexdigest() != SOURCE_SHA256:
+        raise ValueError('Official BBH source checksum differs.')
+    print('Generate 250 BBH questions × neutral/angry = 500 Azure clips; Jenny, intensity 1.5.', flush=True)
+    azure_generate(source, select_questions(data, 250), list(STYLES))
 
 
 def source_folder(explicit):
@@ -201,7 +219,7 @@ def report(output):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--model', choices=['moss', 'kimi'], required=True)
-    p.add_argument('--mode', choices=['prepare', 'evaluate', 'summary'], default='evaluate')
+    p.add_argument('--mode', choices=['generate', 'prepare', 'evaluate', 'summary'], default='evaluate')
     p.add_argument('--source', type=Path)
     p.add_argument('--output', type=Path, default=Path('outputs/bbh-three-audio-models'))
     p.add_argument('--model-source', type=Path)
@@ -209,6 +227,9 @@ def main():
     args = p.parse_args()
     if args.max_generations < 0:
         p.error('--max-generations cannot be negative')
+    if args.mode == 'generate':
+        generate_audio(args.source or Path('outputs/azure-bbh-three-models-regenerated'))
+        return
     output = args.output/args.model; output.mkdir(parents=True, exist_ok=True)
     if args.mode == 'summary':
         report(output); return

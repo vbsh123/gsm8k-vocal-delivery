@@ -18,6 +18,12 @@ if [[ -z "${HF_HOME:-}" ]]; then
 fi
 export HF_HUB_CACHE="$HF_HOME/hub"
 export HUGGINGFACE_HUB_CACHE="$HF_HUB_CACHE"
+if [[ "${1:-}" == '--regenerate-audio' ]]; then
+    shift
+    set -- --source outputs/azure-bbh-three-models-regenerated --output outputs/bbh-three-regenerated-models "$@"
+    echo 'STAGE: Generate neutral/angry BBH audio locally; resumable Azure TTS, no GPU'
+    "$DIFFA_PYTHON" -u evaluate_bbh_audio_models.py --model moss --mode generate "$@"
+fi
 echo 'STAGE: Check existing BBH audio before environment/model downloads'
 "$DIFFA_PYTHON" -u evaluate_bbh_audio_models.py --model moss --mode prepare "$@"
 echo 'STAGE: Wait for current experiment queues on this machine'

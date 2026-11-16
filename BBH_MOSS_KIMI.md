@@ -17,6 +17,35 @@ its own chunked audio encoder. Original audio files are never modified.
 
 ## Run
 
+To regenerate the 250 neutral/angry pairs on the evaluation machine rather than
+transfer audio, export Azure credentials and use:
+
+```bash
+git pull --ff-only
+read -rsp 'Azure Speech key: ' AZURE_SPEECH_KEY
+echo
+export AZURE_SPEECH_KEY
+export AZURE_SPEECH_REGION=eastus
+nohup bash run_bbh_moss_then_kimi.sh --regenerate-audio \
+  > outputs/bbh-moss-then-kimi.log 2>&1 < /dev/null &
+tail -f outputs/bbh-moss-then-kimi.log
+```
+
+This generates 500 clips with the same official questions, voice, intensity and
+spoken wording, then evaluates MOSS and Kimi on those shared new recordings.
+These are newly synthesized waveforms, not byte-identical copies of DIFFA's
+earlier audio. Generation resumes missing clips and runs before the GPU wait.
+Audio is saved in `outputs/azure-bbh-three-models-regenerated`; results are in
+`outputs/bbh-three-regenerated-models/{moss,kimi}`. Restart with the same flag.
+There is no archive/download/upload step.
+
+```bash
+.venv-diffa/bin/python evaluate_bbh_audio_models.py --model moss --mode summary --output outputs/bbh-three-regenerated-models
+.venv-diffa/bin/python evaluate_bbh_audio_models.py --model kimi --mode summary --output outputs/bbh-three-regenerated-models
+```
+
+Alternatively, to reuse already-existing recordings:
+
 Use a machine holding `outputs/azure-bbh-logical250-steering`, including the audio
 files targeted by any symlinks, and the existing `.venv-diffa` harness environment.
 If only `outputs/azure-bbh-logical200` exists, the default selects those 200 pairs
