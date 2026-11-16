@@ -1,4 +1,6 @@
 import json
+import ast
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 import tempfile
@@ -50,11 +52,18 @@ class KimiGSMTests(unittest.TestCase):
                     for q in selection['collection']+selection['test'] for s in ('neutral', 'angry')]
             (source/'plan.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rows))
             args = SimpleNamespace(source=source, output=output)
-            plan = run.shared.prepare(args, selection, dataset='GSM8K', steered_condition=run.STEERED)
-            self.assertEqual(plan['protocol'], run.PROTOCOL)
-            self.assertEqual(plan['steered_condition'], run.STEERED)
-            self.assertEqual((len(plan['collection']), len(plan['test'])), (634, 635))
-            self.assertEqual(plan, run.shared.prepare(args, selection, dataset='GSM8K', steered_condition=run.STEERED))
+            # Preparation imports only these pins, not inference; this CPU environment
+            # deliberately lacks the separate Kimi/Qwen audio dependencies.
+            tree = ast.parse(Path(run.__file__).with_name('evaluate_kimi_audio.py').read_text())
+            names = {'MODEL', 'REVISION', 'SOURCE_REVISION', 'TOKENIZER_MODEL', 'TOKENIZER_REVISION'}
+            pins = {n.targets[0].id: ast.literal_eval(n.value) for n in tree.body
+                    if isinstance(n, ast.Assign) and isinstance(n.targets[0], ast.Name) and n.targets[0].id in names}
+            with patch.dict(sys.modules, {'evaluate_kimi_audio': SimpleNamespace(**pins)}):
+                plan = run.shared.prepare(args, selection, dataset='GSM8K', steered_condition=run.STEERED)
+                self.assertEqual(plan['protocol'], run.PROTOCOL)
+                self.assertEqual(plan['steered_condition'], run.STEERED)
+                self.assertEqual((len(plan['collection']), len(plan['test'])), (634, 635))
+                self.assertEqual(plan, run.shared.prepare(args, selection, dataset='GSM8K', steered_condition=run.STEERED))
 
 
 if __name__ == '__main__':
