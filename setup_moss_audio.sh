@@ -26,7 +26,7 @@ import tempfile
 from pathlib import Path
 import wave
 import torch, transformers
-from src.audio_io import load_audio
+from moss_audio_io import load_audio
 from src.modeling_moss_audio import MossAudioModel
 from src.processing_moss_audio import MossAudioProcessor
 assert transformers.__version__ == '4.57.1'
@@ -37,7 +37,7 @@ with tempfile.TemporaryDirectory() as directory:
         audio.writeframes(b'\0\0'*(40*24000))
     waveform = load_audio(str(path), sample_rate=16000)
     assert len(waveform) == 40*16000, 'Full-audio decode/resampling preflight failed'
-print('Official audio loader verified: 40 seconds preserved after 24-to-16-kHz resampling.')
+print('SoundFile WAV decode + MOSS mono/TorchAudio resampling verified: full 40 seconds preserved.')
 print('MOSS imports OK:', torch.__version__, transformers.__version__, 'CUDA available:', torch.cuda.is_available())
 PY
 echo 'Ready: .venv-moss/bin/python evaluate_bbh_audio_models.py --model moss'

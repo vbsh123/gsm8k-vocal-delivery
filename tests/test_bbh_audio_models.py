@@ -112,7 +112,7 @@ class BBHAudioModelTests(unittest.TestCase):
         model = Model(); waveform = np.zeros(40*16000, dtype=np.float32)
         model_class = SimpleNamespace(from_pretrained=lambda *a, **kw: model)
         processor_class = SimpleNamespace(from_pretrained=lambda *a, **kw: processor)
-        modules = {'src.audio_io': SimpleNamespace(load_audio=lambda *a, **kw: waveform),
+        modules = {'moss_audio_io': SimpleNamespace(load_audio=lambda *a, **kw: waveform),
                    'src.modeling_moss_audio': SimpleNamespace(MossAudioModel=model_class),
                    'src.processing_moss_audio': SimpleNamespace(MossAudioProcessor=processor_class)}
         with patch.dict(sys.modules, modules), patch.object(run.subprocess, 'check_output', return_value=run.MOSS_SOURCE_REVISION+'\n'):

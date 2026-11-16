@@ -10,7 +10,9 @@ instruction. Both models use seed 42 and a 512-token generation budget.
 
 MOSS uses greedy generation with the authors' processor, time markers and SDPA.
 Kimi uses the same pinned greedy text-generation settings as our earlier Kimi
-evaluations. Full recordings are passed to the upstream audio loaders/encoders.
+evaluations. MOSS WAV decoding uses SoundFile float32, followed by the authors'
+mono averaging and TorchAudio resampling steps; it avoids TorchCodec's native
+FFmpeg dependency. Full recordings reach the authors' processors/encoders.
 Neither model uses our custom DIFFA chunking or a 30-second eligibility filter.
 Kimi's supplied Whisper encoder itself chunks and joins long audio; MOSS has
 its own chunked audio encoder. Original audio files are never modified.
@@ -73,11 +75,17 @@ nohup bash run_bbh_moss_then_kimi.sh --source /path/to/azure-bbh-logical250-stee
 
 MOSS setup uses a separate Conda prefix `.venv-moss` (Python 3.12, NumPy 2,
 upstream-pinned Torch 2.9.1/CUDA 12.8 and Transformers 4.57.1). It installs FFmpeg 7
-and verifies the upstream loader preserves a 40-second waveform after resampling
+and verifies the WAV loader preserves a 40-second waveform after resampling
 before any MOSS weights are loaded. DIFFA and Kimi environments are unchanged.
 Kimi reuses its existing `kimi-audio` environment, or calls the existing setup
 script if needed. The scoring process runs through `.venv-diffa`, so the new
 model environments do not need another harness installation.
+
+If an older setup failed with `Could not load libtorchcodec`, update this repo
+and resume the same queue. The setup preflight and MOSS evaluation both use
+`moss_audio_io.load_audio`; neither calls `torchaudio.load`. Kimi is unchanged.
+Saved audio is reused by the queue's resumable `--regenerate-audio` mode;
+completed answers are retained. The loader version is recorded in `runtime.json`.
 
 Allow roughly 25–30 GiB additional disk for an uncached MOSS environment/weights;
 uncached Kimi weights/encoders and a new Kimi environment need additional space.

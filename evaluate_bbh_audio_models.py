@@ -103,7 +103,7 @@ def moss_generator(source):
     if actual != MOSS_SOURCE_REVISION:
         raise ValueError('MOSS source differs from the pinned version; run setup_moss_audio.sh.')
     sys.path.insert(0, str(source.absolute()))
-    from src.audio_io import load_audio
+    from moss_audio_io import load_audio
     from src.modeling_moss_audio import MossAudioModel
     from src.processing_moss_audio import MossAudioProcessor
     model = MossAudioModel.from_pretrained(MOSS_MODEL, revision=MOSS_REVISION,
@@ -153,7 +153,8 @@ def run(plan, output, model, source, max_generations=0):
     import numpy as np
     import torch
     (output/'runtime.json').write_text(json.dumps(dict(python=sys.version, torch=torch.__version__,
-        numpy=np.__version__, transformers=version('transformers')), indent=2)+'\n')
+        numpy=np.__version__, transformers=version('transformers'),
+        audio_loader='soundfile-float32-moss-mono-torchaudio-resample-v1' if model == 'moss' else 'upstream-kimi'), indent=2)+'\n')
     generate = moss_generator(source) if model == 'moss' else kimi_generator(source)
     for i, task in enumerate(pending, 1):
         if hashlib.sha256(Path(task['audio_file']).read_bytes()).hexdigest() != task['audio_sha256']:
