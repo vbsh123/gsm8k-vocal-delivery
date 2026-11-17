@@ -1,5 +1,40 @@
 # SAME100 instruction reference directions
 
+## Polite format wording extension (only 100 new forwards)
+
+After the original ten controls have all100 states, run:
+
+```bash
+git pull --ff-only
+nohup bash run_instruction_controls100.sh diffa --extend-format-please \
+  > outputs/diffa-format-please100.log 2>&1 < /dev/null &
+tail -f outputs/diffa-format-please100.log
+```
+
+The replacement sentence is: "Please make sure your final answer follows the
+requested format exactly." It replaces the reasoning sentence as before;
+the neutral audio,100 questions, seed, task and final-answer suffix are unchanged.
+The extension freezes hash receipts for all reused states, leaves the original
+control config/states/summaries untouched, and collects only100 new forwards
+plus the existing one-forward reference replay. New state size is about200MiB
+for DIFFA,80MiB for Phi. Use `phi4` instead of `diffa` for that model.
+
+New output: `outputs/diffa-instruction-controls100-format-please/`. CPU inspection:
+
+```bash
+OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 .venv-diffa/bin/python -u collect_instruction_controls.py \
+  --model diffa --extend-format-please --mode summary
+```
+
+It reports all old and new directions against answer-only and bare-task states.
+Two additional references, `polite` and `format`, compare only the new condition
+against those earlier conditions. These are conditional wording contrasts,
+not isolated effects of the word "please" or proof of additive mechanisms:
+the new sentence changes more than one word. The extension was selected after
+inspecting original controls and is exploratory.
+
+## Original ten-control experiment
+
 Use the exact question/voice pairs, full neutral audio, parent prompts and token
 capture sites from the existing DIFFA or Phi reasoning/emotion collector.
 There is no new selection, TTS, steering, accuracy scoring or full generation.

@@ -14,6 +14,43 @@ from tests.test_reasoning_geometry_audit import GeometryAuditTests
 
 
 class InstructionControlTests(unittest.TestCase):
+    def test_format_please_extension_reuses_all_old_controls_only100_new(self):
+        with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
+            args, shape = self.fixture(Path(d), 'phi4')
+            with patch.object(controls, 'state_shape', return_value=shape):
+                old = controls.prepare(args); (args.output/'states').mkdir()
+                for i in range(100):
+                    trace = torch.load(controls.state_path(args.parent, i, 'neutral-reasoning'), weights_only=True)
+                    for c, prompt in old['prompts'].items():
+                        torch.save(dict(trace, protocol=controls.PROTOCOL, condition=c, prompt=prompt),
+                                   controls.state_path(args.output, i, c))
+                out = Path(d)/'extension'; out.mkdir()
+                extended = SimpleNamespace(model='phi4', parent=args.parent, output=out,
+                                           extend_format_please=True, controls_source=args.output)
+                plan = controls.prepare(extended)
+                self.assertEqual(plan['new_forwards'], 100)
+                self.assertEqual(len(plan['prompts']), 11)
+                self.assertEqual(len(plan['reuse_controls']), 10)
+                self.assertEqual(plan['parent']['pairs'], old['parent']['pairs'])
+                self.assertIn(controls.FORMAT_PLEASE, plan['prompts']['format_please'])
+                self.assertEqual(controls.control_path(plan, out, 0, 'polite'), controls.state_path(args.output, 0, 'polite'))
+                self.assertEqual(controls.control_path(plan, out, 0, 'format_please'), controls.state_path(out, 0, 'format_please'))
+                # The only new condition is stored in the extension folder.
+                (out/'states').mkdir()
+                for i in range(100):
+                    t = torch.load(controls.state_path(args.parent, i, 'neutral-reasoning'), weights_only=True)
+                    torch.save(dict(t, protocol=controls.PROTOCOL, condition='format_please', prompt=plan['prompts']['format_please']),
+                               controls.state_path(out, i, 'format_please'))
+                controls.summarize(plan, out)
+                summary = json.loads((out/'summary.json').read_text())
+                self.assertEqual(len(summary['complete_controls']), 11)
+                self.assertTrue(any(r['reference'] == 'polite' and r['instruction'] == 'format_please' for r in summary['rows']))
+                self.assertTrue(any(r['reference'] == 'format' and r['instruction'] == 'format_please' for r in summary['rows']))
+                self.assertEqual(plan, controls.prepare(extended))
+                reused = controls.state_path(args.output, 0, 'polite')
+                with reused.open('ab') as stream: stream.write(b'changed')
+                with self.assertRaisesRegex(ValueError, 'Reused control/config changed'): controls.prepare(extended)
+
     def test_summary_runs_read_only_while_collector_holds_lock(self):
         with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
             args, shape = self.fixture(Path(d), 'phi4')

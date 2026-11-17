@@ -28,6 +28,7 @@ INSTRUCTIONS = {
 REASON_PHRASES = ("Let's think step by step.",
                   'Give concise step-by-step reasoning with only the necessary calculations.',
                   'Give concise step-by-step reasoning with only the necessary deductions.')
+FORMAT_PLEASE = 'Please make sure your final answer follows the requested format exactly.'
 
 
 def digest(path):
@@ -37,16 +38,20 @@ def digest(path):
     return h.hexdigest()
 
 
-def prompts(original):
+def prompts(original, instructions=None):
     matches = [s for s in REASON_PHRASES if s in original]
     if len(matches) != 1 or original.count(matches[0]) != 1:
         raise ValueError('Expected exactly one known reasoning sentence.')
     phrase = matches[0]
-    return {k: original.replace(phrase, text) for k, text in INSTRUCTIONS.items()}
+    return {k: original.replace(phrase, text) for k, text in (INSTRUCTIONS if instructions is None else instructions).items()}
 
 
 def state_path(folder, index, condition):
     return Path(folder)/'states'/f'{index:03d}-{condition}.pt'
+
+
+def control_path(plan, output, index, condition):
+    return state_path(plan.get('reuse_controls', {}).get(condition, output), index, condition)
 
 
 def validate(trace, parent, pair, condition, prompt, protocol, model):
@@ -64,11 +69,13 @@ def validate(trace, parent, pair, condition, prompt, protocol, model):
 
 def prepare(args):
     import torch
+    torch.set_num_threads(min(torch.get_num_threads(), 4))
     config = args.output/'run_config.json'
     if config.exists():
         plan = json.loads(config.read_text())
         if (plan['protocol'] != PROTOCOL or plan['model_kind'] != args.model
-                or plan['parent_folder'] != str(args.parent.absolute())):
+                or plan['parent_folder'] != str(args.parent.absolute())
+                or bool(plan.get('format_please_extension')) != bool(getattr(args, 'extend_format_please', False))):
             raise ValueError('Different settings; use another output folder.')
         verify_parent(plan)
         print('Reusing EXACT same frozen100 questions and control prompts.', flush=True)
@@ -85,16 +92,37 @@ def prepare(args):
             validate(torch.load(path, map_location='cpu', weights_only=True), parent, pair,
                      condition, prompt, parent['protocol'], args.model)
             receipts.append(dict(path=str(path.absolute()), sha256=digest(path)))
+    selected_prompts = prompts(parent['reasoning_prompt'])
+    reuse, reuse_receipts = {}, []
+    if getattr(args, 'extend_format_please', False):
+        source_config = args.controls_source/'run_config.json'
+        previous = json.loads(source_config.read_text())
+        if (previous['protocol'] != PROTOCOL or previous['model_kind'] != args.model
+                or previous['parent_folder'] != str(args.parent.absolute()) or previous['parent'] != parent
+                or previous.get('reuse_controls') or previous['prompts'] != selected_prompts):
+            raise ValueError('Extension needs the original ten-control run on the exact same parent100.')
+        verify_parent(previous)
+        reuse_receipts.append(dict(path=str(source_config.absolute()), sha256=digest(source_config)))
+        for condition, prompt in selected_prompts.items():
+            for i, pair in enumerate(parent['pairs']):
+                path = state_path(args.controls_source, i, condition)
+                validate(torch.load(path, map_location='cpu', weights_only=True), parent, pair,
+                         condition, prompt, PROTOCOL, args.model)
+                reuse_receipts.append(dict(path=str(path.absolute()), sha256=digest(path)))
+            reuse[condition] = str(args.controls_source.absolute())
+        selected_prompts.update(prompts(parent['reasoning_prompt'], {'format_please': FORMAT_PLEASE}))
     plan = dict(protocol=PROTOCOL, model_kind=args.model, parent_folder=str(args.parent.absolute()),
                 parent_config_sha256=digest(parent_path), parent=parent, source_states=receipts,
-                prompts=prompts(parent['reasoning_prompt']), new_forwards=100*len(INSTRUCTIONS),
+                prompts=selected_prompts, new_forwards=100*(len(selected_prompts)-len(reuse)),
+                format_please_extension=bool(getattr(args, 'extend_format_please', False)),
+                reuse_controls=reuse, reused_control_receipts=reuse_receipts,
                 reference='Existing neutral-answer-only states; alternate no-extra-instruction reference also reported.',
                 emotion='Existing angry-reasoning minus neutral-reasoning; unchanged in both reference analyses.',
                 selection='EXACT original100 pairs in original order; no selection or outcome filtering.',
                 limitations='Instruction-request geometry before generation; not actual reasoning or causal accuracy. '
                 'Prompt wording/length and stable response-style effects remain possible. Default model cohorts/capture sites differ.')
     config.write_text(json.dumps(plan, indent=2)+'\n')
-    print(f'Frozen SAME100; {len(INSTRUCTIONS)} new instructions = {plan["new_forwards"]} initial forwards. '
+    print(f'Frozen SAME100; {len(selected_prompts)-len(reuse)} new instructions = {plan["new_forwards"]} initial forwards. '
           'Original reasoning/emotion states reused; no TTS or full generations.', flush=True)
     return plan
 
@@ -106,6 +134,9 @@ def verify_parent(plan):
     for receipt in plan['source_states']:
         if digest(receipt['path']) != receipt['sha256']:
             raise ValueError('Parent state changed after controls were frozen.')
+    for receipt in plan.get('reused_control_receipts', []):
+        if digest(receipt['path']) != receipt['sha256']:
+            raise ValueError('Reused control/config changed after extension was frozen.')
 
 
 def compare_replay(actual, expected):
@@ -127,7 +158,7 @@ def collect(plan, output):
     model_kind = plan['model_kind']; parent = plan['parent']; pending = []
     for i, pair in enumerate(parent['pairs']):
         for condition, prompt in plan['prompts'].items():
-            path = state_path(output, i, condition)
+            path = control_path(plan, output, i, condition)
             if path.exists():
                 validate(torch.load(path, map_location='cpu', weights_only=True), parent, pair,
                          condition, prompt, PROTOCOL, model_kind)
@@ -213,21 +244,26 @@ def summarize(plan, output, write=True):
     emotion_even, emotion_odd = emotion[::2].mean(0), emotion[1::2].mean(0)
     groups = parent['groups']; vectors = {}; complete = []
     for condition, prompt in plan['prompts'].items():
-        if not all(state_path(output, i, condition).exists() for i in range(100)): continue
+        if not all(control_path(plan, output, i, condition).exists() for i in range(100)): continue
         print(f'CPU summary: reading {condition} (100 saved states).', flush=True)
         hs = []
         for i, pair in enumerate(parent['pairs']):
-            trace = torch.load(state_path(output, i, condition), map_location='cpu', weights_only=True)
+            trace = torch.load(control_path(plan, output, i, condition), map_location='cpu', weights_only=True)
             hs.append(validate(trace, parent, pair, condition, prompt, PROTOCOL, model))
         vectors[condition] = torch.stack(hs); complete.append(condition)
     rows = []
     references = {'answer_only': na}
     if 'no_extra_instruction' in vectors: references['bare_task'] = vectors['no_extra_instruction']
+    if 'format_please' in vectors:
+        # Conditional wording contrasts; neither is a pure causal decomposition.
+        if 'polite' in vectors: references['polite'] = vectors['polite']
+        if 'format' in vectors: references['format'] = vectors['format']
     all_states = dict(original_reasoning=nr, answer_only=na, **vectors)
     print(f'{model}: {len(complete)}/{len(plan["prompts"])} control conditions complete on ALL100.', flush=True)
     print('Reference    Instruction                 L26 answer cosine   L31 answer cosine')
     for reference, baseline in references.items():
         for condition, states in all_states.items():
+            if reference in ('polite', 'format') and condition != 'format_please': continue
             if (reference == 'answer_only' and condition == 'answer_only') or (reference == 'bare_task' and condition == 'no_extra_instruction'): continue
             deltas = states-baseline; mean = deltas.mean(0); shown = {}
             instruction_even, instruction_odd = deltas[::2].mean(0), deltas[1::2].mean(0)
@@ -257,9 +293,12 @@ def main():
     p.add_argument('--mode', choices=('prepare', 'collect', 'summary'), default='collect')
     p.add_argument('--parent', type=Path)
     p.add_argument('--output', type=Path)
+    p.add_argument('--extend-format-please', action='store_true', help='Reuse the ten completed controls; collect only the new polite-format wording.')
+    p.add_argument('--controls-source', type=Path)
     args = p.parse_args()
     args.parent = args.parent or Path('outputs')/('diffa-reasoning-emotion100' if args.model == 'diffa' else 'phi4-reasoning-emotion100-gsm8k')
-    args.output = args.output or Path('outputs')/f'{args.model}-instruction-controls100'
+    args.controls_source = args.controls_source or Path('outputs')/f'{args.model}-instruction-controls100'
+    args.output = args.output or Path('outputs')/(f'{args.model}-instruction-controls100' + ('-format-please' if args.extend_format_please else ''))
     if args.mode == 'summary':
         # Collection atomically renames each completed .pt. Read those immutable
         # files without touching queue locks, configs or the writer's summaries.
