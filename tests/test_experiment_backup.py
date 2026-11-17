@@ -13,6 +13,26 @@ import pack_experiment_backup as run
 
 
 class EvidenceBackupTests(unittest.TestCase):
+    def test_ifeval_relative_audio_uses_matching_source_plan_and_hash(self):
+        with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
+            root = Path(d); repo, old_source, _, _ = self.repo(root)
+            source = repo/'outputs/azure-spoken-ifeval'; shutil.copytree(old_source, source)
+            rows = [json.loads(s) for s in (source/'plan.jsonl').read_text().splitlines()]
+            evaluation = repo/'outputs/spoken-ifeval-diffa2'; evaluation.mkdir()
+            tasks = [dict(row, audio_sha256=hashlib.sha256((source/row['audio_path']).read_bytes()).hexdigest()) for row in rows]
+            (evaluation/'run_config.json').write_text(json.dumps(dict(recordings=tasks)))
+            path = run.package(repo, root/'downloads', samples=1, only=['ifeval'])
+            with zipfile.ZipFile(path) as archive:
+                manifest = json.loads(archive.read('MANIFEST.json'))
+                self.assertFalse(any('sample audio missing' in x['error'] for x in manifest['issues']))
+                self.assertEqual(len(manifest['audio_samples']), 2)
+                self.assertTrue(all('/azure-spoken-ifeval/' in a['member'] for a in manifest['audio_samples']))
+            # A similarly named file with different audio bytes cannot satisfy the receipt.
+            row = dict(tasks[0], audio_sha256='0'*64)
+            index = run.source_audio_index([source/'plan.jsonl'])
+            chosen = run.audio_path(row, evaluation/'run_config.json', repo, index)
+            self.assertFalse(chosen.is_file())
+
     def repo(self, root):
         repo = root/'repo'; repo.mkdir()
         subprocess.run(['git', 'init', '-q', str(repo)], check=True)

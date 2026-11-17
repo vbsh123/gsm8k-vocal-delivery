@@ -71,17 +71,59 @@ def candidates(plan):
     return rows
 
 
-def audio_path(row, config, repo):
+def audio_key(row, name):
+    return (row.get('question_id', row.get('clip_id')), row.get('voice', row.get('speaker')),
+            row.get('style'), Path(name).name)
+
+
+def source_audio_index(metadata_files):
+    """Resolve evaluation-relative references through matching TTS plan records."""
+    index = {}
+    for config in metadata_files:
+        if config.name != 'plan.jsonl':
+            continue
+        try:
+            data, _ = snapshot(config)
+            rows = [json.loads(line) for line in data.splitlines() if line.strip()]
+        except (OSError, ValueError, UnicodeDecodeError):
+            continue  # The archive inspection reports unreadable plans separately.
+        for row in rows:
+            if not isinstance(row, dict) or not isinstance(row.get('audio_path'), str):
+                continue
+            path = Path(row['audio_path'])
+            path = path if path.is_absolute() else config.parent/path
+            if path.is_file():
+                index.setdefault(audio_key(row, path.name), []).append(path)
+    return index
+
+
+def audio_path(row, config, repo, source_index=None):
+    choices, indexed = [], []
     for key in ('audio_file', 'audio_path'):
         value = row.get(key)
         if not isinstance(value, str) or Path(value).suffix.lower() not in AUDIO:
             continue
         path = Path(value)
         if path.is_absolute():
-            return path
-        choices = [config.parent/path, repo/path]
-        return next((p for p in choices if p.is_file()), choices[0])
-    return None
+            choices.append(path)
+        else:
+            choices.extend([config.parent/path, repo/path])
+        indexed.extend((source_index or {}).get(audio_key(row, path.name), []))
+    expected = row.get('audio_sha256')
+    def matches(path):
+        if not path.is_file(): return False
+        return not expected or hashlib.sha256(path.read_bytes()).hexdigest() == expected
+    for path in choices:
+        if matches(path): return path
+    candidates = {p.resolve(): p for p in indexed if matches(p)}
+    if candidates:
+        # Without a receipt, distinct matching recordings must still be byte-identical.
+        if expected or len(candidates) == 1 or len({hashlib.sha256(p.read_bytes()).hexdigest() for p in candidates}) == 1:
+            return next(iter(candidates.values()))
+        raise ValueError('Multiple matching source recordings have different bytes; cannot resolve audio unambiguously.')
+    if any(p.is_file() for p in choices):
+        raise ValueError('Existing referenced audio does not match the recorded SHA256.')
+    return choices[0] if choices else None
 
 
 def status(repo):
@@ -151,6 +193,7 @@ def package(repo, destination, samples=3, sample_mb=256, full_audio=False, only=
                     if 'vector' in file.name or file.stat().st_size <= 64*1024**2:
                         metadata_files.append(file)
     metadata_files.extend(repo.glob('*.log'))
+    source_index = source_audio_index(metadata_files)
     tracked = subprocess.run(['git', 'ls-files', '-z'], cwd=repo, capture_output=True, check=True).stdout
     code_files = [repo/os.fsdecode(p) for p in tracked.split(b'\0') if p]
     scorer = repo/'external/ifeval'
@@ -200,7 +243,13 @@ def package(repo, destination, samples=3, sample_mb=256, full_audio=False, only=
                 selected.extend(qid for qid in ids if qid not in selected)
             groups = {}; missing_groups = set()
             for row in rows:
-                audio = audio_path(row, file, repo)
+                try:
+                    audio = audio_path(row, file, repo, source_index)
+                except (OSError, ValueError) as error:
+                    if row.get('question_id', row.get('clip_id')) in selected:
+                        manifest['issues'].append(dict(path=str(file), question_id=row.get('question_id'), error=str(error)))
+                        missing_groups.add(row.get('question_id', row.get('clip_id')))
+                    continue
                 if audio is None:
                     continue
                 if not audio.is_file():
