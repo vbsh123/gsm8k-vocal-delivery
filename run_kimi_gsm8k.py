@@ -37,6 +37,12 @@ def select(source, output):
 
 def audio(args):
     selection = select(args.source, args.output)
+    prepare_audio(args, selection)
+    return shared.prepare(args, selection, dataset='GSM8K', steered_condition=STEERED)
+
+
+def prepare_audio(args, selection):
+    """Reuse compatible audio or resume TTS for an already frozen question selection."""
     questions = selection['collection']+selection['test']
     # Make the exact resumable request plan before linking compatible existing audio.
     subprocess.run([sys.executable, '-u', 'cloud_tts_smoke.py', '--provider', 'azure',
@@ -70,7 +76,6 @@ def audio(args):
                 break
     print(f'Reused {linked} compatible clips through links; generate/resume remaining clips.', flush=True)
     generate_audio(args.source, questions, ['neutral', 'angry'])
-    return shared.prepare(args, selection, dataset='GSM8K', steered_condition=STEERED)
 
 
 def main():

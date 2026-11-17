@@ -87,7 +87,7 @@ def prepare(args, selection=None, dataset='MultiArith', steered_condition=STEERE
     test = [pair(q) for q in selection['test']]
     if {p['question_id'] for p in train} & {p['question_id'] for p in test}:
         raise ValueError('Collection and test questions overlap.')
-    plan = dict(protocol=selection.get('protocol', PROTOCOL), selection=selection, prompt=multiarith.PROMPT, seed=42,
+    plan = dict(protocol=selection.get('protocol', PROTOCOL), selection=selection, prompt=selection.get('prompt', multiarith.PROMPT), seed=42,
         model=MODEL, revision=REVISION, source_revision=SOURCE_REVISION,
         tokenizer_model=TOKENIZER_MODEL, tokenizer_revision=TOKENIZER_REVISION,
         generation=kimi.PARAMS, layer=LAYER, group='answer', strength=1.,
@@ -101,8 +101,10 @@ def prepare(args, selection=None, dataset='MultiArith', steered_condition=STEERE
                 'Audio-adapted inference, not a dedicated official MultiArith harness task.')
     if dataset != 'MultiArith':
         plan.update(dataset=dataset, steered_condition=steered_condition,
-            scoring='Installed upstream GSM8K extraction/metric on GSM8K references; additional numeric equivalence. '
-                    'Audio-adapted inference, not full official text-harness inference.')
+            scoring=('Installed upstream BBH-five filters and exact-match metric on original BBH-five targets. '
+                     'Audio-adapted inference, not full official text-harness inference.' if dataset == 'BBH-five' else
+                     'Installed upstream GSM8K extraction/metric on GSM8K references; additional numeric equivalence. '
+                     'Audio-adapted inference, not full official text-harness inference.'))
     kimi.freeze(args.output/'run_config.json', plan)
     return plan
 
