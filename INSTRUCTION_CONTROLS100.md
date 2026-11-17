@@ -22,6 +22,11 @@ SAME100 state folders intact. CPU summary command:
 .venv-diffa/bin/python collect_instruction_controls.py --model phi4 --mode summary
 ```
 
+`--mode summary` reads completed state files without taking the collection
+lock or writing configs/summaries, so it can inspect an active collection.
+The collection process writes the final CSV/JSON after completing its CPU
+summary. GPU memory can remain reserved during this CPU calculation.
+
 Defaults:
 
 - DIFFA parent `outputs/diffa-reasoning-emotion100`, output `outputs/diffa-instruction-controls100`.

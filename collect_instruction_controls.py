@@ -194,7 +194,7 @@ def collect(plan, output):
         tmp = path.with_suffix('.tmp'); torch.save(saved, tmp); tmp.replace(path)
 
 
-def summarize(plan, output):
+def summarize(plan, output, write=True):
     import torch
     parent = plan['parent']; model = plan['model_kind']; nr, na, emotion = [], [], []
     for i, pair in enumerate(parent['pairs']):
@@ -236,11 +236,12 @@ def summarize(plan, output):
                     if group == 'answer' and layer in (26, 31):
                         shown[layer] = 'undefined' if geo['cosine'] is None else f'{geo["cosine"]:+.4f}'
             print(f'{reference:12} {condition:26} {shown[26]:>17} {shown[31]:>19}', flush=True)
-    with (output/'instruction-cosines.csv').open('w', newline='') as stream:
-        if rows:
-            writer = csv.DictWriter(stream, fieldnames=list(rows[0])); writer.writeheader(); writer.writerows(rows)
-    (output/'summary.json').write_text(json.dumps(dict(protocol=PROTOCOL, complete_controls=complete,
-        model_kind=model, rows=rows, limitations=plan['limitations'], reference=plan['reference']), indent=2)+'\n')
+    if write:
+        with (output/'instruction-cosines.csv').open('w', newline='') as stream:
+            if rows:
+                writer = csv.DictWriter(stream, fieldnames=list(rows[0])); writer.writeheader(); writer.writerows(rows)
+        (output/'summary.json').write_text(json.dumps(dict(protocol=PROTOCOL, complete_controls=complete,
+            model_kind=model, rows=rows, limitations=plan['limitations'], reference=plan['reference']), indent=2)+'\n')
 
 
 def main():
@@ -252,6 +253,16 @@ def main():
     args = p.parse_args()
     args.parent = args.parent or Path('outputs')/('diffa-reasoning-emotion100' if args.model == 'diffa' else 'phi4-reasoning-emotion100-gsm8k')
     args.output = args.output or Path('outputs')/f'{args.model}-instruction-controls100'
+    if args.mode == 'summary':
+        # Collection atomically renames each completed .pt. Read those immutable
+        # files without touching queue locks, configs or the writer's summaries.
+        plan = json.loads((args.output/'run_config.json').read_text())
+        if (plan['protocol'] != PROTOCOL or plan['model_kind'] != args.model
+                or plan['parent_folder'] != str(args.parent.absolute())):
+            raise ValueError('Summary settings differ from the frozen experiment.')
+        verify_parent(plan)
+        summarize(plan, args.output, write=False)
+        return
     args.output.mkdir(parents=True, exist_ok=True)
     with (args.output/'queue.lock').open('w') as own:
         fcntl.flock(own, fcntl.LOCK_EX | fcntl.LOCK_NB)

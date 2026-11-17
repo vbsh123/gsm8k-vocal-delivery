@@ -1,5 +1,6 @@
 from contextlib import redirect_stdout
 import io
+import fcntl
 import json
 from pathlib import Path
 import tempfile
@@ -13,6 +14,20 @@ from tests.test_reasoning_geometry_audit import GeometryAuditTests
 
 
 class InstructionControlTests(unittest.TestCase):
+    def test_summary_runs_read_only_while_collector_holds_lock(self):
+        with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
+            args, shape = self.fixture(Path(d), 'phi4')
+            with patch.object(controls, 'state_shape', return_value=shape):
+                controls.prepare(args)
+                lock = args.output/'queue.lock'
+                with lock.open('w') as held:
+                    fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    argv = ['collect_instruction_controls.py', '--model', 'phi4', '--mode', 'summary',
+                            '--parent', str(args.parent), '--output', str(args.output)]
+                    with patch('sys.argv', argv): controls.main()
+                self.assertFalse((args.output/'summary.json').exists())
+                self.assertFalse((args.output/'instruction-cosines.csv').exists())
+
     def test_reference_replay_detects_model_runtime_drift(self):
         expected = torch.tensor([[1., 2., 3.]])
         self.assertEqual(controls.compare_replay(expected.clone(), expected)['status'], 'PASS')
