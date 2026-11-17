@@ -35,7 +35,24 @@ GROUPS = {
     'ifeval': ('ifeval-angry-mean', 'spoken-ifeval-diffa2', 'azure-spoken-ifeval'),
     'moss': ('bbh-three-regenerated-models/moss', 'bbh-three-audio-models/moss', 'azure-bbh-three-models-regenerated'),
     'kimi': ('bbh-three-regenerated-models/kimi', 'bbh-three-audio-models/kimi', 'azure-bbh-three-models-regenerated'),
+    'phi': ('gsm8k-candidates/phi4', 'bbh-three-candidates/phi4', 'bbh-five-candidates/phi4',
+            'phi4-answer-only-followup', 'phi4-reasoning-emotion100-gsm8k', 'phi4-gsm100-layer-drift',
+            'phi4-instruction-controls100', 'phi4-instruction-controls100-format-please',
+            'phi4-gsm-reverse400-400-L17', 'phi4-gsm-reverse400-400-L30',
+            'phi4-gsm-reverse400-869-L17', 'phi4-gsm-reverse400-869-L30',
+            'phi4-multiarith-reverse290-290-L17', 'phi4-multiarith-reverse290-290-L30',
+            'phi4-multiarith-reverse290-shared', 'azure-kimi-gsm8k1269', 'azure-multiarith580',
+            'azure-bbh-three-models-regenerated', 'azure-kimi-bbh-five250'),
+    'minicpm': ('minicpm-gsm100-diagnostics', 'bbh-three-candidates/minicpm', 'gsm8k-candidates/minicpm',
+                'azure-kimi-gsm8k1269', 'azure-bbh-three-models-regenerated'),
 }
+EXTRA_RUNS = {f'Phi {name} L{layer}': f'phi4-{folder}-L{layer}'
+              for name, folder in [('GSM400', 'gsm-reverse400-400'), ('GSM869', 'gsm-reverse400-869'),
+                                   ('MultiArith290', 'multiarith-reverse290-290')] for layer in (17, 30)}
+EXTRA_RUNS.update({'Phi GSM original': 'gsm8k-candidates/phi4/original',
+                   'Phi BBH3 original': 'bbh-three-candidates/phi4/original',
+                   'Phi BBH3 explicit': 'bbh-three-candidates/phi4/explicit',
+                   'MiniCPM GSM diagnostics': 'minicpm-gsm100-diagnostics'})
 
 
 def walk(root):
@@ -62,7 +79,7 @@ def candidates(plan):
     if isinstance(plan, list):
         return [r for r in plan if isinstance(r, dict)]
     rows = []
-    for name in ('recordings', 'extraction', 'test', 'pairs'):
+    for name in ('recordings', 'extraction', 'collection', 'test', 'pairs'):
         for row in plan.get(name, []) if isinstance(plan.get(name), list) else []:
             if not isinstance(row, dict):
                 continue
@@ -128,7 +145,8 @@ def audio_path(row, config, repo, source_index=None):
 
 def status(repo):
     result = []
-    for name, relative in RUNS.items():
+    runs = {**RUNS, **{name: relative for name, relative in EXTRA_RUNS.items() if (repo/'outputs'/relative).exists()}}
+    for name, relative in runs.items():
         folder = repo/'outputs'/relative
         config = next((p for p in (folder/'run_config.json', folder/'split.json') if p.is_file()), None)
         answers = folder/'results.jsonl'
@@ -137,7 +155,9 @@ def status(repo):
         if config:
             try:
                 plan = json.loads(snapshot(config)[0])
-                item['planned_answers'] = len(plan['recordings']) if 'recordings' in plan else 3*len(plan['test'])
+                item['planned_answers'] = (len(plan['recordings']) if 'recordings' in plan else
+                    len(plan['conditions'])*len(plan['pairs']) if plan.get('protocol', '').startswith('minicpm-gsm-same100') else
+                    3*len(plan['test']))
                 vector = plan.get('vector') or plan.get('settings', {}).get('vectors')
                 if vector:
                     vector_path = Path(vector)
@@ -145,7 +165,7 @@ def status(repo):
                         vector_path = repo/vector_path
                     item['required_vector'] = str(vector_path)
                     item['required_vector_present'] = vector_path.is_file()
-                elif 'extraction' in plan:
+                elif 'extraction' in plan or plan.get('protocol', '').startswith(('phi4-', 'minicpm-gsm-same100')):
                     item['required_vector'] = str(folder/'style-vectors.pt')
                     item['required_vector_present'] = item['vector_present']
             except (KeyError, ValueError, TypeError):
@@ -176,6 +196,9 @@ def package(repo, destination, samples=3, sample_mb=256, full_audio=False, only=
     partial = path.with_suffix('.zip.partial')
     manifest = dict(created_utc=stamp, host=host, repo=str(repo), files=[], issues=[], audio_samples=[],
         runs=status(repo), note='Live read-only snapshot; incomplete final JSONL fragments omitted in archive only. Pair activation caches/model weights excluded.')
+    preserve_small_pairs = bool(only and any(g in only for g in ('phi', 'minicpm')))
+    if preserve_small_pairs:
+        manifest['note'] = 'Live read-only snapshot. Selected Phi/MiniCPM small per-question mean/state caches included; model weights excluded. Incomplete final JSONL fragments omitted in archive only.'
     roots = [outputs, repo/'recovery-backups']
     if only:
         roots = sorted({root/name for root in roots for group in only for name in GROUPS[group]})
@@ -189,10 +212,18 @@ def package(repo, destination, samples=3, sample_mb=256, full_audio=False, only=
             for file in walk(root):
                 if file.suffix.lower() in TEXT:
                     metadata_files.append(file)
+                elif file.suffix == '.pt' and preserve_small_pairs and root.name.startswith(('phi4', 'minicpm')) and file.stat().st_size <= 2*1024**2:
+                    metadata_files.append(file)
                 elif file.suffix == '.pt' and not any('pairs' in p or 'activations' in p for p in file.relative_to(root).parts[:-1]):
                     if 'vector' in file.name or file.stat().st_size <= 64*1024**2:
                         metadata_files.append(file)
     metadata_files.extend(repo.glob('*.log'))
+    if preserve_small_pairs:
+        if 'phi' in only: metadata_files.extend(outputs.glob('*phi4*.log'))
+        if 'minicpm' in only: metadata_files.extend(outputs.glob('*minicpm*.log'))
+        for name in ('phi4', 'minicpm'):
+            requirements = repo/f'.venv-bbh-{name}'/'experiment-requirements.txt'
+            if requirements.is_file(): metadata_files.append(requirements)
     source_index = source_audio_index(metadata_files)
     tracked = subprocess.run(['git', 'ls-files', '-z'], cwd=repo, capture_output=True, check=True).stdout
     code_files = [repo/os.fsdecode(p) for p in tracked.split(b'\0') if p]
@@ -231,7 +262,7 @@ def package(repo, destination, samples=3, sample_mb=256, full_audio=False, only=
                 manifest['issues'].append(dict(path=str(file), error='Could not inspect audio references in this snapshot.'))
                 continue
             selected = []
-            sections = [plan] if isinstance(plan, list) else [plan.get(k, []) for k in ('recordings', 'extraction', 'test', 'pairs')]
+            sections = [plan] if isinstance(plan, list) else [plan.get(k, []) for k in ('recordings', 'extraction', 'collection', 'test', 'pairs')]
             for section in sections:
                 ids = []
                 for row in section if isinstance(section, list) else []:

@@ -13,6 +13,24 @@ import pack_experiment_backup as run
 
 
 class EvidenceBackupTests(unittest.TestCase):
+    def test_phi_focus_preserves_small_collection_means_and_ignores_unrelated_runs(self):
+        with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
+            root=Path(d);repo,source,_,_=self.repo(root)
+            folder=repo/'outputs/phi4-gsm-reverse400-400-L17';folder.mkdir()
+            (folder/'pairs').mkdir();(folder/'pairs/0000.pt').write_bytes(b'raw collection responses and means')
+            (folder/'style-vectors.pt').write_bytes(b'collected direction')
+            (folder/'run_config.json').write_text(json.dumps(dict(protocol='phi4-gsm-test',collection=[],test=[dict(question_id='q0')])))
+            (folder/'results.jsonl').write_text(json.dumps(dict(question_id='q0',voice='Jenny',condition='neutral',response='#### 2'))+'\n')
+            shutil.copytree(source,repo/'outputs/azure-kimi-gsm8k1269')
+            path=run.package(repo,root/'downloads',samples=1,only=['phi'])
+            with zipfile.ZipFile(path) as archive:
+                names=archive.namelist();m=json.loads(archive.read('MANIFEST.json'))
+                self.assertIn('outputs/phi4-gsm-reverse400-400-L17/pairs/0000.pt',names)
+                self.assertIn('outputs/phi4-gsm-reverse400-400-L17/style-vectors.pt',names)
+                self.assertFalse(any(n.startswith('outputs/bbh-logical250-angry-mean/') for n in names))
+                self.assertEqual(len(m['runs']),1)
+                self.assertEqual(m['runs'][0]['saved_unique_answers'],1)
+
     def test_ifeval_relative_audio_uses_matching_source_plan_and_hash(self):
         with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
             root = Path(d); repo, old_source, _, _ = self.repo(root)
