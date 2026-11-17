@@ -6,6 +6,7 @@ from types import SimpleNamespace
 import tempfile
 import unittest
 from unittest.mock import patch
+import wave
 
 import torch
 import collect_diffa_reasoning_emotion as run
@@ -79,6 +80,34 @@ class DiffaDirectionTests(unittest.TestCase):
             run.capture_initial(model,lambda:model.llm_model(torch.zeros(1,520,3)),decoder)
         self.assertIs(decoder.insert_audio_embedding,original)
         self.assertFalse(model.llm_model._forward_pre_hooks)
+
+    def test_missing_diffa_config_falls_back_to_local_audio_without_model_or_tts(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);audio=root/'audio';audio.mkdir();output=root/'out';output.mkdir()
+            rows=json.loads(Path(run.__file__).with_name('kimi_gsm8k_questions.json').read_text())['questions'][:100]
+            with wave.open(str(audio/'clip.wav'),'wb') as stream:
+                stream.setnchannels(1);stream.setsampwidth(2);stream.setframerate(100)
+                stream.writeframes(b'\0\0'*4700)
+            tasks=[dict(q,provider='azure',voice='Jenny',style=s,audio_path='clip.wav')
+                   for q in rows for s in ('neutral','angry')]
+            (audio/'plan.jsonl').write_text(''.join(json.dumps(t)+'\n' for t in tasks))
+            args=SimpleNamespace(output=output,source_run=root/'missing-diffa-run',audio_sources=[audio])
+            plan=run.prepare(args)
+            self.assertEqual(plan['source_kind'],'local-audio-plans')
+            self.assertIsNone(plan['source_config_sha256'])
+            self.assertEqual(plan['model'],'zhoujiaming777/DIFFA-2')
+            self.assertEqual(len(plan['pairs']),100)
+            self.assertEqual(plan['forwards'],300)
+            self.assertTrue(all(p['neutral']['seconds']==47 for p in plan['pairs']))
+            self.assertEqual(plan['reasoning_prompt'],HASH_PROMPT)
+            self.assertTrue(all('audio_sha256' in p['angry'] for p in plan['pairs']))
+
+    def test_missing_source_and_audio_reports_useful_error(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);output=root/'out';output.mkdir()
+            args=SimpleNamespace(output=output,source_run=root/'missing',audio_sources=[root/'missing-audio'])
+            with self.assertRaisesRegex(FileNotFoundError,'No model was loaded'):
+                run.prepare(args)
 
     def test_all_group_cosines_and_reverse_direction_are_saved(self):
         with tempfile.TemporaryDirectory() as d,redirect_stdout(io.StringIO()):

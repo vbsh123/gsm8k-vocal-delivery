@@ -13,6 +13,7 @@ from pathlib import Path
 import random
 import subprocess
 import time
+import wave
 
 from extract_audio_vectors import GROUPS, save_tensor
 from kimi_bbh_layer_diagnostic import digest
@@ -22,6 +23,45 @@ from steer import read_rows
 
 PROTOCOL = 'diffa-same100-reasoning-emotion-initial-mask-v1'
 CONDITIONS = ('neutral-reasoning','neutral-answer-only','angry-reasoning')
+
+
+def audio_source(paths):
+    """Build a model-independent GSM8K source from local Azure plans if no DIFFA run exists."""
+    from run_reasoning_transfer import HASH_PROMPT
+    bank_path=Path(__file__).with_name('kimi_gsm8k_questions.json')
+    bank={q['question_id']:q for q in json.loads(bank_path.read_text())['questions']}
+    records={};receipts=[]
+    for folder in paths:
+        path=folder/'plan.jsonl'
+        if not path.exists():continue
+        receipts.append(dict(path=str(path.absolute()),sha256=digest(path)))
+        for row in read_rows(path):
+            if row.get('provider')!='azure' or row.get('style') not in ('neutral','angry') or row.get('question_id') not in bank:
+                continue
+            q=bank[row['question_id']];gold=str(row['answer']).rsplit('####',1)[-1].strip()
+            if row['question']!=q['question'] or gold!=str(q['answer']):
+                raise ValueError('Local audio plan differs from original GSM8K wording/reference.')
+            key=row['question_id'],row['voice'],row['style']
+            if key in records:continue  # Prefer the first explicitly ordered audio source.
+            audio=(folder/row['audio_path']).absolute()
+            if not audio.is_file():continue
+            with wave.open(str(audio)) as stream:
+                seconds=stream.getnframes()/stream.getframerate()
+            if seconds<=0:raise ValueError('Empty local GSM8K recording.')
+            records[key]=dict(question_id=key[0],voice=key[1],style=key[2],condition=key[2],answer=gold,
+                audio_file=str(audio),seconds=seconds)
+    paired={(q,v) for q,v,s in records if all((q,v,t) in records for t in ('neutral','angry'))}
+    if len(paired)<100:
+        raise FileNotFoundError('No source DIFFA run config and fewer than100 local GSM8K neutral/angry pairs. '
+            'Pass --source-run /existing/diffa/run or --audio-sources /folders/with/plan.jsonl. '
+            'No model was loaded and no TTS was requested.')
+    rows=[records[q,v,s] for q,v in sorted(paired) for s in ('neutral','angry')]
+    # Hash only selected audio later; scanning the bank does not read every full waveform.
+    print(f'No DIFFA source config found; using {len(paired)} matched local GSM8K audio pairs. '
+          'DIFFA-2 remains the model; no Phi-4/Kimi responses are used.',flush=True)
+    return dict(seed=42,max_new_tokens=512,steps=128,block_length=32,decoder='fast_dllm',
+        prompt=HASH_PROMPT,recordings=rows,bank=bank),dict(source_kind='local-audio-plans',
+        source_config_sha256=None,source_audio_plans=receipts,question_bank_sha256=digest(bank_path))
 
 
 def direct_prompt(prompt):
@@ -43,7 +83,11 @@ def prepare(args):
         print('Reusing the SAME frozen100 DIFFA question pairs in all three conditions.',flush=True)
         return plan
     source_path=args.source_run/'run_config.json'
-    source=json.loads(source_path.read_text())
+    if source_path.exists():
+        source=json.loads(source_path.read_text())
+        provenance=dict(source_kind='existing-diffa-run',source_config_sha256=digest(source_path))
+    else:
+        source,provenance=audio_source(args.audio_sources)
     if (source['seed']!=42 or source['max_new_tokens']!=512 or source['steps']!=128
             or source['block_length']!=32 or source['decoder']!='fast_dllm'):
         raise ValueError('Expected the established seed42 /512-token /128-step /32-block DIFFA evaluation recipe.')
@@ -63,10 +107,12 @@ def prepare(args):
     for q,v in ids:
         clips=groups[q,v]
         for row in clips.values():
-            if digest(row['audio_file'])!=row['audio_sha256']:raise ValueError('Original DIFFA audio changed or is missing.')
+            actual=digest(row['audio_file'])
+            if 'audio_sha256' in row and actual!=row['audio_sha256']:raise ValueError('Original DIFFA audio changed or is missing.')
+            row['audio_sha256']=actual
         pairs.append(dict(question_id=q,voice=v,**clips))
     plan=dict(protocol=PROTOCOL,model='zhoujiaming777/DIFFA-2',source_run=str(args.source_run.absolute()),
-        source_config_sha256=digest(source_path),pairs=pairs,bank={q:source['bank'][q] for q,v in ids},
+        **provenance,pairs=pairs,bank={q:source['bank'][q] for q,v in ids},
         questions=100,conditions=list(CONDITIONS),forwards=300,layers=list(range(32)),groups=GROUPS,
         reasoning_prompt=prompt,answer_only_prompt=answer_only,seed=42,max_new_tokens=512,steps=128,block_length=32,
         temperature=0.,decoder='fast_dllm',audio_encoding='Existing gen_chunked route: native up to30s; unchanged full-audio encoding above30s.',
@@ -219,6 +265,10 @@ def main():
     p.add_argument('--mode',choices=('prepare','collect','summary'),default='collect')
     p.add_argument('--source-run',type=Path,default=Path('outputs/reasoning-transfer/gsm8k'))
     p.add_argument('--output',type=Path,default=Path('outputs/diffa-reasoning-emotion100'))
+    p.add_argument('--audio-sources',type=Path,nargs='+',default=[Path('outputs')/s for s in
+        ('azure-kimi-gsm8k1269','azure-jenny-next500','azure-jenny-remaining-test',
+         'azure-jenny500-extra','azure-jenny500-neutral')],
+        help='Fallback local GSM8K audio plans if the DIFFA source-run config is absent; no TTS.')
     args=p.parse_args();args.output.mkdir(parents=True,exist_ok=True)
     if args.mode=='summary':summarize(args.output);return
     with (args.output/'queue.lock').open('w') as own:

@@ -24,6 +24,16 @@ or duration filter. The source's steered rows are excluded. Its prompt, source
 config hash, question IDs and recording hashes are frozen before model loading.
 Use `--source-run /path/to/run` to choose an explicit compatible source.
 
+If that DIFFA run config is absent (for example on the Phi-4 evaluation machine),
+the collector automatically builds the same design from local Azure GSM8K audio
+plans. It first checks `outputs/azure-kimi-gsm8k1269/`, then the original three
+Azure cohorts. Those are model-independent recordings; no Kimi/Phi-4 answers or
+vectors are used. It verifies original question wording and gold references,
+selects100 seed42-shuffled available neutral/angry pairs, hashes the selected
+clips, and freezes their source receipts. No TTS is requested. Use
+`--audio-sources /path/to/audio/folder ...` for explicit fallback locations.
+If neither config nor100 local pairs are available, it stops before model load.
+
 The reasoning sentence is replaced by "Do not show reasoning or explanations.
 Give only the final answer." All other wording, including the source's final-
 answer format, stays identical. All three conditions use seed42,128 steps,
