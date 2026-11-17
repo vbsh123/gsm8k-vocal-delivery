@@ -1,0 +1,44 @@
+{
+  "phi4": {
+    "model": "microsoft/Phi-4-multimodal-instruct",
+    "revision": "93f923e1a7727d1c4f446756212d9d3e8fcc5d81",
+    "python": "3.10",
+    "torch": "2.6.0",
+    "torchaudio": "2.6.0",
+    "torchvision": "0.21.0",
+    "cuda_index": "cu124",
+    "transformers": "4.48.2",
+    "weights_gib": 11.93,
+    "attention": "sdpa",
+    "documentation": "https://huggingface.co/microsoft/Phi-4-multimodal-instruct",
+    "notes": "Native audio processor and speech adapters; full audio. Card recommends up to 40 seconds for satisfactory performance, not a hard processor limit. Duration audit retained."
+  },
+  "minicpm": {
+    "model": "openbmb/MiniCPM-o-4_5",
+    "revision": "fb09628e98b1f55d8d5b863e0eccfcdd11bff499",
+    "python": "3.10",
+    "torch": "2.6.0",
+    "torchaudio": "2.6.0",
+    "torchvision": "0.21.0",
+    "cuda_index": "cu124",
+    "transformers": "4.51.0",
+    "weights_gib": 17.46,
+    "attention": "sdpa",
+    "documentation": "https://huggingface.co/openbmb/MiniCPM-o-4_5",
+    "notes": "Native chat and audio processing, thinking mode disabled; explicit textual reasoning prompt is a separate experimental factor. Vision and speech generation disabled."
+  },
+  "flamingo": {
+    "model": "nvidia/audio-flamingo-3-hf",
+    "revision": "7d4bae64ee29878af6504ae6f6bb3e40492838ad",
+    "python": "3.11",
+    "torch": "2.9.1",
+    "torchaudio": "2.9.1",
+    "torchvision": "0.24.1",
+    "cuda_index": "cu128",
+    "transformers": "5.0.0",
+    "weights_gib": 30.8,
+    "attention": "sdpa",
+    "documentation": "https://huggingface.co/nvidia/audio-flamingo-3-hf",
+    "notes": "Official Transformers conversion; native 30-second windows and 600-second cap. Reject longer recordings instead of truncating. AF-Think adapter not loaded."
+  }
+}

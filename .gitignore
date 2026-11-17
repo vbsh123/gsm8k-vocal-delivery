@@ -4,6 +4,7 @@
 .venv-index/
 .venv-emotion/
 .venv-moss/
+.venv-bbh-*/
 external/
 __pycache__/
 *.pyc
