@@ -196,6 +196,10 @@ def collect(plan, output):
 
 def summarize(plan, output, write=True):
     import torch
+    # Small reductions suffered severe thread-pool overhead on many-core hosts.
+    # This affects CPU reporting only, after native model capture is finished.
+    torch.set_num_threads(min(torch.get_num_threads(), 4))
+    print(f'CPU summary: loading saved states; using {torch.get_num_threads()} Torch threads.', flush=True)
     parent = plan['parent']; model = plan['model_kind']; nr, na, emotion = [], [], []
     for i, pair in enumerate(parent['pairs']):
         hs = []
@@ -206,9 +210,11 @@ def summarize(plan, output, write=True):
         nr.append(hs[0]); na.append(hs[1]); emotion.append(hs[2]-hs[0])
     nr, na, emotion = [torch.stack(a) for a in (nr, na, emotion)]
     em = emotion.mean(0)
+    emotion_even, emotion_odd = emotion[::2].mean(0), emotion[1::2].mean(0)
     groups = parent['groups']; vectors = {}; complete = []
     for condition, prompt in plan['prompts'].items():
         if not all(state_path(output, i, condition).exists() for i in range(100)): continue
+        print(f'CPU summary: reading {condition} (100 saved states).', flush=True)
         hs = []
         for i, pair in enumerate(parent['pairs']):
             trace = torch.load(state_path(output, i, condition), map_location='cpu', weights_only=True)
@@ -224,11 +230,12 @@ def summarize(plan, output, write=True):
         for condition, states in all_states.items():
             if (reference == 'answer_only' and condition == 'answer_only') or (reference == 'bare_task' and condition == 'no_extra_instruction'): continue
             deltas = states-baseline; mean = deltas.mean(0); shown = {}
+            instruction_even, instruction_odd = deltas[::2].mean(0), deltas[1::2].mean(0)
             for g, group in enumerate(groups):
                 for layer in range(32):
                     geo = geometry(mean[layer, g], em[layer, g])
-                    c0 = geometry(deltas[::2, layer, g].mean(0), emotion[1::2, layer, g].mean(0))['cosine']
-                    c1 = geometry(deltas[1::2, layer, g].mean(0), emotion[::2, layer, g].mean(0))['cosine']
+                    c0 = geometry(instruction_even[layer, g], emotion_odd[layer, g])['cosine']
+                    c1 = geometry(instruction_odd[layer, g], emotion_even[layer, g])['cosine']
                     rows.append(dict(reference=reference, instruction=condition, group=group, layer=layer, pairs=100,
                                      cosine=geo['cosine'], signed_projection_coefficient=geo['coefficient'],
                                      squared_norm_overlap=geo['overlap'], instruction_norm=float(mean[layer, g].norm()),
