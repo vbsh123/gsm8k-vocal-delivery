@@ -174,36 +174,38 @@ def run(plan, output, model, source, max_generations=0):
         print(response, flush=True)
 
 
-def strict_format_bits(scorer, responses, docs):
+def strict_format_bits(scorer, responses, docs, letters='ABC'):
     """Would upstream strict scoring accept any valid choice? Ignore the true answer."""
     # Reuse both upstream extraction AND metric normalization. This is an added
     # diagnostic; the real-reference accuracy calculation remains unchanged.
-    expanded = [response for response in responses for _ in 'ABC']
-    references = [dict(doc, target=f'({choice})') for doc in docs for choice in 'ABC']
+    expanded = [response for response in responses for _ in letters]
+    references = [dict(doc, target=f'({choice})') for doc in docs for choice in letters]
     results = scorer.score(expanded, references)['strict-match']
-    return [any(r['correct'] for r in results[i:i+3]) for i in range(0, len(results), 3)]
+    count = len(letters)
+    return [any(r['correct'] for r in results[i:i+count]) for i in range(0, len(results), count)]
 
 
-def report(output):
+def report(output, objects='three'):
     from score_bbh_harness import HarnessScorer
     from rescore_audio_steering import paired
     if not (output/'run_config.json').exists():
         print(f'{output}: not prepared.', flush=True); return
     plan = json.loads((output/'run_config.json').read_text())
     rows = read_rows(output/'results.jsonl')
-    scorer = HarnessScorer(output/'harness/upstream')
+    scorer = HarnessScorer(output/'harness/upstream', objects=objects)
     docs = [dict(input=plan['bank'][r['question_id']]['original_input'],
                  target=plan['bank'][r['question_id']]['original_target']) for r in rows]
     if any(r['reference_answer'] != plan['bank'][r['question_id']]['answer'] for r in rows):
         raise ValueError('Saved reference differs from the frozen question bank.')
     values = scorer.score([r['response'] for r in rows], docs)
-    format_bits = strict_format_bits(scorer, [r['response'] for r in rows], docs)
+    letters = {'three': 'ABC', 'five': 'ABCDE', 'seven': 'ABCDEFG'}[objects]
+    format_bits = strict_format_bits(scorer, [r['response'] for r in rows], docs, letters)
     scored = [dict(row, harness={m: results[i] for m, results in values.items()},
                    **{FORMAT_METRIC: format_bits[i]}) for i, row in enumerate(rows)]
     summary = dict(model=plan['recipe'], scorer=scorer.provenance, primary_metric='flexible-extract', accuracy=[], paired=[],
-        format_diagnostic='Additional statistic: upstream strict extraction/metric accepts one of (A)/(B)/(C), regardless of gold. Not a separate official benchmark metric or a check of exact final-line placement.')
+        format_diagnostic=f'Additional statistic: upstream strict extraction/metric accepts a choice in {letters}, regardless of gold. Not a separate official benchmark metric or a check of exact final-line placement.')
     subsets = {'all': set(plan['bank'])}
-    if len(plan['bank']) == 250:
+    if objects == 'three' and len(plan['bank']) == 250:
         subsets['original-125-test-half'] = set(list(plan['bank'])[125:])
     print(f'\n{plan["recipe"]["model"]}: {len(rows)}/{len(plan["recordings"])} answers; no steering.', flush=True)
     for subset, ids in subsets.items():
