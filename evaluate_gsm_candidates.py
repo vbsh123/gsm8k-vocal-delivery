@@ -105,7 +105,7 @@ def report(output):
             raise ValueError('Conflicting answers.')
         group[key] = row
     keys = sorted(groups['neutral'].keys() & groups['angry'].keys()); n = len(keys)
-    print(f'\n{plan["recipe"]["model"]} GSM8K ({plan["prompt_variant"]}): {len(rows)}/2538 answers; {n} matched questions.')
+    print(f'\n{plan["recipe"]["model"]} GSM8K ({plan["prompt_variant"]}): {len(rows)}/{len(plan["recordings"])} answers; {n} matched questions.')
     accuracy, comparisons = [], []
     if n:
         print('Delivery     N   Numeric  Flexible   Strict   Format   Mean tokens  Median tokens')
