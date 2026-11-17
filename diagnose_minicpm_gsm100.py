@@ -59,11 +59,18 @@ def preflight_disk():
     root = Path(os.environ.get('HF_HUB_CACHE', '/workspace/.hf_home/hub')); root.mkdir(parents=True, exist_ok=True)
     snapshot = root/('models--'+SPEC['model'].replace('/', '--'))/'snapshots'/SPEC['revision']
     present = sum(p.stat().st_size for p in snapshot.rglob('*.safetensors') if p.is_file())
-    environment = 0 if Path('.venv-bbh-minicpm/experiment-requirements.txt').exists() else 6*2**30
+    env_root = Path('.venv-bbh-minicpm')
+    # Setup can finish installing packages but fail before writing its final
+    # requirements receipt. Already installed bytes are already excluded from
+    # disk free space; reserve only the estimated remainder on a resumed setup.
+    installed = sum(p.stat().st_size for p in env_root.rglob('*')
+                    if not p.is_symlink() and p.is_file()) if env_root.exists() else 0
+    environment = 0 if (env_root/'experiment-requirements.txt').exists() else max(0, 6*2**30-installed)
     needed = max(0, SPEC['weights_gib']*2**30-present)+environment+4.5*2**30
     free = shutil.disk_usage(root).free
     if free < needed: raise RuntimeError(f'Need approximately{needed/2**30:.1f} GiB free for missing MiniCPM weights/environment/results; have{free/2**30:.1f}. No data removed.')
-    print(f'Disk preflight: {free/2**30:.1f} GiB free; estimated requirement{needed/2**30:.1f} GiB.', flush=True)
+    print(f'Disk preflight: {free/2**30:.1f} GiB free; estimated requirement{needed/2**30:.1f} GiB '
+          f'(remaining environment{environment/2**30:.1f} GiB).', flush=True)
 
 
 def cap_gpu(budget):
