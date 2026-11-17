@@ -38,6 +38,18 @@ def checkpoint(key):
         str(Path(os.environ.get('HF_HOME', '~/.cache/huggingface')).expanduser()/'hub'))))
     root.mkdir(parents=True, exist_ok=True)
     cached = root/('models--'+spec['model'].replace('/', '--'))/'snapshots'/spec['revision']
+    # A pinned snapshot already used for inference needs no weight-download reserve.
+    # Verify its indexed shards, rather than mistaking a partial snapshot for a hit.
+    index = cached/'model.safetensors.index.json'
+    if index.is_file():
+        try:
+            shards = set(json.loads(index.read_text())['weight_map'].values())
+            core = ['config.json', 'generation_config.json', 'tokenizer_config.json', 'tokenizer.json']
+            if shards and all((cached/name).is_file() and (cached/name).stat().st_size > 0 for name in [*core, *shards]):
+                print(f'{key}: reusing indexed pinned checkpoint; no weight download required.', flush=True)
+                return str(cached)
+        except (OSError, ValueError, KeyError, TypeError):
+            pass
     present = sum(p.stat().st_size for p in cached.rglob('*.safetensors') if p.is_file())
     needed = max(0, spec['weights_gib']*2**30-present)+4*2**30
     free = shutil.disk_usage(root).free

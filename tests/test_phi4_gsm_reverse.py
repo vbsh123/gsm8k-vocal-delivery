@@ -12,6 +12,35 @@ import steer_phi4_gsm_reverse as run
 
 
 class PhiReverseTests(unittest.TestCase):
+    def test_two_collection_layers_observe_same_native_generation(self):
+        class Batch(dict):
+            def to(self, *args, **kwargs): return self
+        class Processor:
+            def __call__(self, **kwargs): return Batch(input_ids=torch.tensor([[7, 8]]))
+            def batch_decode(self, *args, **kwargs): return ['#### 2']
+        class Block(torch.nn.Module):
+            def forward(self, h): return h+1, None
+        native = run.NativePhi.__new__(run.NativePhi)
+        native.layers = torch.nn.ModuleList([Block() for _ in range(32)])
+        native.layer_index = 17; native.layer = native.layers[17]; native.processor = Processor(); native.config = object()
+        calls = []
+        def generate(**kwargs):
+            calls.append(True)
+            for h in (torch.zeros(1, 2, 2), torch.full((1, 1, 2), 10.)):
+                for block in native.layers: h = block(h)[0]
+            return torch.tensor([[7, 8, 20, 21]])
+        native.model = SimpleNamespace(device='cpu', generate=generate)
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d)/'audio'; path.write_bytes(b'original audio')
+            with patch.object(run, 'load_audio', return_value=[0.]*160):
+                result = native.generate(dict(audio_file=str(path), audio_sha256=run.digest(path)), 'Prompt',
+                                         observe=True, observe_layers=[17, 30])
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(result['hook_forwards'], 2)
+        torch.testing.assert_close(result['means'][17], torch.tensor([23., 23.]))
+        torch.testing.assert_close(result['means'][30], torch.tensor([36., 36.]))
+        self.assertTrue(all(not b._forward_hooks for b in native.layers))
+
     def test_native_generation_kwargs_suffix_and_observer_parity(self):
         class Batch(dict):
             def to(self, *args, **kwargs): return self

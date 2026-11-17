@@ -74,6 +74,23 @@ class CandidateTests(unittest.TestCase):
                     adapters.checkpoint('flamingo')
                 download.assert_not_called()
 
+    def test_cached_indexed_checkpoint_does_not_require_download_reserve(self):
+        with tempfile.TemporaryDirectory() as d:
+            spec = adapters.MODELS['phi4']
+            snapshot = Path(d)/('models--'+spec['model'].replace('/', '--'))/'snapshots'/spec['revision']
+            snapshot.mkdir(parents=True)
+            for name in ('config.json', 'generation_config.json', 'tokenizer_config.json', 'tokenizer.json'):
+                (snapshot/name).write_text('{}')
+            (snapshot/'model.safetensors.index.json').write_text(json.dumps({'weight_map': {'x': 'model-01.safetensors', 'y': 'model-02.safetensors'}}))
+            (snapshot/'model-01.safetensors').write_bytes(b'complete shard')
+            (snapshot/'model-02.safetensors').write_bytes(b'complete shard')
+            with patch.dict('os.environ', {'HF_HUB_CACHE': d}), patch('huggingface_hub.snapshot_download') as download:
+                with patch.object(adapters.shutil, 'disk_usage', return_value=SimpleNamespace(free=3.7*2**30)):
+                    self.assertEqual(adapters.checkpoint('phi4'), str(snapshot))
+                    download.assert_not_called()
+                    (snapshot/'model-02.safetensors').unlink()
+                    with self.assertRaisesRegex(RuntimeError, 'uncached weights'): adapters.checkpoint('phi4')
+
     def test_native_adapters_use_audio_and_exact_prompt_without_gold(self):
         class Batch(dict):
             def to(self, device, **kwargs): return self
