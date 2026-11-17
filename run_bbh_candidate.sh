@@ -4,6 +4,9 @@ cd "$(dirname "$0")"
 candidate="${1:?Usage: bash run_bbh_candidate.sh phi4|minicpm|flamingo [evaluation options]}"
 shift
 case "$candidate" in phi4|minicpm|flamingo) ;; *) echo 'Unknown model'; exit 2 ;; esac
+concurrent=false
+for arg in "$@"; do if [[ "$arg" == --concurrent ]]; then concurrent=true; fi; done
+if $concurrent && [[ "$candidate" != minicpm ]]; then echo 'Concurrent mode supports MiniCPM only.'; exit 2; fi
 mkdir -p outputs
 exec 9>"outputs/bbh-candidate-$candidate.lock"
 flock -n 9 || { echo "The $candidate queue is already running."; exit 1; }
@@ -16,12 +19,16 @@ echo 'STAGE: Reuse/resume BBH-three audio and freeze both evaluation protocols'
 "$DIFFA_PYTHON" -u evaluate_bbh_candidates.py --model "$candidate" --mode audio "$@"
 "$DIFFA_PYTHON" -u evaluate_bbh_candidates.py --model "$candidate" --mode prepare "$@"
 "$DIFFA_PYTHON" -c 'from lm_eval.api.task import ConfigurableTask'
-echo 'STAGE: Wait for current Kimi queues; no processes killed'
-for file in kimi-bbh5-queue kimi-multiarith-queue kimi-gsm8k-queue kimi-bbh-full-steering-queue kimi-bbh-followups-queue kimi-bbh-explicit-reasoning-queue; do
-    flock "outputs/$file.lock" true
-done
-mkdir -p outputs/bbh-three-explicit-reasoning/kimi
-flock outputs/bbh-three-explicit-reasoning/kimi/queue.lock true
+if ! $concurrent; then
+    echo 'STAGE: Wait for current Kimi queues; no processes killed'
+    for file in kimi-bbh5-queue kimi-multiarith-queue kimi-gsm8k-queue kimi-bbh-full-steering-queue kimi-bbh-followups-queue kimi-bbh-explicit-reasoning-queue; do
+        flock "outputs/$file.lock" true
+    done
+    mkdir -p outputs/bbh-three-explicit-reasoning/kimi
+    flock outputs/bbh-three-explicit-reasoning/kimi/queue.lock true
+else
+    echo 'STAGE: Explicit concurrent mode; keep current jobs running, require VRAM headroom and cap MiniCPM allocator'
+fi
 echo "STAGE: Prepare only the chosen $candidate environment"
 bash setup_bbh_candidate.sh "$candidate"
 echo "STAGE: $candidate native audio evaluation; GPU lock acquired by evaluator"

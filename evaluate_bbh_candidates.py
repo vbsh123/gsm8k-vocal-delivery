@@ -72,6 +72,10 @@ def prepare(args):
     for variant in ('original', 'explicit') if args.prompt == 'both' else (args.prompt,):
         output = args.output/args.model/variant; output.mkdir(parents=True, exist_ok=True)
         plan = make_plan(source_folder(args.source), args.model, variant)
+        if getattr(args, 'concurrent', False):
+            plan['resource_policy'] = dict(mode='concurrent-opt-in', gpu_budget_gib=args.gpu_budget_gib,
+                free_headroom_gib=2, note='Shares GPU with an existing job; runtimes are not comparable to isolated runs. '
+                'PyTorch allocator cap excludes external CUDA allocations.')
         freeze(output/'run_config.json', plan)
         plans.append((output, plan))
         print(f'{args.model}/{variant}: 250 questions, 500 neutral/angry answers, no steering. '
@@ -102,6 +106,24 @@ def pending(plans):
     return jobs
 
 
+def concurrent_budget(budget_gib):
+    """Reserve headroom before loading MiniCPM; cap this process's Torch allocator."""
+    import torch
+    required = (budget_gib+2)*2**30
+    while True:
+        free, total = torch.cuda.mem_get_info(0)
+        if budget_gib*2**30 >= total:
+            raise ValueError('GPU budget must be smaller than total GPU memory.')
+        if free >= required:
+            break
+        print(f'Waiting for concurrent GPU room: {free/2**30:.1f} GiB free; '
+              f'{budget_gib+2:.1f} GiB required including headroom.', flush=True)
+        time.sleep(30)
+    torch.cuda.set_per_process_memory_fraction(budget_gib*2**30/total, device=0)
+    print(f'Concurrent mode: PyTorch allocator capped at {budget_gib:.1f} GiB; '
+          f'{free/2**30:.1f} GiB free before loading. Existing jobs left running.', flush=True)
+
+
 def run(plans, model_key, limit=0):
     jobs = pending(plans)
     if limit:
@@ -119,6 +141,7 @@ def run(plans, model_key, limit=0):
         (output/'runtime.json').write_text(json.dumps(dict(python=sys.version, torch=torch.__version__,
             transformers=actual, numpy=np.__version__, cuda=torch.version.cuda, gpu=torch.cuda.get_device_name(0),
             token_count='retokenized text' if model_key == 'minicpm' else 'generated suffix token IDs',
+            resource_policy=plan.get('resource_policy', {'mode':'exclusive'}),
             generation='native greedy text-only, no interventions'), indent=2)+'\n')
     for i, (output, plan, task) in enumerate(jobs, 1):
         if digest(task['audio_file']) != task['audio_sha256']:
@@ -145,9 +168,15 @@ def main():
     p.add_argument('--source', type=Path)
     p.add_argument('--output', type=Path, default=Path('outputs/bbh-three-candidates'))
     p.add_argument('--max-generations', type=int, default=0)
+    p.add_argument('--concurrent', action='store_true', help='Opt in to shared-GPU MiniCPM; own queue lock remains active.')
+    p.add_argument('--gpu-budget-gib', type=float, default=22., help='Concurrent-mode PyTorch allocator cap; requires another 2 GiB free.')
     args = p.parse_args()
     if args.max_generations < 0:
         p.error('--max-generations must be nonnegative')
+    if args.concurrent and args.model != 'minicpm':
+        p.error('Concurrent mode is currently prepared only for MiniCPM.')
+    if args.gpu_budget_gib <= 0:
+        p.error('GPU budget must be positive.')
     if args.mode == 'audio':
         audio(source_folder(args.source)); return
     if args.mode == 'summary':
@@ -160,6 +189,10 @@ def main():
     root = args.output/args.model
     with (root/'queue.lock').open('w') as own:
         fcntl.flock(own, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if args.concurrent:
+            concurrent_budget(args.gpu_budget_gib)
+            run(plans, args.model, args.max_generations)
+            return
         with Path('outputs/jenny-task-vectors.lock').open('w') as lock:
             print('Waiting for shared GPU lock.', flush=True); fcntl.flock(lock, fcntl.LOCK_EX)
             while subprocess.check_output(['nvidia-smi', '--query-compute-apps=pid', '--format=csv,noheader'], text=True).strip():

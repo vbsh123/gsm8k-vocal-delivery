@@ -134,6 +134,20 @@ class CandidateTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'settings differ'):
                 run.pending([(out, plan)])
 
+    def test_concurrent_budget_checks_headroom_and_caps_allocator(self):
+        gib = 2**30
+        with patch.object(torch.cuda, 'mem_get_info', side_effect=[(20*gib,45*gib),(30*gib,45*gib)]), \
+             patch.object(torch.cuda, 'set_per_process_memory_fraction') as cap, \
+             patch.object(run.time, 'sleep') as wait:
+            run.concurrent_budget(22)
+        wait.assert_called_once_with(30)
+        cap.assert_called_once_with(22/45, device=0)
+
+    def test_concurrent_budget_rejects_impossible_cap(self):
+        with patch.object(torch.cuda, 'mem_get_info', return_value=(20*2**30,20*2**30)):
+            with self.assertRaisesRegex(ValueError, 'smaller than total'):
+                run.concurrent_budget(22)
+
 
 if __name__ == '__main__':
     unittest.main()

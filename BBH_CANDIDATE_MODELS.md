@@ -107,3 +107,30 @@ CPU tests cover source selection, prompt parity, adapter input contracts,
 full-length resampling, disk guards and resume compatibility. GPU inference has
 not been executed locally; run the short smoke command on the target machine
 before treating any adapter as GPU-validated.
+
+## Optional MiniCPM alongside an existing Phi-4 worker
+
+```bash
+nohup bash run_bbh_candidate.sh minicpm --concurrent --gpu-budget-gib 22 \
+  > outputs/bbh-minicpm.log 2>&1 < /dev/null &
+tail -f outputs/bbh-minicpm.log
+```
+
+This is explicit opt-in: it bypasses the exclusive GPU lock and queue waits for
+this MiniCPM worker only, retaining its own queue lock to prevent duplicate
+MiniCPM jobs. It waits for at least24GiB of actual free VRAM (22budget +2headroom),
+then caps this process's PyTorch allocator at22GiB. Other CUDA allocations are
+not covered by the cap. Existing jobs are not stopped. With45GiB total and
+Phi-4 around15GiB, this leaves additional headroom; actual peak usage is still
+workload-dependent. An allocator OOM retains completed answers for resume.
+
+Use the same concurrent flags when resuming this frozen experiment. Concurrency
+is recorded in config/runtime metadata, and model-call runtimes should not be
+compared against isolated runs. Sharing a GPU does not guarantee higher total
+throughput. All other runners retain their normal exclusive-lock behavior.
+
+Plan roughly28–30GiB free disk for MiniCPM's17.46GiB checkpoint, separate
+environment, and reserve. If all Kimi jobs are finished, its downloadable
+Instruct cache can be removed to recover around22GiB without deleting Kimi
+answers, vectors or environment. DIFFA/LLaDA caches are separate and must be
+retained if DIFFA jobs are still needed on this machine. No cleanup is automatic.
