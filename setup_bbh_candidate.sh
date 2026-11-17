@@ -34,7 +34,27 @@ if [[ "$candidate" == phi4 ]]; then
 elif [[ "$candidate" == minicpm ]]; then
     "$candidate_python" -m pip install 'minicpmo-utils==1.0.6'
 fi
-"$candidate_python" -m pip check
+"$candidate_python" - "$candidate" <<'PY'
+import subprocess
+import sys
+
+checked = subprocess.run([sys.executable, '-m', 'pip', 'check'],
+                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+lines = [line.strip() for line in checked.stdout.splitlines() if line.strip()]
+# Decord's old wheel tag can be rejected by pip despite its native library
+# loading on this host. Accept only this exact diagnostic, after testing that
+# library; preserve every dependency error and all other platform failures.
+exception = 'decord 0.6.0 is not supported on this platform'
+if checked.returncode and sys.argv[1] == 'minicpm' and lines == [exception]:
+    import decord
+    assert decord.__version__ == '0.6.0', decord.__version__
+    assert callable(decord.VideoReader)
+    print('Decord 0.6.0 native import passed; accepting its legacy wheel-tag diagnostic.')
+else:
+    print(checked.stdout, end='')
+    if checked.returncode:
+        raise SystemExit(checked.returncode)
+PY
 "$candidate_python" - "$candidate" <<'PY'
 import sys, torch, transformers
 from bbh_candidate_adapters import MODELS
