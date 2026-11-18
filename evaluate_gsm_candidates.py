@@ -155,10 +155,13 @@ def main():
     p.add_argument('--max-generations', type=int, default=0)
     p.add_argument('--start-index', type=int, default=0)
     p.add_argument('--num-questions', type=int, default=0, help='0 means all remaining questions; a subset needs a separate output folder.')
+    p.add_argument('--concurrent', action='store_true', help='Flamingo only: skip shared lock/active GPU wait.')
+    p.add_argument('--gpu-budget-gib', type=float, default=30.)
     args = p.parse_args()
     if args.max_generations < 0:
         p.error('--max-generations must be nonnegative')
     if args.start_index < 0 or args.num_questions < 0: p.error('Question range must be nonnegative.')
+    if args.concurrent and args.model != 'flamingo': p.error('This concurrent mode is for Flamingo only.')
     if args.mode == 'audio':
         audio(args); return
     if args.mode == 'summary':
@@ -169,6 +172,12 @@ def main():
     if args.mode == 'prepare': return
     with (args.output/args.model/'queue.lock').open('w') as own:
         fcntl.flock(own, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if args.concurrent:
+            if not candidates.pending(plans): print('All answers complete; no model loaded.'); return
+            candidates.concurrent_budget_now(args.gpu_budget_gib)
+            concurrent_plans = [(out, dict(plan, resource_policy=dict(mode='concurrent', gpu_budget_gib=args.gpu_budget_gib))) for out, plan in plans]
+            candidates.run(concurrent_plans, args.model, args.max_generations)
+            return
         with Path('outputs/jenny-task-vectors.lock').open('w') as lock:
             print('Waiting for shared GPU lock.', flush=True); fcntl.flock(lock, fcntl.LOCK_EX)
             while subprocess.check_output(['nvidia-smi', '--query-compute-apps=pid', '--format=csv,noheader'], text=True).strip():

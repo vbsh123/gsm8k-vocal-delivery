@@ -124,6 +124,17 @@ def concurrent_budget(budget_gib):
           f'{free/2**30:.1f} GiB free before loading. Existing jobs left running.', flush=True)
 
 
+def concurrent_budget_now(budget_gib):
+    """Explicit concurrent launch: cap memory and fail rather than wait for GPU."""
+    import torch
+    free, total = torch.cuda.mem_get_info(0)
+    if budget_gib <= 0 or budget_gib*2**30 >= total: raise ValueError('Invalid concurrent GPU budget.')
+    if free < (budget_gib+2)*2**30:
+        raise RuntimeError(f'Need{budget_gib+2:.1f} GiB free for concurrent startup; have{free/2**30:.1f}. No GPU queue wait or jobs stopped.')
+    torch.cuda.set_per_process_memory_fraction(budget_gib*2**30/total, device=0)
+    print(f'Concurrent startup: {free/2**30:.1f} GiB free; Torch cap{budget_gib:.1f} GiB; no GPU queue.', flush=True)
+
+
 def run(plans, model_key, limit=0):
     jobs = pending(plans)
     if limit:
