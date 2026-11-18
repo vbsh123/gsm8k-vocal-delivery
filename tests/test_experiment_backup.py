@@ -13,6 +13,24 @@ import pack_experiment_backup as run
 
 
 class EvidenceBackupTests(unittest.TestCase):
+    def test_phi_all_layer_worker_answers_are_packaged_and_counted(self):
+        with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
+            root=Path(d);repo,_,_,_=self.repo(root)
+            folder=repo/'outputs/phi4-gsm400-all-layers-test869-minus1';folder.mkdir()
+            plan=dict(protocol='phi4-test',evaluation_kind='all-layer-diagnostic',recordings=[],layers=list(range(32)),groups=['answer','audio'])
+            (folder/'run_config.json').write_text(json.dumps(plan))
+            (folder/'challenge.json').write_text(json.dumps(dict(cases=[dict(question_id='q0'),dict(question_id='q1')])))
+            (folder/'style-vectors.pt').write_bytes(b'vectors')
+            for i in range(2):
+                (folder/f'results-worker{i}.jsonl').write_text(json.dumps(dict(question_id=f'q{i}',voice='Jenny',condition='neutral-L0-answer-a-1',response='2'))+'\n')
+            path=run.package(repo,root/'downloads',samples=0,only=['phi'])
+            with zipfile.ZipFile(path) as archive:
+                m=json.loads(archive.read('MANIFEST.json'))
+                row=next(r for r in m['runs'] if r['experiment']=='Phi all-layer recovery diagnostic')
+                self.assertTrue(row['answers_present']);self.assertEqual(row['saved_unique_answers'],2)
+                self.assertEqual(row['planned_answers'],128)
+                self.assertIn('outputs/phi4-gsm400-all-layers-test869-minus1/results-worker1.jsonl',archive.namelist())
+
     def test_strengths_include_raw_answers_external_vector_and_nested_audio(self):
         with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
             root=Path(d); repo, source, _, _ = self.repo(root)

@@ -12,6 +12,12 @@ import phi4_all_layer_diagnostic as run
 
 
 class AllLayerTests(unittest.TestCase):
+    def test_contiguous_worker_halves_cover400_and869_once(self):
+        for count,sizes in ((400,[200,200]),(869,[434,435])):
+            items=list(range(count));parts=[run.shard(items,i,2) for i in range(2)]
+            self.assertEqual([len(p) for p in parts],sizes)
+            self.assertEqual(parts[0]+parts[1],items)
+            self.assertFalse(set(parts[0])&set(parts[1]))
     def test_native_generation_recipe_and_observer_parity(self):
         class Batch(dict):
             def to(self,*a,**k):return self
@@ -91,32 +97,51 @@ class AllLayerTests(unittest.TestCase):
                     audio_sha256={s:pair[s]['audio_sha256'] for s in traces},traces=traces,answer_difference=torch.ones(3072)),source/'pairs'/f'{i:04d}.pt')
             args=SimpleNamespace(collection=source,output=output,neutral_run=root/'neutral',delivery_run=root/'deliveries')
             parent=dict(recipe=recipe,recordings=records)
-            with patch.object(run,'TRAIN',2),patch.object(run,'TOTAL',5),patch.object(run.gsm,'questions',return_value=questions),patch.object(run.gsm,'make_plan',return_value=parent):
+            with patch.object(run,'TRAIN',2),patch.object(run,'TOTAL',5),patch.object(run,'SHAPE',(2,2,3)),patch.object(run.gsm,'questions',return_value=questions),patch.object(run.gsm,'make_plan',return_value=parent):
                 plan=run.prepare(args)
             self.assertEqual({r['question_id'] for r in plan['recordings']},{'q2','q3','q4'})
             self.assertFalse({p['question_id'] for p in plan['collection']}&{r['question_id'] for r in plan['recordings']})
             calls=[]
-            def generate(native,row,prompt,collect=False):
+            def generate(native,row,prompt,collect=False,**kwargs):
                 calls.append(row)
-                return dict(means=torch.full((2,2,3),2. if row['style']=='angry' else 0.),hook_forwards=2,
+                if not collect:return dict(response='#### 2',response_tokens=4)
+                amount=(2. if row['question_id']=='q0' else 4.) if row['style']=='angry' else 0.
+                return dict(means=torch.full((2,2,3),amount),hook_forwards=2,
                     response='#### 2',response_tokens=4)
             with patch.object(run,'SHAPE',(2,2,3)),patch.object(run,'generate',side_effect=generate):
-                run.collect_vectors(plan,output,None);run.collect_vectors(plan,output,None)
+                run.collect_vectors(plan,output,None,worker_id=0,workers=2)
+                self.assertFalse((output/'style-vectors.pt').exists())
+                run.collect_vectors(plan,output,None,worker_id=1,workers=2)
+                self.assertFalse((output/'style-vectors.pt').exists())
+                run.collect_vectors(plan,output,None,require_cached=True)
+                run.collect_vectors(plan,output,None,require_cached=True)
             self.assertEqual(len(calls),4)
             vectors=torch.load(output/'style-vectors.pt',weights_only=True)
-            torch.testing.assert_close(vectors['angry_minus_neutral'],torch.full((2,2,3),2.))
+            torch.testing.assert_close(vectors['angry_minus_neutral'],torch.full((2,2,3),3.))
             config_hash=run.digest(output/'run_config.json')
             refs=[]
             for r in plan['recordings']:
-                correct=(r['question_id']=='q2' and r['style']=='angry') or r['question_id']=='q3'
+                correct=(r['question_id'] in ('q2','q4') and r['style']=='angry') or r['question_id']=='q3'
                 refs.append(dict(run.expected(plan,r),run_config_sha256=config_hash,response='#### 2' if correct else '#### 9',response_tokens=4))
-            (output/'references.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in refs))
+            (output/'references.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in refs if r['style']=='neutral'))
+            (output/'references-worker0.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in refs if r['style']=='angry' and r['question_id']=='q2'))
+            (output/'references-worker1.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in refs if r['style']=='angry' and r['question_id']!='q2'))
             def score(plan,rows,output):
                 return [dict(r,scores={'flexible-numeric':r['response']=='#### 2'}) for r in rows],{'test':True}
             with patch.object(run,'score_rows',side_effect=score):challenge=run.select_challenge(plan,output)
-            self.assertEqual(challenge['cases'],[dict(question_id='q2',voice='Jenny')])
+            self.assertEqual(challenge['cases'],[dict(question_id='q2',voice='Jenny'),dict(question_id='q4',voice='Jenny')])
             self.assertEqual(challenge['available_test_questions'],3)
             self.assertEqual(json.loads((output/'run_config.json').read_text())['strength'],-1.)
+            with patch.object(run,'SHAPE',(2,2,3)),patch.object(run,'generate',side_effect=generate):
+                run.steer(plan,output,None,worker_id=0,workers=2)
+                run.steer(plan,output,None,worker_id=1,workers=2)
+                before=len(calls)
+                run.steer(plan,output,None,worker_id=0,workers=2)
+                self.assertEqual(len(calls),before)
+            rows,done=run.completed(plan,output,challenge)
+            self.assertEqual(len(rows),8);self.assertEqual(len(done),8)
+            self.assertEqual({r['question_id'] for r in run.read_rows(output/'results-worker0.jsonl')},{'q2'})
+            self.assertEqual({r['question_id'] for r in run.read_rows(output/'results-worker1.jsonl')},{'q4'})
 
 
 if __name__=='__main__':unittest.main()

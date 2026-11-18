@@ -178,8 +178,9 @@ def status(repo):
         folder = repo/'outputs'/relative
         config = next((p for p in (folder/'run_config.json', folder/'split.json') if p.is_file()), None)
         answers = folder/'results.jsonl'
+        answer_paths = [answers]+sorted(folder.glob('results-worker*.jsonl'))
         item = dict(experiment=name, directory=str(folder), config_present=config is not None,
-                    answers_present=answers.is_file(), vector_present=(folder/'style-vectors.pt').is_file())
+                    answers_present=any(p.is_file() for p in answer_paths), vector_present=(folder/'style-vectors.pt').is_file())
         if config:
             try:
                 plan = json.loads(snapshot(config)[0])
@@ -204,9 +205,9 @@ def status(repo):
                     item['required_vector_present'] = item['vector_present']
             except (KeyError, ValueError, TypeError):
                 item['planned_answers'] = None
-        if answers.is_file():
+        if item['answers_present']:
             try:
-                rows = [json.loads(line) for line in snapshot(answers)[0].splitlines() if line.strip()]
+                rows = [json.loads(line) for p in answer_paths if p.is_file() for line in snapshot(p)[0].splitlines() if line.strip()]
                 keys = {(r.get('question_id', r.get('clip_id')), r.get('voice', r.get('speaker')),
                          r.get('condition', r.get('style'))) for r in rows}
                 item['saved_unique_answers'] = len(keys)

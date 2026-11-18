@@ -54,3 +54,47 @@ Flamingo can be launched without its queue using run_flamingo_gsm400.sh
 stop Phi or use the shared GPU lock. stop_waiting_flamingo.py stops only the
 old wrapper when all its children are flock waiters, and refuses if evaluation
 is already running. Pinned native checkpoint/model/decoding are unchanged.
+
+Two-worker version, with separate collection/test launches:
+
+```bash
+python stop_phi4_all_layer_sequential.py
+nohup bash run_phi4_all_layers_split.sh collect > outputs/phi4-all-layers-split-collect.log 2>&1 </dev/null &
+```
+
+The stop helper targets only the older sequential diagnostic wrapper/collect or
+steer process and its flock waiter. It leaves Phi L17-2 and other experiments
+alone. It refuses while the old wrapper is in a config/selection CPU stage.
+Completed atomic pair caches are retained; a partial own-output JSONL tail is
+repaired before further writes. No model weights/audio/results are deleted.
+
+Collection worker0 handles indices0:200, worker1 handles200:400, each with one
+native Phi model. Each process caps Torch at18GiB and requires20GiB free at
+startup. There is no global GPU wait, only the earlier L17-2 wrapper lock.
+The first phase collects vectors ONLY; it stops before generating test references
+or steering. Each half writes disjoint pair caches; CPU merge validates all400
+and recomputes the equal per-question mean. It does not average incomplete
+half-vectors. The frozen config/vector semantics are unchanged from sequential.
+
+Later:
+
+```bash
+nohup bash run_phi4_all_layers_split.sh test > outputs/phi4-all-layers-split-test.log 2>&1 </dev/null &
+```
+
+Two workers split the869 test questions into434/435, keeping neutral and angry
+for a question in the same worker. Existing references are reused. Worker
+references go to references-worker0/1.jsonl, never a shared append file. CPU
+selection scores the entire disjoint test pool and freezes a hash of all reference
+parts. The outcome-selected recovery cases are then split half/half; each worker
+tests all32 layers and both position groups on its assigned cases, saving
+results-worker0/1.jsonl. Readers validate and combine the old sequential and new
+worker files without rewriting old results. Duplicate/overlapping result keys
+fail validation. Reruns skip completed cases/pair caches. Summary and focused
+Phi backup understand the worker files.
+
+Worker logs: outputs/phi4-all-layers-collect-shard-worker0/1.log,
+outputs/phi4-all-layers-references-shard-worker0/1.log and
+outputs/phi4-all-layers-steer-worker0/1.log. Sharing one GPU changes throughput;
+do not interpret concurrent runtimes as isolated latency measurements. Peak GPU
+compatibility has not been measured by CPU tests.

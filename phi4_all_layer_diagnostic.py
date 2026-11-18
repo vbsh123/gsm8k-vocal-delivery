@@ -3,6 +3,7 @@ import argparse
 from contextlib import contextmanager
 import csv
 import fcntl
+import hashlib
 import json
 from pathlib import Path
 import statistics
@@ -20,6 +21,24 @@ SHAPE = (32, 2, 3072)
 GROUPS = ('answer', 'audio')
 TRAIN = 400
 TOTAL = 1269
+
+
+def shard(items, worker_id, workers):
+    if workers <= 0 or not 0 <= worker_id < workers: raise ValueError('Invalid worker partition.')
+    start, stop = len(items)*worker_id//workers, len(items)*(worker_id+1)//workers
+    return items[start:stop]
+
+
+def reference_files(output):
+    base = output/'references.jsonl'
+    return ([base] if base.exists() else [])+sorted(output.glob('references-worker*.jsonl'))
+
+
+def reference_digest(output):
+    paths = reference_files(output)
+    if len(paths) == 1 and paths[0].name == 'references.jsonl': return digest(paths[0])
+    receipts = [dict(name=p.name, sha256=digest(p)) for p in paths]
+    return hashlib.sha256(json.dumps(receipts, sort_keys=True).encode()).hexdigest()
 
 
 def prepare(args):
@@ -84,12 +103,13 @@ def expected(plan, row):
 def references(plan, output):
     tasks = {(r['question_id'], r['voice'], r['style']): r for r in plan['recordings']}; done = {}
     config_hash = digest(output/'run_config.json')
-    for row in read_rows(output/'references.jsonl'):
-        key = row['question_id'], row['voice'], row['style']
-        if key not in tasks or key in done or row.get('run_config_sha256') != config_hash:
-            raise ValueError('Unknown/duplicate reference or changed config.')
-        if any(row.get(k) != v for k, v in expected(plan, tasks[key]).items()): raise ValueError('Reference metadata differs.')
-        done[key] = row
+    for path in reference_files(output):
+        for row in read_rows(path):
+            key = row['question_id'], row['voice'], row['style']
+            if key not in tasks or key in done or row.get('run_config_sha256') != config_hash:
+                raise ValueError('Unknown/duplicate reference or changed config.')
+            if any(row.get(k) != v for k, v in expected(plan, tasks[key]).items()): raise ValueError('Reference metadata differs.')
+            done[key] = row
     return tasks, done
 
 
@@ -197,16 +217,20 @@ def validate_capture(saved, pair, config_hash):
             raise ValueError('Invalid all-layer collection means.')
 
 
-def collect_vectors(plan, output, native):
+def collect_vectors(plan, output, native, worker_id=None, workers=2, require_cached=False):
     import torch
     folder = output/'pairs'; folder.mkdir(exist_ok=True); differences = []; config_hash = digest(output/'run_config.json')
-    for i, pair in enumerate(plan['collection']):
+    indices = list(range(len(plan['collection'])))
+    if worker_id is not None: indices = shard(indices, worker_id, workers)
+    for i in indices:
+        pair = plan['collection'][i]
         receipt = plan['collection_receipts'][i]; source_path = Path(receipt['path'])
         if digest(source_path) != receipt['sha256']: raise ValueError('Original collection cache changed.')
         original = torch.load(source_path, map_location='cpu', weights_only=True)
         path = folder/f'{i:04d}.pt'
         if path.exists(): saved = torch.load(path, map_location='cpu', weights_only=True)
         else:
+            if require_cached: raise ValueError(f'Collection cache{i} missing; finish both collection workers first.')
             print(f'Collect [{i+1}/{len(plan["collection"])}] {pair["question_id"]}: all32 answer/audio groups.', flush=True)
             traces = {s: generate(native, pair[s], plan['prompt'], collect=True) for s in ('neutral', 'angry')}
             saved = dict(protocol=PROTOCOL, run_config_sha256=config_hash, question_id=pair['question_id'], voice=pair['voice'],
@@ -217,6 +241,9 @@ def collect_vectors(plan, output, native):
             if saved['traces'][s]['response'] != original['traces'][s]['response']:
                 raise ValueError('Replayed collection answer differs from original native generation; cache retained for inspection.')
         differences.append(saved['traces']['angry']['means']-saved['traces']['neutral']['means'])
+    if worker_id is not None:
+        print(f'Collection worker{worker_id}: {len(indices)} pairs complete; vector merge deferred to CPU.', flush=True)
+        return
     vector = dict(protocol=PROTOCOL, run_config_sha256=config_hash, recipe=plan['recipe'], groups=list(GROUPS),
         collection_question_ids=[p['question_id'] for p in plan['collection']], definition=plan['vector_definition'],
         angry_minus_neutral=torch.stack(differences).mean(0))
@@ -250,8 +277,11 @@ def select_challenge(plan, output):
     train_ids = {p['question_id'] for p in plan['collection']}
     if train_ids&{c['question_id'] for c in cases}: raise ValueError('Challenge overlaps vector collection.')
     challenge = dict(protocol=PROTOCOL, run_config_sha256=digest(output/'run_config.json'),
-        references_sha256=digest(output/'references.jsonl'), primary_metric='flexible-numeric',
+        references_sha256=reference_digest(output), primary_metric='flexible-numeric',
         available_test_questions=len(keys), cases=cases, selection=plan['selection'])
+    if any(p.name != 'references.jsonl' for p in reference_files(output)):
+        challenge['reference_files'] = [dict(name=p.name, sha256=digest(p)) for p in reference_files(output)]
+        challenge['reference_hash_kind'] = 'sha256 of sorted-name/content-hash receipts; baseline first'
     freeze(output/'challenge.json', challenge)
     (output/'reference-rescored.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rows))
     (output/'reference-scoring-provenance.json').write_text(json.dumps(provenance, indent=2)+'\n')
@@ -261,9 +291,13 @@ def select_challenge(plan, output):
 
 def completed(plan, output, challenge):
     config_hash = digest(output/'run_config.json'); challenge_hash = digest(output/'challenge.json')
+    if challenge['run_config_sha256'] != config_hash or challenge['references_sha256'] != reference_digest(output):
+        raise ValueError('Frozen challenge config/reference receipts changed.')
     cases = {(c['question_id'], c['voice']) for c in challenge['cases']}
     tasks = {(r['question_id'], r['voice']): r for r in plan['recordings'] if r['style']=='neutral'}
-    vector_hash = digest(output/'style-vectors.pt'); rows = read_rows(output/'results.jsonl'); done = set()
+    vector_hash = digest(output/'style-vectors.pt')
+    rows = [r for path in [output/'results.jsonl']+sorted(output.glob('results-worker*.jsonl')) for r in read_rows(path)]
+    done = set()
     for row in rows:
         key = row['question_id'], row['voice']; full = (*key, row['layer'], row['group'])
         if (key not in cases or full in done or row['layer'] not in plan['layers'] or row['group'] not in GROUPS
@@ -276,10 +310,10 @@ def completed(plan, output, challenge):
     return rows, done
 
 
-def steer(plan, output, native):
+def steer(plan, output, native, worker_id=None, workers=2):
     import torch
     challenge = json.loads((output/'challenge.json').read_text())
-    if challenge['references_sha256'] != digest(output/'references.jsonl'): raise ValueError('Frozen references changed.')
+    if challenge['references_sha256'] != reference_digest(output): raise ValueError('Frozen references changed.')
     vector = torch.load(output/'style-vectors.pt', map_location='cpu', weights_only=True)
     config_hash = digest(output/'run_config.json')
     if vector['run_config_sha256'] != config_hash or vector['angry_minus_neutral'].shape != SHAPE:
@@ -290,9 +324,12 @@ def steer(plan, output, native):
         raise ValueError('Vector collection/model/groups differ or contain invalid values.')
     _, done = completed(plan, output, challenge)
     tasks = {(r['question_id'], r['voice']): r for r in plan['recordings'] if r['style']=='neutral'}
+    cases = challenge['cases'] if worker_id is None else shard(challenge['cases'], worker_id, workers)
+    result_file = output/('results.jsonl' if worker_id is None else f'results-worker{worker_id}.jsonl')
+    read_rows(result_file, repair=True)
     for layer in plan['layers']:
         for g, group in enumerate(GROUPS):
-            for case in challenge['cases']:
+            for case in cases:
                 key = case['question_id'], case['voice']
                 if (*key, layer, group) in done: continue
                 row = tasks[key]
@@ -303,7 +340,7 @@ def steer(plan, output, native):
                     layer=layer, group=group, strength=-1., run_config_sha256=config_hash,
                     challenge_sha256=digest(output/'challenge.json'), vector_sha256=digest(output/'style-vectors.pt'))
                 saved['interventions'] = [dict(layer=layer, group=group, strength=-1.)]
-                with (output/'results.jsonl').open('a') as stream: stream.write(json.dumps(saved)+'\n')
+                with result_file.open('a') as stream: stream.write(json.dumps(saved)+'\n')
 
 
 def report(output):
@@ -337,31 +374,67 @@ def report(output):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--mode', choices=('prepare', 'collect', 'select', 'steer', 'summary'), default='collect')
+    p.add_argument('--mode', choices=('prepare', 'collect', 'collect-shard', 'merge-vectors', 'references-shard', 'select', 'steer', 'summary'), default='collect')
+    p.add_argument('--worker-id', type=int)
+    p.add_argument('--workers', type=int, default=2)
+    p.add_argument('--gpu-budget-gib', type=float)
     p.add_argument('--collection', type=Path, default=Path('outputs/phi4-gsm-reverse400-400-L30'))
     p.add_argument('--neutral-run', type=Path, default=Path('outputs/phi4-gsm-reverse400-869-L17'))
     p.add_argument('--delivery-run', type=Path, default=Path('outputs/gsm8k-candidates/phi4/original'))
     p.add_argument('--output', type=Path, default=Path('outputs/phi4-gsm400-all-layers-test869-minus1'))
     args = p.parse_args()
+    if args.worker_id is not None and not 0 <= args.worker_id < args.workers: p.error('Invalid worker partition.')
+    if args.mode in ('collect-shard', 'references-shard') and args.worker_id is None: p.error('This mode needs --worker-id.')
+    if args.worker_id is not None and args.mode not in ('collect-shard', 'references-shard', 'steer'):
+        p.error('Worker mode is only for collection, references or steering.')
     if args.mode == 'summary': report(args.output); return
     args.output.mkdir(parents=True, exist_ok=True)
-    with (args.output/'queue.lock').open('w') as lock:
+    lock_path = args.output/('queue.lock' if args.worker_id is None else f'queue-worker{args.worker_id}.lock')
+    with lock_path.open('w') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         plan = prepare(args)
-        if args.mode == 'prepare': reuse_references(plan, args.output); return
+        if args.mode == 'prepare':
+            read_rows(args.output/'references.jsonl', repair=True)
+            reuse_references(plan, args.output); return
+        if args.mode == 'merge-vectors': collect_vectors(plan, args.output, None, require_cached=True); return
         if args.mode == 'select': select_challenge(plan, args.output); return
         import torch
         torch.set_num_threads(min(4, torch.get_num_threads()))
         if args.mode == 'steer':
             challenge = json.loads((args.output/'challenge.json').read_text()); _, done = completed(plan, args.output, challenge)
-            if len(done) == len(challenge['cases'])*len(plan['layers'])*len(GROUPS): print('Diagnostic complete; no model loaded.'); return
-        candidates.concurrent_budget_now(plan['gpu_budget_gib'])
+            cases = challenge['cases'] if args.worker_id is None else shard(challenge['cases'], args.worker_id, args.workers)
+            if all((c['question_id'], c['voice'], layer, group) in done for c in cases for layer in plan['layers'] for group in GROUPS):
+                print('Assigned diagnostic cases complete; no model loaded.'); return
+        if args.mode == 'references-shard':
+            tasks, done = references(plan, args.output)
+            ids = list(dict.fromkeys(r['question_id'] for r in plan['recordings']))
+            assigned = set(shard(ids, args.worker_id, args.workers))
+            jobs = [(key, row) for key, row in tasks.items() if row['question_id'] in assigned and key not in done]
+            if not jobs: print('Assigned test references complete; no model loaded.'); return
+        if args.mode == 'collect-shard':
+            indices = shard(list(range(len(plan['collection']))), args.worker_id, args.workers)
+            if all((args.output/'pairs'/f'{i:04d}.pt').exists() for i in indices):
+                collect_vectors(plan, args.output, None, args.worker_id, args.workers, require_cached=True); return
+        budget = args.gpu_budget_gib if args.gpu_budget_gib is not None else plan['gpu_budget_gib']
+        candidates.concurrent_budget_now(budget)
         native = engine.NativePhi()
-        (args.output/f'runtime-{args.mode}.json').write_text(json.dumps(dict(torch=torch.__version__,
+        runtime_suffix = '' if args.worker_id is None else f'-worker{args.worker_id}'
+        (args.output/f'runtime-{args.mode}{runtime_suffix}.json').write_text(json.dumps(dict(torch=torch.__version__,
             transformers=engine.version('transformers'), gpu=torch.cuda.get_device_name(0), cuda=torch.version.cuda,
-            script_sha256=digest(__file__), engine_sha256=digest(engine.__file__), gpu_budget_gib=plan['gpu_budget_gib'],
+            script_sha256=digest(__file__), engine_sha256=digest(engine.__file__), gpu_budget_gib=budget,
+            worker_id=args.worker_id, workers=args.workers,
             note='No global GPU queue; wrapper waits only for current Phi L17 -2.'), indent=2)+'\n')
-        if args.mode == 'collect':
+        if args.mode == 'collect-shard':
+            collect_vectors(plan, args.output, native, args.worker_id, args.workers)
+        elif args.mode == 'references-shard':
+            path = args.output/f'references-worker{args.worker_id}.jsonl'
+            read_rows(path, repair=True)
+            for key, row in jobs:
+                print(f'Reference worker{args.worker_id} {row["question_id"]} {row["style"]}', flush=True)
+                trace = generate(native, row, plan['prompt'])
+                saved = dict(expected(plan, row), **trace, run_config_sha256=digest(args.output/'run_config.json'))
+                with path.open('a') as stream: stream.write(json.dumps(saved)+'\n')
+        elif args.mode == 'collect':
             collect_vectors(plan, args.output, native)
             tasks, done = references(plan, args.output)
             for key, row in tasks.items():
@@ -370,7 +443,7 @@ def main():
                 trace = generate(native, row, plan['prompt'])
                 saved = dict(expected(plan, row), **trace, run_config_sha256=digest(args.output/'run_config.json'))
                 with (args.output/'references.jsonl').open('a') as stream: stream.write(json.dumps(saved)+'\n')
-        else: steer(plan, args.output, native)
+        else: steer(plan, args.output, native, args.worker_id, args.workers)
 
 
 if __name__ == '__main__': main()
