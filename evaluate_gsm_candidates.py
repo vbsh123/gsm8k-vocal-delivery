@@ -76,8 +76,21 @@ def prepare(args):
     for variant in ('original', 'explicit') if args.prompt == 'both' else (args.prompt,):
         output = args.output/args.model/variant; output.mkdir(parents=True, exist_ok=True)
         plan = make_plan(args.source, args.model, variant)
+        start = getattr(args, 'start_index', 0); count = getattr(args, 'num_questions', 0)
+        if start or count:
+            ordered = questions(); stop = start+count if count else len(ordered)
+            if start < 0 or count < 0 or start >= len(ordered) or stop > len(ordered):
+                raise ValueError('Question range outside canonical1269 bank.')
+            selected = {q['question_id'] for q in ordered[start:stop]}
+            plan.update(protocol='gsm8k-candidate-fixed-range-v1', start_index=start, num_questions=len(selected),
+                bank={k: v for k, v in plan['bank'].items() if k in selected},
+                recordings=[r for r in plan['recordings'] if r['question_id'] in selected],
+                selection=f'Canonical1269 seed42 shuffle, fixed indices{start}:{stop}; no outcome/classifier '
+                    'filtering, no steering. Exploratory delivery comparison with original task wording.')
+            plan['duration_audit'] = dict(max_seconds=max(r['seconds'] for r in plan['recordings']),
+                over_40_seconds=sum(r['seconds'] > 40 for r in plan['recordings']))
         freeze(output/'run_config.json', plan); plans.append((output, plan))
-        print(f'{args.model}/{variant}: all 1269 GSM8K questions, 2538 neutral/angry answers; no steering.', flush=True)
+        print(f'{args.model}/{variant}: {len(plan["bank"])} GSM8K questions, {len(plan["recordings"])} neutral/angry answers; no steering.', flush=True)
     return plans
 
 
@@ -140,9 +153,12 @@ def main():
     p.add_argument('--audio-sources', nargs='+', type=Path, default=[Path('outputs')/s for s in
         ('azure-jenny500-extra', 'azure-jenny500-neutral', 'azure-jenny-next500', 'azure-jenny-remaining-test')])
     p.add_argument('--max-generations', type=int, default=0)
+    p.add_argument('--start-index', type=int, default=0)
+    p.add_argument('--num-questions', type=int, default=0, help='0 means all remaining questions; a subset needs a separate output folder.')
     args = p.parse_args()
     if args.max_generations < 0:
         p.error('--max-generations must be nonnegative')
+    if args.start_index < 0 or args.num_questions < 0: p.error('Question range must be nonnegative.')
     if args.mode == 'audio':
         audio(args); return
     if args.mode == 'summary':

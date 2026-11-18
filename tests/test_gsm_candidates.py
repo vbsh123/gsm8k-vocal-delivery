@@ -10,6 +10,18 @@ import evaluate_gsm_candidates as run
 
 
 class GSMCandidateTests(unittest.TestCase):
+    def test_flamingo_fixed400_same_cohort_without_modifying_source(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d); source=self.fixture(root); before=(source/'plan.jsonl').read_bytes()
+            args=SimpleNamespace(source=source,model='flamingo',prompt='original',output=root/'out',start_index=0,num_questions=400)
+            plans=run.prepare(args);self.assertEqual(len(plans),1)
+            output,plan=plans[0]
+            self.assertEqual(len(plan['bank']),400);self.assertEqual(len(plan['recordings']),800)
+            self.assertEqual(set(plan['bank']),{q['question_id'] for q in run.questions()[:400]})
+            self.assertEqual(plan['prompt'],run.ORIGINAL);self.assertEqual(plan['interventions'],[])
+            self.assertEqual(before,(source/'plan.jsonl').read_bytes())
+            self.assertEqual(run.prepare(args)[0][1],plan)
+
     def fixture(self, root):
         source = root/'audio'; source.mkdir()
         rows = run.questions()

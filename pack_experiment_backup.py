@@ -31,6 +31,8 @@ RUNS = {
     'Kimi regenerated': 'bbh-three-regenerated-models/kimi',
 }
 GROUPS = {
+    'flamingo': ('gsm400-candidates/flamingo', 'gsm8k-candidates/flamingo', 'bbh-three-candidates/flamingo',
+                 'azure-kimi-gsm8k1269', 'azure-bbh-three-models-regenerated'),
     'strengths': ('winning-strengths', 'reasoning-transfer/gsm8k', 'reasoning-transfer/svamp',
                   'multiarith580-angry-mean', 'ifeval-angry-mean', 'bbh-logical250-angry-mean',
                   'bbh-five250-angry-mean', 'azure-spoken-ifeval', 'azure-multiarith580',
@@ -68,6 +70,7 @@ EXTRA_RUNS.update({'Phi GSM original': 'gsm8k-candidates/phi4/original',
                    'Phi GSM L30 -1.5': 'phi4-gsm-reverse400-869-L30-a-1.5',
                    'Phi GSM L30 -2': 'phi4-gsm-reverse400-869-L30-a-2'})
 EXTRA_RUNS['Phi MultiArith L17 -1.5/-2'] = 'phi4-multiarith-reverse290-290-L17-extra-minus1.5-minus2'
+EXTRA_RUNS['Flamingo GSM400'] = 'gsm400-candidates/flamingo/original'
 EXTRA_RUNS.update({f'Phi GSM L17 {a}': f'phi4-gsm-reverse400-869-L17-a{a}' for a in ('-1.5', '-2')})
 
 
@@ -251,6 +254,10 @@ def package(repo, destination, samples=3, sample_mb=256, full_audio=False, only=
     if only and 'strengths' in only:
         metadata_files.extend(outputs.glob('*strength*.log'))
         requirements = repo/'.venv-diffa/experiment-requirements.txt'
+        if requirements.is_file(): metadata_files.append(requirements)
+    if only and 'flamingo' in only:
+        metadata_files.extend(outputs.glob('*flamingo*.log'))
+        requirements = repo/'.venv-bbh-flamingo/experiment-requirements.txt'
         if requirements.is_file(): metadata_files.append(requirements)
     source_index = source_audio_index(metadata_files)
     tracked = subprocess.run(['git', 'ls-files', '-z'], cwd=repo, capture_output=True, check=True).stdout
