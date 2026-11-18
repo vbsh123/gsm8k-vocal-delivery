@@ -13,6 +13,46 @@ import steer_minicpm_gsm as mini
 
 
 class HappyTests(unittest.TestCase):
+    def test_require_neutral_refuses_new_baseline_generations(self):
+        with tempfile.TemporaryDirectory() as d:
+            output=Path(d)
+            plan=dict(recordings=[dict(question_id='q400',voice='Jenny',style='neutral')])
+            with patch('sys.argv',['happy','--mode','prepare','--require-neutral']), patch.object(run,'prepare',return_value=(output,plan)), patch.object(run,'reuse_collection'), patch.object(run.candidates,'run') as inference:
+                with self.assertRaisesRegex(ValueError,'refusing new neutral generations'): run.main()
+                inference.assert_not_called()
+
+    def test_next400_disjoint_selection_and_readonly_neutral_response_reuse(self):
+        with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
+            root=Path(d); questions=[dict(question_id=f'q{i}', question='Q', answer='2') for i in range(1269)]
+            args=SimpleNamespace(start_index=400,num_questions=400)
+            with patch.object(run.gsm,'questions',return_value=questions):
+                next400=run.selection(args);first400=run.selection()
+            self.assertEqual(len(next400),400)
+            self.assertFalse({q['question_id'] for q in next400}&{q['question_id'] for q in first400})
+            source=root/'outputs/minicpm-gsm400-869-L30-a1';source.mkdir(parents=True)
+            output=root/'out';output.mkdir()
+            row=dict(question_id='q400',voice='Jenny',style='neutral',condition='neutral',reference_answer='2',audio_sha256='audio')
+            options=dict(enable_thinking=False,use_tts_template=True,generate_audio=False,do_sample=False,max_new_tokens=512,
+                min_new_tokens=0,num_beams=1,repetition_penalty=1.,max_inp_length=32768,stream=False)
+            recipe=dict(model='model',revision='revision')
+            old=dict(protocol=mini.PROTOCOL,prompt='Prompt',seed=42,max_new_tokens=512,recipe=recipe,native_options=options,test=[row])
+            config=source/'run_config.json';config.write_text(json.dumps(old))
+            answer=dict(row,protocol=mini.PROTOCOL,run_config_sha256=run.digest(config),prompt='Prompt',seed=42,
+                max_new_tokens=512,model='model',revision='revision',interventions=[],strength=0.,response='#### 2',response_tokens=4)
+            raw=(json.dumps(answer)+'\n'+chr(123)+'incomplete').encode()
+            (source/'results.jsonl').write_bytes(raw)
+            plan=dict(model_key='minicpm',prompt='Prompt',recipe=recipe,recordings=[row])
+            import os
+            previous=Path.cwd()
+            try:
+                os.chdir(root)
+                self.assertEqual(run.reuse_neutral_results(output,plan),1)
+                self.assertEqual(run.reuse_neutral_results(output,plan),0)
+                self.assertEqual((source/'results.jsonl').read_bytes(),raw)
+                copied=run.read_rows(output/'results.jsonl')
+                self.assertEqual(copied[0]['response'],'#### 2')
+            finally:os.chdir(previous)
+
     def test_fixed400_reuses_only_matching_neutral_cache(self):
         with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
             root = Path(d); source = root/'source'; source.mkdir()

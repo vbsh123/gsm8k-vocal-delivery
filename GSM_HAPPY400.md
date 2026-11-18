@@ -68,3 +68,27 @@ OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 .venv-diffa/bin/python phi4_reverse_followup
   --stage summary-multiarith --layer 17 \
   --output outputs/phi4-multiarith-reverse290-290-L17-extra-minus1.5-minus2
 ```
+
+MiniCPM next400 questions (indices400:800 after the same seed42 shuffle), with
+no new neutral generations:
+
+```bash
+nohup bash run_minicpm_happy_next400.sh > outputs/minicpm-happy-next400.log 2>&1 </dev/null &
+```
+
+This reuses neutral results from the869-question MiniCPM steering evaluation.
+Reuse checks model/revision, prompt, native options, question/voice, audio hash,
+reference, source config hash and zero intervention. It snapshots complete source
+JSONL rows without altering a running source file. The --require-neutral option
+fails before inference if any compatible neutral baseline is missing. It generates
+only missing happy answers. Happy TTS is resumable; compatible neutral clips are
+linked from existing source plans. Existing MiniCPM queues finish first, then
+the new evaluation can run alongside Phi within the22GiB MiniCPM Torch cap.
+
+Results: outputs/gsm-happy400-start400-n400/minicpm. Audio:
+outputs/azure-gsm-happy400-start400-n400. First400 outputs/configs stay separate.
+
+```bash
+OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 .venv-diffa/bin/python evaluate_gsm_happy400.py \
+  --mode summary --model minicpm --start-index 400 --num-questions 400
+```
