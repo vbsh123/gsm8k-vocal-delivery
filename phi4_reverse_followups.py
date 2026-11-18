@@ -2,6 +2,7 @@
 import argparse
 import fcntl
 import json
+import math
 from pathlib import Path
 import shutil
 import subprocess
@@ -55,6 +56,25 @@ def prepare_gsm(source, previous, output, layer):
                     'non-collection questions, with frozen vector/layer/strengths; no new extraction or outcome filtering.')
     freeze(config, plan)
     print(f'GSM L{layer}: retain400 tests; add469 new tests;869 total. Frozen400-question vector reused.', flush=True)
+    return plan
+
+
+def prepare_gsm_extra(previous, output, layer, strength):
+    if not math.isfinite(strength) or strength >= 0:
+        raise ValueError('Extra reverse strength must be finite and negative.')
+    old_config = previous/'run_config.json'
+    old = json.loads(old_config.read_text())
+    verify_receipts(old)
+    if old['layer'] != layer or len(old['test']) != 869 or old['prompt'] != engine.gsm.ORIGINAL:
+        raise ValueError('Need matching completed869-question GSM continuation.')
+    _, done = engine.completed(old, previous, digest(old_config))
+    if len(done) != len(old['test'])*len(old['strengths']):
+        raise ValueError('Finish original869-question continuation before extra strength.')
+    plan = dict(old, protocol=f'phi4-gsm8k-frozen400-test869-L{layer}-extra-{strength:g}-v1',
+                strengths={'neutral': 0., f'neutral-L{layer}-answer-a{strength:g}': strength},
+                source_receipts=old.get('source_receipts', [])+receipts([old_config, previous/'results.jsonl', previous/'style-vectors.pt']),
+                selection=old['selection']+' Exploratory additional strength selected after inspecting earlier strengths; same869 tests and frozen vector.')
+    freeze(output/'run_config.json', plan)
     return plan
 
 
@@ -162,7 +182,8 @@ def collect_multi(plan, output, native, config_hash):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--stage', choices=('gsm-remaining', 'multiarith', 'summary-gsm', 'summary-multiarith'), required=True)
+    p.add_argument('--stage', choices=('gsm-remaining', 'gsm-extra', 'multiarith', 'summary-gsm', 'summary-multiarith'), required=True)
+    p.add_argument('--strength', type=float, default=-1.5)
     p.add_argument('--layer', type=int, choices=(17, 30), required=True)
     p.add_argument('--gsm-source', type=Path, default=Path('outputs/azure-kimi-gsm8k1269'))
     p.add_argument('--multi-source', type=Path, default=Path('outputs/azure-multiarith580'))
@@ -171,14 +192,18 @@ def main():
     p.add_argument('--shared-collection', type=Path, default=Path('outputs/phi4-multiarith-reverse290-shared'))
     args = p.parse_args(); dataset = 'gsm' if 'gsm' in args.stage else 'multiarith'
     output = args.output or folders(args.layer, dataset)
+    if args.stage == 'gsm-extra' and args.output is None:
+        output = Path(str(output)+f'-a{args.strength:g}')
     if args.stage.startswith('summary'):
         engine.report(output); return
     output.mkdir(parents=True, exist_ok=True)
     with (output/'queue.lock').open('w') as own:
         fcntl.flock(own, fcntl.LOCK_EX | fcntl.LOCK_NB)
         if dataset == 'gsm':
-            previous = args.gsm_previous or Path('outputs')/f'phi4-gsm-reverse400-400-L{args.layer}'
-            plan = prepare_gsm(args.gsm_source, previous, output, args.layer)
+            previous = args.gsm_previous or (folders(args.layer, 'gsm') if args.stage == 'gsm-extra'
+                        else Path('outputs')/f'phi4-gsm-reverse400-400-L{args.layer}')
+            plan = (prepare_gsm_extra(previous, output, args.layer, args.strength) if args.stage == 'gsm-extra'
+                    else prepare_gsm(args.gsm_source, previous, output, args.layer))
             vector = install_fixed_vector(plan, output)
             config_hash = digest(output/'run_config.json')
             engine.reuse_answers(plan, output, config_hash, previous)
@@ -189,7 +214,7 @@ def main():
             other = folders(30 if args.layer == 17 else 17, 'multiarith')
         engine.reuse_answers(plan, output, config_hash, other, baseline_only=True)
         _, done = engine.completed(plan, output, config_hash, repair=True)
-        if len(done) == 3*len(plan['test']): print('All test answers retained; no GPU/model loading.'); return
+        if len(done) == len(plan['strengths'])*len(plan['test']): print('All test answers retained; no GPU/model loading.'); return
         with Path('outputs/jenny-task-vectors.lock').open('w') as gpu:
             print('Waiting for shared GPU lock.', flush=True); fcntl.flock(gpu, fcntl.LOCK_EX)
             while subprocess.check_output(['nvidia-smi', '--query-compute-apps=pid', '--format=csv,noheader'], text=True).strip():
