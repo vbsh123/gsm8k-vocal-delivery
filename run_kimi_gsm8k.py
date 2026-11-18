@@ -41,18 +41,18 @@ def audio(args):
     return shared.prepare(args, selection, dataset='GSM8K', steered_condition=STEERED)
 
 
-def prepare_audio(args, selection):
+def prepare_audio(args, selection, styles=('neutral', 'angry')):
     """Reuse compatible audio or resume TTS for an already frozen question selection."""
     questions = selection['collection']+selection['test']
     # Make the exact resumable request plan before linking compatible existing audio.
     subprocess.run([sys.executable, '-u', 'cloud_tts_smoke.py', '--provider', 'azure',
         '--input-jsonl', str(args.source/'questions.jsonl'), '--num-examples', str(len(questions)),
-        '--styles', 'neutral', 'angry', '--azure-voice', 'en-US-JennyNeural',
+        '--styles', *styles, '--azure-voice', 'en-US-JennyNeural',
         '--azure-intensity', '1.5', '--output', str(args.source), '--resume', '--prepare-only'], check=True)
     candidates = {}
     for folder in args.audio_sources:
         for row in shared.read_rows(folder/'plan.jsonl'):
-            if row.get('provider') == 'azure' and row.get('style') in ('neutral', 'angry'):
+            if row.get('provider') == 'azure' and row.get('style') in styles:
                 candidates.setdefault((row['question_id'], row['style']), []).append((folder, row))
     linked = 0
     for task in shared.read_rows(args.source/'plan.jsonl'):
@@ -75,7 +75,7 @@ def prepare_audio(args, selection):
                 target.symlink_to(path); linked += 1
                 break
     print(f'Reused {linked} compatible clips through links; generate/resume remaining clips.', flush=True)
-    generate_audio(args.source, questions, ['neutral', 'angry'])
+    generate_audio(args.source, questions, list(styles))
 
 
 def main():

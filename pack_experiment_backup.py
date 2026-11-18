@@ -35,7 +35,7 @@ GROUPS = {
     'ifeval': ('ifeval-angry-mean', 'spoken-ifeval-diffa2', 'azure-spoken-ifeval'),
     'moss': ('bbh-three-regenerated-models/moss', 'bbh-three-audio-models/moss', 'azure-bbh-three-models-regenerated'),
     'kimi': ('bbh-three-regenerated-models/kimi', 'bbh-three-audio-models/kimi', 'azure-bbh-three-models-regenerated'),
-    'phi': ('gsm8k-candidates/phi4', 'bbh-three-candidates/phi4', 'bbh-five-candidates/phi4',
+    'phi': ('gsm8k-candidates/phi4', 'gsm-happy400/phi4', 'azure-gsm-happy400', 'bbh-three-candidates/phi4', 'bbh-five-candidates/phi4',
             'phi4-answer-only-followup', 'phi4-reasoning-emotion100-gsm8k', 'phi4-gsm100-layer-drift',
             'phi4-instruction-controls100', 'phi4-instruction-controls100-format-please',
             'phi4-gsm-reverse400-400-L17', 'phi4-gsm-reverse400-400-L30',
@@ -44,7 +44,7 @@ GROUPS = {
             'phi4-multiarith-reverse290-290-L17', 'phi4-multiarith-reverse290-290-L30',
             'phi4-multiarith-reverse290-shared', 'azure-kimi-gsm8k1269', 'azure-multiarith580',
             'azure-bbh-three-models-regenerated', 'azure-kimi-bbh-five250'),
-    'minicpm': ('minicpm-gsm100-diagnostics', 'minicpm-gsm400-869-L30-a1', 'bbh-three-candidates/minicpm', 'gsm8k-candidates/minicpm',
+    'minicpm': ('minicpm-gsm100-diagnostics', 'minicpm-gsm400-869-L30-a1', 'gsm-happy400/minicpm', 'azure-gsm-happy400', 'bbh-three-candidates/minicpm', 'gsm8k-candidates/minicpm',
                 'azure-kimi-gsm8k1269', 'azure-bbh-three-models-regenerated'),
 }
 EXTRA_RUNS = {f'Phi {name} L{layer}': f'phi4-{folder}-L{layer}'
@@ -55,6 +55,8 @@ EXTRA_RUNS.update({'Phi GSM original': 'gsm8k-candidates/phi4/original',
                    'Phi BBH3 explicit': 'bbh-three-candidates/phi4/explicit',
                    'MiniCPM GSM diagnostics': 'minicpm-gsm100-diagnostics',
                    'MiniCPM GSM steering': 'minicpm-gsm400-869-L30-a1',
+                   'MiniCPM GSM happy400': 'gsm-happy400/minicpm',
+                   'Phi GSM happy400': 'gsm-happy400/phi4',
                    'Phi GSM L30 -1.5': 'phi4-gsm-reverse400-869-L30-a-1.5',
                    'Phi GSM L30 -2': 'phi4-gsm-reverse400-869-L30-a-2'})
 

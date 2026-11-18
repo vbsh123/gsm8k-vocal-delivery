@@ -98,13 +98,16 @@ def report(output):
     scored = [dict(row, scores={**{m: v[i]['correct'] for m, v in values.items()},
         'flexible-numeric': numeric_equal(values['flexible-extract'][i]['prediction'], row['reference_answer']),
         'format-compliant': values['strict-match'][i]['prediction'] != '[invalid]'}) for i, row in enumerate(rows)]
-    groups = {s: {} for s in ('neutral', 'angry')}
+    styles = plan.get('styles', ['neutral', 'angry'])
+    if len(styles) != 2 or styles[0] != 'neutral': raise ValueError('Need neutral and one paired delivery.')
+    comparison = styles[1]
+    groups = {s: {} for s in styles}
     for row in scored:
         key = row['question_id'], row['voice']; group = groups[row['style']]
         if key in group and group[key]['response'] != row['response']:
             raise ValueError('Conflicting answers.')
         group[key] = row
-    keys = sorted(groups['neutral'].keys() & groups['angry'].keys()); n = len(keys)
+    keys = sorted(groups['neutral'].keys() & groups[comparison].keys()); n = len(keys)
     print(f'\n{plan["recipe"]["model"]} GSM8K ({plan["prompt_variant"]}): {len(rows)}/{len(plan["recordings"])} answers; {n} matched questions.')
     accuracy, comparisons = [], []
     if n:
@@ -117,9 +120,9 @@ def report(output):
             print(f'{style:8} {n:5d} '+ ' '.join(f'{counts[m]/n:8.1%}' for m in counts)
                   +f' {statistics.mean(lengths):12.1f} {statistics.median(lengths):14.1f}')
         for metric in ('flexible-numeric', 'flexible-extract', 'strict-match', 'format-compliant'):
-            result = paired([(groups['neutral'][k]['scores'][metric], groups['angry'][k]['scores'][metric]) for k in keys])
+            result = paired([(groups['neutral'][k]['scores'][metric], groups[comparison][k]['scores'][metric]) for k in keys])
             comparisons.append(dict(metric=metric, **result))
-            print(f'{metric} / angry: gain={result["gain_pp"]:+.2f} pp; W/L={result["wins"]}/{result["losses"]}; '
+            print(f'{metric} / {comparison}: gain={result["gain_pp"]:+.2f} pp; W/L={result["wins"]}/{result["losses"]}; '
                   f'p={result["mcnemar_exact_p"]:.4f}; CI={result["ci95_gain_pp"]}')
     (output/'rescored.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in scored))
     (output/'summary.json').write_text(json.dumps(dict(primary_metric='flexible-numeric', accuracy=accuracy,
