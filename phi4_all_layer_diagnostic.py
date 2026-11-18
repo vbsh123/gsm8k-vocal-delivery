@@ -423,7 +423,7 @@ def main():
             transformers=engine.version('transformers'), gpu=torch.cuda.get_device_name(0), cuda=torch.version.cuda,
             script_sha256=digest(__file__), engine_sha256=digest(engine.__file__), gpu_budget_gib=budget,
             worker_id=args.worker_id, workers=args.workers,
-            note='No global GPU queue; wrapper waits only for current Phi L17 -2.'), indent=2)+'\n')
+            note='No global GPU queue. Split wrapper has no L17 -2 dependency; legacy sequential wrapper retains that dependency.'), indent=2)+'\n')
         if args.mode == 'collect-shard':
             collect_vectors(plan, args.output, native, args.worker_id, args.workers)
         elif args.mode == 'references-shard':

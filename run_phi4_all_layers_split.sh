@@ -14,8 +14,7 @@ export HUGGINGFACE_HUB_CACHE="$HF_HUB_CACHE"
 cpu=.venv-diffa/bin/python
 native=.venv-bbh-phi4/bin/python
 OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 "$cpu" -u phi4_all_layer_diagnostic.py --mode prepare "$@"
-echo 'Waiting ONLY for Phi L17 -2; two independent Phi workers follow.'
-flock outputs/phi4-gsm-extra-L17-a-2.lock true
+echo 'No Phi L17 -2 dependency or shared GPU queue; starting two independent workers.'
 run_pair() {
     local mode="$1"
     shift

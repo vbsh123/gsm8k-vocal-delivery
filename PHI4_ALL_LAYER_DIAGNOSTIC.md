@@ -70,7 +70,11 @@ repaired before further writes. No model weights/audio/results are deleted.
 
 Collection worker0 handles indices0:200, worker1 handles200:400, each with one
 native Phi model. Each process caps Torch at18GiB and requires20GiB free at
-startup. There is no global GPU wait, only the earlier L17-2 wrapper lock.
+startup. The split launcher has no global GPU wait and no L17-2 dependency;
+it can start both workers alongside that job. The old sequential launcher still
+has its original dependency. For an already waiting split launcher, run
+`python stop_waiting_phi4_split.py` before relaunching. That helper refuses once
+workers/preparation have started and never stops the original Phi-2 job.
 The first phase collects vectors ONLY; it stops before generating test references
 or steering. Each half writes disjoint pair caches; CPU merge validates all400
 and recomputes the equal per-question mean. It does not average incomplete

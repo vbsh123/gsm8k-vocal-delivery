@@ -1,4 +1,5 @@
 import json
+import fcntl
 import os
 from pathlib import Path
 import subprocess
@@ -20,8 +21,12 @@ if os.environ.get('PHI_SPLIT_TEST_FAIL') and '--mode' in args and args[args.inde
 '''
             for name in ('.venv-diffa','.venv-bbh-phi4'):
                 path=root/name/'bin/python';path.parent.mkdir(parents=True);path.write_text(fake);path.chmod(0o755)
-            result=subprocess.run(['bash',str(script),phase],cwd=root,env=dict(os.environ,
-                PHI_SPLIT_TEST_LOG=str(log),PHI_SPLIT_TEST_FAIL='1' if fail else ''),capture_output=True,text=True)
+            (root/'outputs').mkdir()
+            # Hold the actual old dependency: the new launcher must still finish.
+            with (root/'outputs/phi4-gsm-extra-L17-a-2.lock').open('w') as dependency:
+                fcntl.flock(dependency,fcntl.LOCK_EX|fcntl.LOCK_NB)
+                result=subprocess.run(['bash',str(script),phase],cwd=root,env=dict(os.environ,
+                    PHI_SPLIT_TEST_LOG=str(log),PHI_SPLIT_TEST_FAIL='1' if fail else ''),capture_output=True,text=True,timeout=10)
             calls=[json.loads(line) for line in log.read_text().splitlines()]
             modes=[args[args.index('--mode')+1] for args in calls]
             return result,calls,modes
