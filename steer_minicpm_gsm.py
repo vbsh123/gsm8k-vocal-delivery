@@ -4,6 +4,7 @@ import fcntl
 from importlib.metadata import version
 import json
 from pathlib import Path
+import statistics
 
 import diagnose_minicpm_gsm100 as diagnostics
 import evaluate_gsm_candidates as gsm
@@ -133,15 +134,67 @@ def collect(plan, output, native, config_hash):
     return vector['angry_minus_neutral']
 
 
+def report_collection(output):
+    import torch
+    from rescore_audio_steering import HarnessTaskScorer, numeric_equal, paired
+    torch.set_num_threads(min(4, torch.get_num_threads()))
+    config = output/'run_config.json'; plan = json.loads(config.read_text()); config_hash = digest(config)
+    if digest(gsm.QUESTION_FILE) != plan['question_file_sha256']: raise ValueError('Canonical question bank changed.')
+    bank = {q['question_id']: q for q in gsm.questions()}
+    rows = []
+    for i, pair in enumerate(plan['collection']):
+        path = output/'pairs'/f'{i:04d}.pt'
+        if not path.exists(): continue
+        saved = torch.load(path, map_location='cpu', weights_only=True)
+        validate_pair(saved, pair, config_hash)
+        for style in ('neutral', 'angry'):
+            trace = saved['traces'][style]
+            rows.append(dict(question_id=pair['question_id'], voice=pair['voice'], condition=style,
+                response=trace['response'], response_tokens=trace['response_tokens'], prompt=plan['prompt'],
+                audio_sha256=pair[style]['audio_sha256'], reference_answer=pair[style]['reference_answer']))
+    print(f'MiniCPM collection: {len(rows)//2}/{len(plan["collection"])} completed neutral/angry pairs; unsteered.', flush=True)
+    if not rows: return
+    scorer = HarnessTaskScorer('gsm8k', output/'collection-harness/upstream')
+    docs = [dict(question=bank[r['question_id']]['question'], answer=bank[r['question_id']]['answer']) for r in rows]
+    if any(str(doc['answer']) != str(r['reference_answer']) for r, doc in zip(rows, docs)):
+        raise ValueError('Collection references differ from canonical bank.')
+    values = scorer.score([r['response'] for r in rows], docs)
+    for i, row in enumerate(rows):
+        row['scores'] = {**{m: v[i]['correct'] for m, v in values.items()},
+            'flexible-numeric': numeric_equal(values['flexible-extract'][i]['prediction'], docs[i]['answer']),
+            'format-compliant': values['strict-match'][i]['prediction'] != '[invalid]'}
+    groups = {s: {(r['question_id'], r['voice']): r for r in rows if r['condition'] == s} for s in ('neutral', 'angry')}
+    keys = sorted(groups['neutral'].keys() & groups['angry'].keys())
+    metrics = ('flexible-numeric', 'flexible-extract', 'strict-match', 'format-compliant')
+    accuracy, comparisons = [], []
+    for style, group in groups.items():
+        lengths = [group[k]['response_tokens'] for k in keys]
+        counts = {m: sum(group[k]['scores'][m] for k in keys) for m in metrics}
+        accuracy.append(dict(condition=style, n=len(keys), counts=counts,
+            mean_tokens=statistics.mean(lengths), median_tokens=statistics.median(lengths)))
+        print(style, 'numeric/flexible/strict/format:', *(f'{counts[m]/len(keys):.1%}' for m in metrics),
+              f'mean/median tokens={statistics.mean(lengths):.1f}/{statistics.median(lengths):.1f}', flush=True)
+    for metric in metrics:
+        result = paired([(groups['neutral'][k]['scores'][metric], groups['angry'][k]['scores'][metric]) for k in keys])
+        comparisons.append(dict(metric=metric, **result))
+        print(f'angry / {metric}: gain={result["gain_pp"]:+.2f} pp; W/L={result["wins"]}/{result["losses"]}; '
+              f'p={result["mcnemar_exact_p"]:.4g}; CI={result["ci95_gain_pp"]}', flush=True)
+    (output/'collection-rescored.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rows))
+    (output/'collection-summary.json').write_text(json.dumps(dict(accuracy=accuracy, comparisons=comparisons,
+        scorer=scorer.provenance, note='Unsteered collection/training cohort, not held-out steering evaluation. '
+        'No outcome/classifier filtering; all completed pairs. Tests and intervals unadjusted.'), indent=2)+'\n')
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--mode', choices=('prepare', 'run', 'summary'), default='run')
+    p.add_argument('--mode', choices=('prepare', 'run', 'summary', 'summary-collection'), default='run')
     p.add_argument('--source', type=Path, default=Path('outputs/azure-kimi-gsm8k1269'))
     p.add_argument('--diagnostics', type=Path, default=Path('outputs/minicpm-gsm100-diagnostics'))
     p.add_argument('--output', type=Path, default=DEFAULT)
     p.add_argument('--gpu-budget-gib', type=float, default=22.)
     args = p.parse_args()
     if args.mode == 'summary': engine.report(args.output); return
+    if args.mode == 'summary-collection': report_collection(args.output); return
     args.output.mkdir(parents=True, exist_ok=True)
     with (args.output/'queue.lock').open('w') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)

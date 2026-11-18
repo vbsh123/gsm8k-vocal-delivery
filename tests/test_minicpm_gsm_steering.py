@@ -71,6 +71,23 @@ class MiniSteeringTests(unittest.TestCase):
             cache['answer_difference'] *= -1
             with self.assertRaisesRegex(ValueError, 'sign/value'):
                 run.validate_pair(cache, tiny['collection'][0], 'config')
+            for i in range(2):
+                path = output/'pairs'/f'{i:04d}.pt'
+                saved = torch.load(path, weights_only=True)
+                saved['run_config_sha256'] = run.digest(output/'run_config.json')
+                torch.save(saved, path)
+            predictions = ['2', '2', '9', '2']
+            values = {metric: [dict(prediction=p, correct=p=='2') for p in predictions]
+                      for metric in ('flexible-extract', 'strict-match')}
+            scorer = SimpleNamespace(score=lambda responses, docs: values, provenance={'test': True})
+            before = (output/'pairs/0000.pt').read_bytes()
+            with patch.object(run.gsm, 'QUESTION_FILE', bank_path), patch.object(run.gsm, 'questions', return_value=questions), patch('rescore_audio_steering.HarnessTaskScorer', return_value=scorer):
+                run.report_collection(output)
+            result = json.loads((output/'collection-summary.json').read_text())
+            self.assertEqual(result['accuracy'][0]['n'], 2)
+            self.assertEqual(result['accuracy'][0]['counts']['flexible-numeric'], 1)
+            self.assertEqual(result['accuracy'][1]['counts']['flexible-numeric'], 2)
+            self.assertEqual(before, (output/'pairs/0000.pt').read_bytes())
 
 
 if __name__ == '__main__': unittest.main()
