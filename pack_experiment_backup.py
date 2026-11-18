@@ -40,10 +40,11 @@ GROUPS = {
             'phi4-instruction-controls100', 'phi4-instruction-controls100-format-please',
             'phi4-gsm-reverse400-400-L17', 'phi4-gsm-reverse400-400-L30',
             'phi4-gsm-reverse400-869-L17', 'phi4-gsm-reverse400-869-L30',
+            'phi4-gsm-reverse400-869-L30-a-1.5', 'phi4-gsm-reverse400-869-L30-a-2',
             'phi4-multiarith-reverse290-290-L17', 'phi4-multiarith-reverse290-290-L30',
             'phi4-multiarith-reverse290-shared', 'azure-kimi-gsm8k1269', 'azure-multiarith580',
             'azure-bbh-three-models-regenerated', 'azure-kimi-bbh-five250'),
-    'minicpm': ('minicpm-gsm100-diagnostics', 'bbh-three-candidates/minicpm', 'gsm8k-candidates/minicpm',
+    'minicpm': ('minicpm-gsm100-diagnostics', 'minicpm-gsm400-869-L30-a1', 'bbh-three-candidates/minicpm', 'gsm8k-candidates/minicpm',
                 'azure-kimi-gsm8k1269', 'azure-bbh-three-models-regenerated'),
 }
 EXTRA_RUNS = {f'Phi {name} L{layer}': f'phi4-{folder}-L{layer}'
@@ -52,7 +53,10 @@ EXTRA_RUNS = {f'Phi {name} L{layer}': f'phi4-{folder}-L{layer}'
 EXTRA_RUNS.update({'Phi GSM original': 'gsm8k-candidates/phi4/original',
                    'Phi BBH3 original': 'bbh-three-candidates/phi4/original',
                    'Phi BBH3 explicit': 'bbh-three-candidates/phi4/explicit',
-                   'MiniCPM GSM diagnostics': 'minicpm-gsm100-diagnostics'})
+                   'MiniCPM GSM diagnostics': 'minicpm-gsm100-diagnostics',
+                   'MiniCPM GSM steering': 'minicpm-gsm400-869-L30-a1',
+                   'Phi GSM L30 -1.5': 'phi4-gsm-reverse400-869-L30-a-1.5',
+                   'Phi GSM L30 -2': 'phi4-gsm-reverse400-869-L30-a-2'})
 
 
 def walk(root):
@@ -157,7 +161,7 @@ def status(repo):
                 plan = json.loads(snapshot(config)[0])
                 item['planned_answers'] = (len(plan['recordings']) if 'recordings' in plan else
                     len(plan['conditions'])*len(plan['pairs']) if plan.get('protocol', '').startswith('minicpm-gsm-same100') else
-                    3*len(plan['test']))
+                    len(plan.get('strengths', {0: 0, 1: 1, 2: 2}))*len(plan['test']))
                 vector = plan.get('vector') or plan.get('settings', {}).get('vectors')
                 if vector:
                     vector_path = Path(vector)
@@ -165,7 +169,7 @@ def status(repo):
                         vector_path = repo/vector_path
                     item['required_vector'] = str(vector_path)
                     item['required_vector_present'] = vector_path.is_file()
-                elif 'extraction' in plan or plan.get('protocol', '').startswith(('phi4-', 'minicpm-gsm-same100')):
+                elif 'extraction' in plan or plan.get('protocol', '').startswith(('phi4-', 'minicpm-gsm')):
                     item['required_vector'] = str(folder/'style-vectors.pt')
                     item['required_vector_present'] = item['vector_present']
             except (KeyError, ValueError, TypeError):

@@ -184,6 +184,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--stage', choices=('gsm-remaining', 'gsm-extra', 'multiarith', 'summary-gsm', 'summary-multiarith'), required=True)
     p.add_argument('--strength', type=float, default=-1.5)
+    p.add_argument('--concurrent', action='store_true', help='Extra GSM only: allow MiniCPM alongside Phi, with20 GiB Torch cap.')
     p.add_argument('--layer', type=int, choices=(17, 30), required=True)
     p.add_argument('--gsm-source', type=Path, default=Path('outputs/azure-kimi-gsm8k1269'))
     p.add_argument('--multi-source', type=Path, default=Path('outputs/azure-multiarith580'))
@@ -191,6 +192,7 @@ def main():
     p.add_argument('--output', type=Path)
     p.add_argument('--shared-collection', type=Path, default=Path('outputs/phi4-multiarith-reverse290-shared'))
     args = p.parse_args(); dataset = 'gsm' if 'gsm' in args.stage else 'multiarith'
+    if args.concurrent and args.stage != 'gsm-extra': p.error('--concurrent is only supported for gsm-extra.')
     output = args.output or folders(args.layer, dataset)
     if args.stage == 'gsm-extra' and args.output is None:
         output = Path(str(output)+f'-a{args.strength:g}')
@@ -217,8 +219,15 @@ def main():
         if len(done) == len(plan['strengths'])*len(plan['test']): print('All test answers retained; no GPU/model loading.'); return
         with Path('outputs/jenny-task-vectors.lock').open('w') as gpu:
             print('Waiting for shared GPU lock.', flush=True); fcntl.flock(gpu, fcntl.LOCK_EX)
-            while subprocess.check_output(['nvidia-smi', '--query-compute-apps=pid', '--format=csv,noheader'], text=True).strip():
-                print('Waiting for active GPU work.', flush=True); time.sleep(30)
+            if args.concurrent:
+                import torch
+                free, total = torch.cuda.mem_get_info(0)
+                if free < 18*2**30: raise RuntimeError('Concurrent Phi needs18 GiB currently free; no jobs stopped.')
+                torch.cuda.set_per_process_memory_fraction(20*2**30/total, device=0)
+                print('Concurrent Phi:20 GiB Torch cap; allowing MiniCPM GPU work.', flush=True)
+            else:
+                while subprocess.check_output(['nvidia-smi', '--query-compute-apps=pid', '--format=csv,noheader'], text=True).strip():
+                    print('Waiting for active GPU work.', flush=True); time.sleep(30)
             native = engine.NativePhi(args.layer)
             import torch
             (output/'runtime.json').write_text(json.dumps(dict(torch=torch.__version__, transformers=engine.version('transformers'),

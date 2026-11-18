@@ -262,7 +262,8 @@ def report(output):
     total = len(plan['test'])*len(plan['strengths'])
     pair_folder = Path(plan['shared_collection'])/'pairs' if plan.get('shared_collection') else output/'pairs'
     collection_status = 'frozen vector reused' if plan.get('fixed_vector_source') else f'{len(list(pair_folder.glob("*.pt")))}/{len(plan["collection"])} collection pairs'
-    print(f'Phi-4 {plan.get("dataset", "GSM8K")} reverse L{plan["layer"]}: {len(rows)}/{total} test answers; {collection_status}.', flush=True)
+    label = plan.get('report_label', 'Phi-4 '+plan.get('dataset', 'GSM8K')+' reverse')
+    print(f'{label} L{plan["layer"]}: {len(rows)}/{total} test answers; {collection_status}.', flush=True)
     if not rows: return
     scorer = HarnessTaskScorer('gsm8k', output/'harness/upstream')
     docs = [dict(question=plan['bank'][r['question_id']]['question'], answer=r['reference_answer']) for r in rows]
@@ -272,7 +273,7 @@ def report(output):
         'format-compliant': values['strict-match'][i]['prediction'] != '[invalid]'}) for i, r in enumerate(rows)]
     groups = {c: {(r['question_id'], r['voice']): r for r in scored if r['condition'] == c} for c in plan['strengths']}
     keys = sorted(set.intersection(*(set(g) for g in groups.values()))); n = len(keys)
-    print(f'{n}/{len(plan["test"])} identical questions completed in all THREE conditions.', flush=True)
+    print(f'{n}/{len(plan["test"])} identical questions completed in all {len(plan["strengths"])} conditions.', flush=True)
     accuracy, comparisons = [], []
     metrics = ('flexible-numeric', 'flexible-extract', 'strict-match', 'format-compliant')
     if n:

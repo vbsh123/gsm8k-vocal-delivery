@@ -13,6 +13,8 @@ export HUGGINGFACE_HUB_CACHE="$HF_HUB_CACHE"
 echo 'Waiting for current Phi GSM/MultiArith follow-up queue; shared GPU lock follows.'
 exec 8>outputs/phi4-reverse-followups-wrapper.lock
 flock 8
-.venv-bbh-phi4/bin/python -u phi4_reverse_followups.py --stage gsm-extra --layer "$layer" --strength "$strength"
+options=()
+if [[ "${PHI_CONCURRENT:-0}" == 1 ]]; then options+=(--concurrent); fi
+.venv-bbh-phi4/bin/python -u phi4_reverse_followups.py --stage gsm-extra --layer "$layer" --strength "$strength" "${options[@]}"
 OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 .venv-diffa/bin/python -u phi4_reverse_followups.py \
   --stage summary-gsm --layer "$layer" --output "outputs/phi4-gsm-reverse400-869-L${layer}-a${strength}"
