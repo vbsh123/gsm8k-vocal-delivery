@@ -42,6 +42,7 @@ GROUPS = {
             'phi4-gsm-reverse400-869-L17', 'phi4-gsm-reverse400-869-L30',
             'phi4-gsm-reverse400-869-L30-a-1.5', 'phi4-gsm-reverse400-869-L30-a-2',
             'phi4-multiarith-reverse290-290-L17', 'phi4-multiarith-reverse290-290-L30',
+            'phi4-multiarith-reverse290-290-L17-extra-minus1.5-minus2',
             'phi4-multiarith-reverse290-shared', 'azure-kimi-gsm8k1269', 'azure-multiarith580',
             'azure-bbh-three-models-regenerated', 'azure-kimi-bbh-five250'),
     'minicpm': ('minicpm-gsm100-diagnostics', 'minicpm-gsm400-869-L30-a1', 'gsm-happy400/minicpm', 'azure-gsm-happy400', 'bbh-three-candidates/minicpm', 'gsm8k-candidates/minicpm',
@@ -59,6 +60,7 @@ EXTRA_RUNS.update({'Phi GSM original': 'gsm8k-candidates/phi4/original',
                    'Phi GSM happy400': 'gsm-happy400/phi4',
                    'Phi GSM L30 -1.5': 'phi4-gsm-reverse400-869-L30-a-1.5',
                    'Phi GSM L30 -2': 'phi4-gsm-reverse400-869-L30-a-2'})
+EXTRA_RUNS['Phi MultiArith L17 -1.5/-2'] = 'phi4-multiarith-reverse290-290-L17-extra-minus1.5-minus2'
 
 
 def walk(root):

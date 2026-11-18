@@ -78,6 +78,25 @@ def prepare_gsm_extra(previous, output, layer, strength):
     return plan
 
 
+def prepare_multi_extra(previous, output, layer):
+    old_config = previous/'run_config.json'; old = json.loads(old_config.read_text())
+    verify_receipts(old)
+    if (old['protocol'] != f'phi4-multiarith-own290-test290-L{layer}-reverse-v1'
+            or old['layer'] != layer or len(old['collection']) != 290 or len(old['test']) != 290
+            or old['prompt'] != engine.gsm.ORIGINAL or old['strengths'] != engine.strengths(layer)):
+        raise ValueError('Need original matching MultiArith290/290 experiment.')
+    _, done = engine.completed(old, previous, digest(old_config))
+    if len(done) != 870: raise ValueError('Finish original870 MultiArith answers before extra strengths.')
+    plan = dict(old, protocol=f'phi4-multiarith-frozen290-test290-L{layer}-extra-minus1.5-minus2-v1',
+        strengths={'neutral': 0., f'neutral-L{layer}-answer-a-1.5': -1.5, f'neutral-L{layer}-answer-a-2': -2.},
+        fixed_vector_source=str((previous/'style-vectors.pt').absolute()), previous_run=str(previous.absolute()),
+        source_receipts=receipts([old_config, previous/'results.jsonl', previous/'style-vectors.pt']),
+        selection=old['selection']+' Additional -1.5/-2 strengths chosen after inspecting original results; '
+            'same frozen vector/test questions, no new collection. Exploratory/unadjusted.')
+    freeze(output/'run_config.json', plan)
+    return plan
+
+
 def install_fixed_vector(plan, output):
     import torch
     verify_receipts(plan)
@@ -182,9 +201,9 @@ def collect_multi(plan, output, native, config_hash):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--stage', choices=('gsm-remaining', 'gsm-extra', 'multiarith', 'summary-gsm', 'summary-multiarith'), required=True)
+    p.add_argument('--stage', choices=('gsm-remaining', 'gsm-extra', 'multiarith', 'multiarith-extra', 'summary-gsm', 'summary-multiarith'), required=True)
     p.add_argument('--strength', type=float, default=-1.5)
-    p.add_argument('--concurrent', action='store_true', help='Extra GSM only: allow MiniCPM alongside Phi, with20 GiB Torch cap.')
+    p.add_argument('--concurrent', action='store_true', help='Extra stages: allow MiniCPM alongside Phi, with20 GiB Torch cap.')
     p.add_argument('--layer', type=int, choices=(17, 30), required=True)
     p.add_argument('--gsm-source', type=Path, default=Path('outputs/azure-kimi-gsm8k1269'))
     p.add_argument('--multi-source', type=Path, default=Path('outputs/azure-multiarith580'))
@@ -192,10 +211,12 @@ def main():
     p.add_argument('--output', type=Path)
     p.add_argument('--shared-collection', type=Path, default=Path('outputs/phi4-multiarith-reverse290-shared'))
     args = p.parse_args(); dataset = 'gsm' if 'gsm' in args.stage else 'multiarith'
-    if args.concurrent and args.stage != 'gsm-extra': p.error('--concurrent is only supported for gsm-extra.')
+    if args.concurrent and args.stage not in ('gsm-extra', 'multiarith-extra'): p.error('--concurrent is only supported for extra stages.')
     output = args.output or folders(args.layer, dataset)
     if args.stage == 'gsm-extra' and args.output is None:
         output = Path(str(output)+f'-a{args.strength:g}')
+    if args.stage == 'multiarith-extra' and args.output is None:
+        output = Path(str(output)+'-extra-minus1.5-minus2')
     if args.stage.startswith('summary'):
         engine.report(output); return
     output.mkdir(parents=True, exist_ok=True)
@@ -210,6 +231,13 @@ def main():
             config_hash = digest(output/'run_config.json')
             engine.reuse_answers(plan, output, config_hash, previous)
             other = folders(30 if args.layer == 17 else 17, 'gsm')
+        elif args.stage == 'multiarith-extra':
+            previous = folders(args.layer, 'multiarith')
+            plan = prepare_multi_extra(previous, output, args.layer)
+            vector = install_fixed_vector(plan, output)
+            config_hash = digest(output/'run_config.json')
+            engine.reuse_answers(plan, output, config_hash, previous)
+            other = folders(30 if args.layer == 17 else 17, 'multiarith')
         else:
             plan = prepare_multi(args.multi_source, output, args.layer, args.shared_collection)
             config_hash = digest(output/'run_config.json')
@@ -232,8 +260,9 @@ def main():
             import torch
             (output/'runtime.json').write_text(json.dumps(dict(torch=torch.__version__, transformers=engine.version('transformers'),
                 cuda=torch.version.cuda, gpu=torch.cuda.get_device_name(0), collector_sha256=digest(__file__), engine_sha256=digest(engine.__file__),
+                concurrent=args.concurrent, torch_budget_gib=20. if args.concurrent else None,
                 generation='Unchanged native Phi greedy /BF16 SDPA /cache /seed42 /512 tokens.'), indent=2)+'\n')
-            if dataset == 'multiarith': vector = collect_multi(plan, output, native, config_hash)
+            if dataset == 'multiarith' and args.stage != 'multiarith-extra': vector = collect_multi(plan, output, native, config_hash)
             engine.evaluate(plan, output, native, vector, config_hash)
 
 

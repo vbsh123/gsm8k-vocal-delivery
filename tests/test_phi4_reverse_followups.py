@@ -124,6 +124,19 @@ class ReverseFollowupTests(unittest.TestCase):
             self.assertEqual(len(native.calls)-calls_before,580)  # Only two steered conditions, baseline retained.
             rows,_=engine.completed(p30,out30,h30)
             self.assertEqual(len(rows),870)
+            extra_out = root/'extra17'; extra_out.mkdir()
+            before = (out17/'results.jsonl').read_bytes()
+            extra = run.prepare_multi_extra(out17, extra_out, 17)
+            self.assertEqual(extra['test'], p17['test'])
+            self.assertEqual(list(extra['strengths'].values()), [0., -1.5, -2.])
+            torch.testing.assert_close(run.install_fixed_vector(extra, extra_out), a)
+            extra_hash = engine.digest(extra_out/'run_config.json')
+            self.assertEqual(engine.reuse_answers(extra, extra_out, extra_hash, out17), 290)
+            calls_before = len(native.calls)
+            engine.evaluate(extra, extra_out, native, a, extra_hash)
+            self.assertEqual(len(native.calls)-calls_before, 580)
+            self.assertEqual(before, (out17/'results.jsonl').read_bytes())
+            self.assertEqual(run.prepare_multi_extra(out17, extra_out, 17), extra)
 
 
 if __name__=='__main__':unittest.main()

@@ -22,10 +22,12 @@ def selection(): return gsm.questions()[:400]
 def audio(args):
     questions = selection()
     args.source.mkdir(parents=True, exist_ok=True)
-    freeze(args.source/'selection.json', dict(protocol=PROTOCOL, seed=42, questions=questions,
-        question_file_sha256=digest(gsm.QUESTION_FILE), styles=['neutral', 'happy']))
-    reasoning.bank_file(args.source/'questions.jsonl', questions)
-    prepare_audio(args, dict(collection=[], test=questions), styles=('neutral', 'happy'))
+    with (args.source/'audio-prepare.lock').open('w') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        freeze(args.source/'selection.json', dict(protocol=PROTOCOL, seed=42, questions=questions,
+            question_file_sha256=digest(gsm.QUESTION_FILE), styles=['neutral', 'happy']))
+        reasoning.bank_file(args.source/'questions.jsonl', questions)
+        prepare_audio(args, dict(collection=[], test=questions), styles=('neutral', 'happy'))
 
 
 def prepare(args):
@@ -98,6 +100,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--mode', choices=('audio', 'prepare', 'evaluate', 'summary'), default='evaluate')
     p.add_argument('--model', choices=('phi4', 'minicpm'), default='minicpm')
+    p.add_argument('--concurrent', action='store_true', help='Allow the other model on GPU; Phi20/MiniCPM22 GiB Torch caps.')
     p.add_argument('--source', type=Path, default=Path('outputs/azure-gsm-happy400'))
     p.add_argument('--output', type=Path, default=Path('outputs/gsm-happy400'))
     p.add_argument('--audio-sources', nargs='+', type=Path, default=[Path('outputs')/name for name in
@@ -111,11 +114,19 @@ def main():
         reuse_collection(output, plan)
         if args.mode == 'prepare': return
         if not candidates.pending([(output, plan)]): print('All800 answers complete; no model loaded.'); return
+        if args.concurrent and args.model == 'minicpm':
+            candidates.concurrent_budget(22.)
+            candidates.run([(output, dict(plan, resource_policy=dict(mode='concurrent', gpu_budget_gib=22.)))], args.model, 0)
+            return
         with Path('outputs/jenny-task-vectors.lock').open('w') as gpu:
             print('Waiting for shared GPU lock and current models to finish.', flush=True)
             fcntl.flock(gpu, fcntl.LOCK_EX)
-            while subprocess.check_output(['nvidia-smi', '--query-compute-apps=pid', '--format=csv,noheader'], text=True).strip():
-                print('Waiting for active GPU work.', flush=True); time.sleep(30)
+            if args.concurrent:
+                candidates.concurrent_budget(20.)
+                plan = dict(plan, resource_policy=dict(mode='concurrent', gpu_budget_gib=20.))
+            else:
+                while subprocess.check_output(['nvidia-smi', '--query-compute-apps=pid', '--format=csv,noheader'], text=True).strip():
+                    print('Waiting for active GPU work.', flush=True); time.sleep(30)
             candidates.run([(output, plan)], args.model, 0)
 
 
