@@ -43,6 +43,7 @@ GROUPS = {
     'kimi': ('bbh-three-regenerated-models/kimi', 'bbh-three-audio-models/kimi', 'azure-bbh-three-models-regenerated'),
     'phi': ('gsm8k-candidates/phi4', 'gsm-happy400/phi4', 'azure-gsm-happy400', 'bbh-three-candidates/phi4', 'bbh-five-candidates/phi4',
             'phi4-answer-only-followup', 'phi4-reasoning-emotion100-gsm8k', 'phi4-gsm100-layer-drift',
+            'phi4-gsm400-all-layers-test869-minus1',
             'phi4-instruction-controls100', 'phi4-instruction-controls100-format-please',
             'phi4-gsm-reverse400-400-L17', 'phi4-gsm-reverse400-400-L30',
             'phi4-gsm-reverse400-869-L17', 'phi4-gsm-reverse400-869-L30',
@@ -71,6 +72,7 @@ EXTRA_RUNS.update({'Phi GSM original': 'gsm8k-candidates/phi4/original',
                    'Phi GSM L30 -2': 'phi4-gsm-reverse400-869-L30-a-2'})
 EXTRA_RUNS['Phi MultiArith L17 -1.5/-2'] = 'phi4-multiarith-reverse290-290-L17-extra-minus1.5-minus2'
 EXTRA_RUNS['Flamingo GSM400'] = 'gsm400-candidates/flamingo/original'
+EXTRA_RUNS['Phi all-layer recovery diagnostic'] = 'phi4-gsm400-all-layers-test869-minus1'
 EXTRA_RUNS.update({f'Phi GSM L17 {a}': f'phi4-gsm-reverse400-869-L17-a{a}' for a in ('-1.5', '-2')})
 
 
@@ -185,6 +187,11 @@ def status(repo):
                     len(plan['strengths'])*len(plan['target']['records']) if plan.get('kind') == 'strengths' else
                     len(plan['conditions'])*len(plan['pairs']) if plan.get('protocol', '').startswith('minicpm-gsm-same100') else
                     len(plan.get('strengths', {0: 0, 1: 1, 2: 2}))*len(plan['test']))
+                if plan.get('evaluation_kind') == 'all-layer-diagnostic':
+                    challenge = folder/'challenge.json'
+                    item['planned_answers'] = (len(json.loads(snapshot(challenge)[0])['cases'])*len(plan['layers'])*len(plan['groups'])
+                        if challenge.exists() else None)
+                    item['planned_reference_answers'] = len(plan['recordings'])
                 vector = (plan['source'].get('vector') if isinstance(plan.get('source'), dict) else None) or plan.get('vector') or plan.get('settings', {}).get('vectors')
                 if vector:
                     vector_path = Path(vector)
