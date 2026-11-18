@@ -59,7 +59,7 @@ GROUPS = {
 }
 GROUPS['voice'] = ('multiarith290-guy-delivery', 'azure-multiarith290-guy', 'multiarith580-angry-mean')
 GROUPS['transfer'] = ('winning-transfer', *GROUPS['strengths'][1:])
-GROUPS['phi'] += ('phi4-next-tasks', 'phi4-task-steering')
+GROUPS['phi'] += ('phi4-next-tasks', 'phi4-task-steering', 'phi4-gsm400-opposite-all-layers-minus1')
 EXTRA_RUNS = {f'Phi {name} L{layer}': f'phi4-{folder}-L{layer}'
               for name, folder in [('GSM400', 'gsm-reverse400-400'), ('GSM869', 'gsm-reverse400-869'),
                                    ('MultiArith290', 'multiarith-reverse290-290')] for layer in (17, 30)}
@@ -75,6 +75,7 @@ EXTRA_RUNS.update({'Phi GSM original': 'gsm8k-candidates/phi4/original',
                    'Phi GSM L30 -2': 'phi4-gsm-reverse400-869-L30-a-2'})
 EXTRA_RUNS['Phi MultiArith L17 -1.5/-2'] = 'phi4-multiarith-reverse290-290-L17-extra-minus1.5-minus2'
 EXTRA_RUNS['Flamingo GSM400'] = 'gsm400-candidates/flamingo/original'
+EXTRA_RUNS['Phi opposite recovery diagnostic'] = 'phi4-gsm400-opposite-all-layers-minus1'
 EXTRA_RUNS['DIFFA MultiArith Guy delivery'] = 'multiarith290-guy-delivery'
 EXTRA_RUNS['Phi all-layer recovery diagnostic'] = 'phi4-gsm400-all-layers-test869-minus1'
 EXTRA_RUNS.update({f'Phi GSM L17 {a}': f'phi4-gsm-reverse400-869-L17-a{a}' for a in ('-1.5', '-2')})
@@ -189,7 +190,8 @@ def status(repo):
         if config:
             try:
                 plan = json.loads(snapshot(config)[0])
-                item['planned_answers'] = (len(plan['recordings']) if 'recordings' in plan else
+                item['planned_answers'] = (len(plan['cases'])*len(plan['layers'])*len(plan['groups'])*len(plan['input_styles']) if plan.get('evaluation_kind') == 'opposite-recovery-diagnostic' else
+                    len(plan['recordings']) if 'recordings' in plan else
                     len(plan['strengths'])*len(plan['target']['records']) if plan.get('kind') in ('strengths', 'transfer') else
                     len(plan['conditions'])*len(plan['pairs']) if plan.get('protocol', '').startswith('minicpm-gsm-same100') else
                     len(plan.get('strengths', {0: 0, 1: 1, 2: 2}))*len(plan['test']))

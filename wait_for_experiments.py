@@ -7,6 +7,8 @@ import time
 
 
 NAMES={
+    'phi-layer-nightly-inputs':{'run_phi4_layers_then_prepare.sh','run_phi4_all_layers_split.sh',
+        'run_phi4_all_layer_diagnostic.sh','phi4_all_layer_diagnostic.py','prepare_phi4_next_tasks.sh'},
     'winning-inputs':{'run_missing_experiments.sh','run_reasoning_transfer.py',
                       'run_multiarith_mean.py','steer_ifeval_mean.py','run_spoken_ifeval.py',
                       'run_spoken_ifeval.sh','steer_bbh_mean.py','run_bbh_five_mean.py',
