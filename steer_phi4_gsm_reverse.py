@@ -180,7 +180,7 @@ def collect(plan, output, native, config_hash):
             validate_pair(saved, pair, config_hash, plan['protocol']); atomic_save(path, saved)
         validate_pair(saved, pair, config_hash, plan['protocol']); differences.append(saved['answer_difference'])
     vector = dict(protocol=plan['protocol'], run_config_sha256=config_hash, model=plan['recipe']['model'],
-                  revision=plan['recipe']['revision'], layer=plan['layer'], group='answer', definition=plan['vector_definition'],
+                  revision=plan['recipe']['revision'], layer=plan['layer'], group=plan.get('group','answer'), definition=plan['vector_definition'],
                   collection_question_ids=[p['question_id'] for p in plan['collection']],
                   angry_minus_neutral=torch.stack(differences).mean(0))
     path = output/'style-vectors.pt'

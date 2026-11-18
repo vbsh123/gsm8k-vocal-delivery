@@ -13,6 +13,24 @@ import pack_experiment_backup as run
 
 
 class EvidenceBackupTests(unittest.TestCase):
+    def test_transfer_and_new_voice_backups_include_actual_answers_and_counts(self):
+        with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
+            root=Path(d);repo,source,_,_=self.repo(root)
+            transfer=repo/'outputs/winning-transfer/gsm8k-to-svamp';transfer.mkdir(parents=True)
+            row=dict(question_id='q0',voice='Guy',condition='neutral',response='#### 2',audio_file=str(source/'q0-neutral.wav'))
+            (transfer/'run_config.json').write_text(json.dumps(dict(kind='transfer',strengths=[0,1],target=dict(records=[row]))))
+            (transfer/'results.jsonl').write_text(json.dumps(row)+'\n')
+            voice=repo/'outputs/multiarith290-guy-delivery';voice.mkdir()
+            (voice/'run_config.json').write_text(json.dumps(dict(recordings=[row])))
+            (voice/'results.jsonl').write_text(json.dumps(row)+'\n')
+            path=run.package(repo,root/'downloads',samples=0,only=['transfer','voice'])
+            with zipfile.ZipFile(path) as archive:
+                manifest=json.loads(archive.read('MANIFEST.json'))
+                counts={r['experiment']:r for r in manifest['runs']}
+                self.assertEqual(counts['DIFFA transfer gsm8k-to-svamp']['planned_answers'],2)
+                self.assertEqual(counts['DIFFA MultiArith Guy delivery']['saved_unique_answers'],1)
+                self.assertIn('outputs/winning-transfer/gsm8k-to-svamp/results.jsonl',archive.namelist())
+
     def test_phi_all_layer_worker_answers_are_packaged_and_counted(self):
         with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
             root=Path(d);repo,_,_,_=self.repo(root)

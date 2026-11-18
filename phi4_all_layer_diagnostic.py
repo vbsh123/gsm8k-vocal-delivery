@@ -148,7 +148,7 @@ def reuse_references(plan, output):
 
 
 @contextmanager
-def hooks(layers, audio_mask, collect=False, target=None, group='answer', direction=None, strength=-1.):
+def hooks(layers, audio_mask, collect=False, target=None, group='answer', direction=None, strength=-1., capture_layers=None):
     import torch
     totals = {}; counts = {}; audio = {}; handles = []
     def make(index):
@@ -170,13 +170,14 @@ def hooks(layers, audio_mask, collect=False, target=None, group='answer', direct
             return (changed, *result[1:]) if isinstance(result, tuple) else ([changed, *result[1:]] if isinstance(result, list) else changed)
         return hook
     try:
-        for i in range(len(layers)) if collect else (target,): handles.append(layers[i].register_forward_hook(make(i)))
+        observed = list(range(len(layers))) if capture_layers is None else list(capture_layers)
+        for i in observed if collect else (target,): handles.append(layers[i].register_forward_hook(make(i)))
         yield totals, counts, audio
     finally:
         for handle in handles: handle.remove()
 
 
-def generate(native, row, prompt, collect=False, target=None, group='answer', direction=None):
+def generate(native, row, prompt, collect=False, target=None, group='answer', direction=None, strength=-1., capture_layers=None):
     import torch
     if digest(row['audio_file']) != row['audio_sha256']: raise ValueError('Audio changed.')
     engine.seed(); inputs = native.processor(text=engine.phi_prompt(prompt), audios=[(engine.load_audio(row['audio_file']), 16000)],
@@ -193,16 +194,17 @@ def generate(native, row, prompt, collect=False, target=None, group='answer', di
             max_new_tokens=512, do_sample=False, num_beams=1, repetition_penalty=1., use_cache=True)
         totals, counts, audio = {}, {}, {}
     else:
-        with torch.inference_mode(), hooks(native.layers, audio_mask, collect, target, group, direction) as (totals, counts, audio):
+        with torch.inference_mode(), hooks(native.layers, audio_mask, collect, target, group, direction, strength, capture_layers) as (totals, counts, audio):
             result = native.model.generate(**inputs, generation_config=native.config, max_new_tokens=512,
                 do_sample=False, num_beams=1, repetition_penalty=1., use_cache=True)
     suffix = result[:, inputs['input_ids'].shape[1]:]
     trace = dict(response=native.processor.batch_decode(suffix, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0],
         response_tokens=int(suffix.shape[1]), generation_seconds=time.monotonic()-started)
     if collect:
-        if len(totals) != len(native.layers) or len(set(counts.values())) != 1: raise ValueError('Missing/unequal layer capture counts.')
-        trace.update(means=torch.stack([torch.stack((totals[i]/counts[i], audio[i])).cpu() for i in range(len(native.layers))]),
-                     hook_forwards=counts[0], audio_tokens=int(audio_mask.sum()))
+        observed = list(range(len(native.layers))) if capture_layers is None else list(capture_layers)
+        if set(totals) != set(observed) or len(set(counts.values())) != 1: raise ValueError('Missing/unequal layer capture counts.')
+        trace.update(means=torch.stack([torch.stack((totals[i]/counts[i], audio[i])).cpu() for i in observed]),
+                     hook_forwards=counts[observed[0]], audio_tokens=int(audio_mask.sum()))
     return trace
 
 

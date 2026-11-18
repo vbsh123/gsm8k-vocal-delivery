@@ -57,6 +57,9 @@ GROUPS = {
                 'gsm-happy400-start400-n400/minicpm', 'azure-gsm-happy400-start400-n400', 'bbh-three-candidates/minicpm', 'gsm8k-candidates/minicpm',
                 'azure-kimi-gsm8k1269', 'azure-bbh-three-models-regenerated'),
 }
+GROUPS['voice'] = ('multiarith290-guy-delivery', 'azure-multiarith290-guy', 'multiarith580-angry-mean')
+GROUPS['transfer'] = ('winning-transfer', *GROUPS['strengths'][1:])
+GROUPS['phi'] += ('phi4-next-tasks', 'phi4-task-steering')
 EXTRA_RUNS = {f'Phi {name} L{layer}': f'phi4-{folder}-L{layer}'
               for name, folder in [('GSM400', 'gsm-reverse400-400'), ('GSM869', 'gsm-reverse400-869'),
                                    ('MultiArith290', 'multiarith-reverse290-290')] for layer in (17, 30)}
@@ -72,6 +75,7 @@ EXTRA_RUNS.update({'Phi GSM original': 'gsm8k-candidates/phi4/original',
                    'Phi GSM L30 -2': 'phi4-gsm-reverse400-869-L30-a-2'})
 EXTRA_RUNS['Phi MultiArith L17 -1.5/-2'] = 'phi4-multiarith-reverse290-290-L17-extra-minus1.5-minus2'
 EXTRA_RUNS['Flamingo GSM400'] = 'gsm400-candidates/flamingo/original'
+EXTRA_RUNS['DIFFA MultiArith Guy delivery'] = 'multiarith290-guy-delivery'
 EXTRA_RUNS['Phi all-layer recovery diagnostic'] = 'phi4-gsm400-all-layers-test869-minus1'
 EXTRA_RUNS.update({f'Phi GSM L17 {a}': f'phi4-gsm-reverse400-869-L17-a{a}' for a in ('-1.5', '-2')})
 
@@ -170,10 +174,11 @@ def audio_path(row, config, repo, source_index=None):
 def status(repo):
     result = []
     runs = {**RUNS, **{name: relative for name, relative in EXTRA_RUNS.items() if (repo/'outputs'/relative).exists()}}
-    sweep_root = repo/'outputs/winning-strengths'
-    if sweep_root.exists():
-        for config in sorted(sweep_root.glob('*/run_config.json')):
-            runs['DIFFA strengths '+config.parent.name] = str(config.parent.relative_to(repo/'outputs'))
+    for kind in ('strengths', 'transfer'):
+        for config in sorted((repo/'outputs'/f'winning-{kind}').glob('*/run_config.json')):
+            runs[f'DIFFA {kind} '+config.parent.name] = str(config.parent.relative_to(repo/'outputs'))
+    for config in sorted((repo/'outputs/phi4-task-steering').glob('*/*/run_config.json')):
+        runs['Phi own-task '+str(config.parent.relative_to(repo/'outputs/phi4-task-steering'))] = str(config.parent.relative_to(repo/'outputs'))
     for name, relative in runs.items():
         folder = repo/'outputs'/relative
         config = next((p for p in (folder/'run_config.json', folder/'split.json') if p.is_file()), None)
@@ -185,7 +190,7 @@ def status(repo):
             try:
                 plan = json.loads(snapshot(config)[0])
                 item['planned_answers'] = (len(plan['recordings']) if 'recordings' in plan else
-                    len(plan['strengths'])*len(plan['target']['records']) if plan.get('kind') == 'strengths' else
+                    len(plan['strengths'])*len(plan['target']['records']) if plan.get('kind') in ('strengths', 'transfer') else
                     len(plan['conditions'])*len(plan['pairs']) if plan.get('protocol', '').startswith('minicpm-gsm-same100') else
                     len(plan.get('strengths', {0: 0, 1: 1, 2: 2}))*len(plan['test']))
                 if plan.get('evaluation_kind') == 'all-layer-diagnostic':
@@ -259,8 +264,9 @@ def package(repo, destination, samples=3, sample_mb=256, full_audio=False, only=
         for name in ('phi4', 'minicpm'):
             requirements = repo/f'.venv-bbh-{name}'/'experiment-requirements.txt'
             if requirements.is_file(): metadata_files.append(requirements)
-    if only and 'strengths' in only:
-        metadata_files.extend(outputs.glob('*strength*.log'))
+    if only and set(only) & {'strengths', 'transfer', 'voice'}:
+        for pattern in ('*strength*.log', '*transfer*.log', '*guy*.log'):
+            metadata_files.extend(outputs.glob(pattern))
         requirements = repo/'.venv-diffa/experiment-requirements.txt'
         if requirements.is_file(): metadata_files.append(requirements)
     if only and 'flamingo' in only:
@@ -296,7 +302,7 @@ def package(repo, destination, samples=3, sample_mb=256, full_audio=False, only=
         core_roots = [outputs/relative for relative in RUNS.values()]
         for file in sorted(set(metadata_files), key=lambda p: (not any(root in p.parents for root in core_roots), str(p))):
             data = add(file, file.relative_to(repo).as_posix())
-            if data is None or file.name not in ('plan.jsonl', 'run_config.json', 'split.json', 'collection-config.json'):
+            if data is None or file.name not in ('plan.jsonl', 'run_config.json', 'split.json', 'collection-config.json', 'data_config.json'):
                 continue
             try:
                 plan = [json.loads(line) for line in data.splitlines() if line.strip()] if file.suffix == '.jsonl' else json.loads(data)

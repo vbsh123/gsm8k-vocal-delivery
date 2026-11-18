@@ -248,7 +248,7 @@ def report(folder):
         metrics, predictions = score_response(scorer, plan, row)
         groups.setdefault(row['condition'], {})[row['question_id'], row['voice']] = metrics
         scored.append(dict(row, scores=metrics, predictions=predictions))
-    steering_label = f'L31 answer strengths {plan["strengths"]}' if 'strengths' in plan else 'L31 answer x1'
+    steering_label = plan.get('report_label') or (f'L31 answer strengths {plan["strengths"]}' if 'strengths' in plan else 'L31 answer x1')
     print(f'\n{plan["task"]}: {len(rows)}/{len(expected)} evaluation answers saved. {steering_label}; seed42.', flush=True)
     summary = dict(task=plan['task'], scorer=scorer.provenance, primary_metric='flexible-extract' if plan['task'] in ('bbh5', 'bbh7') else 'flexible-numeric',
         accuracy=[], paired=[], planned_answers=len(expected), saved_answers=len(rows))
