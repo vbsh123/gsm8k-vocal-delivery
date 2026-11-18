@@ -31,6 +31,10 @@ RUNS = {
     'Kimi regenerated': 'bbh-three-regenerated-models/kimi',
 }
 GROUPS = {
+    'strengths': ('winning-strengths', 'reasoning-transfer/gsm8k', 'reasoning-transfer/svamp',
+                  'multiarith580-angry-mean', 'ifeval-angry-mean', 'bbh-logical250-angry-mean',
+                  'bbh-five250-angry-mean', 'azure-spoken-ifeval', 'azure-multiarith580',
+                  'azure-bbh-logical250-steering', 'azure-bbh-five250'),
     'multiarith': ('multiarith580-angry-mean', 'azure-multiarith580'),
     'ifeval': ('ifeval-angry-mean', 'spoken-ifeval-diffa2', 'azure-spoken-ifeval'),
     'moss': ('bbh-three-regenerated-models/moss', 'bbh-three-audio-models/moss', 'azure-bbh-three-models-regenerated'),
@@ -41,6 +45,7 @@ GROUPS = {
             'phi4-gsm-reverse400-400-L17', 'phi4-gsm-reverse400-400-L30',
             'phi4-gsm-reverse400-869-L17', 'phi4-gsm-reverse400-869-L30',
             'phi4-gsm-reverse400-869-L30-a-1.5', 'phi4-gsm-reverse400-869-L30-a-2',
+            'phi4-gsm-reverse400-869-L17-a-1.5', 'phi4-gsm-reverse400-869-L17-a-2',
             'phi4-multiarith-reverse290-290-L17', 'phi4-multiarith-reverse290-290-L30',
             'phi4-multiarith-reverse290-290-L17-extra-minus1.5-minus2',
             'phi4-multiarith-reverse290-shared', 'azure-kimi-gsm8k1269', 'azure-multiarith580',
@@ -61,6 +66,7 @@ EXTRA_RUNS.update({'Phi GSM original': 'gsm8k-candidates/phi4/original',
                    'Phi GSM L30 -1.5': 'phi4-gsm-reverse400-869-L30-a-1.5',
                    'Phi GSM L30 -2': 'phi4-gsm-reverse400-869-L30-a-2'})
 EXTRA_RUNS['Phi MultiArith L17 -1.5/-2'] = 'phi4-multiarith-reverse290-290-L17-extra-minus1.5-minus2'
+EXTRA_RUNS.update({f'Phi GSM L17 {a}': f'phi4-gsm-reverse400-869-L17-a{a}' for a in ('-1.5', '-2')})
 
 
 def walk(root):
@@ -93,6 +99,9 @@ def candidates(plan):
                 continue
             rows.append(row)
             rows.extend(row[s] for s in ('neutral', 'angry') if isinstance(row.get(s), dict))
+    for name in ('source', 'target'):
+        if isinstance(plan.get(name), dict):
+            rows.extend(r for r in plan[name].get('records', []) if isinstance(r, dict))
     return rows
 
 
@@ -154,6 +163,10 @@ def audio_path(row, config, repo, source_index=None):
 def status(repo):
     result = []
     runs = {**RUNS, **{name: relative for name, relative in EXTRA_RUNS.items() if (repo/'outputs'/relative).exists()}}
+    sweep_root = repo/'outputs/winning-strengths'
+    if sweep_root.exists():
+        for config in sorted(sweep_root.glob('*/run_config.json')):
+            runs['DIFFA strengths '+config.parent.name] = str(config.parent.relative_to(repo/'outputs'))
     for name, relative in runs.items():
         folder = repo/'outputs'/relative
         config = next((p for p in (folder/'run_config.json', folder/'split.json') if p.is_file()), None)
@@ -164,9 +177,10 @@ def status(repo):
             try:
                 plan = json.loads(snapshot(config)[0])
                 item['planned_answers'] = (len(plan['recordings']) if 'recordings' in plan else
+                    len(plan['strengths'])*len(plan['target']['records']) if plan.get('kind') == 'strengths' else
                     len(plan['conditions'])*len(plan['pairs']) if plan.get('protocol', '').startswith('minicpm-gsm-same100') else
                     len(plan.get('strengths', {0: 0, 1: 1, 2: 2}))*len(plan['test']))
-                vector = plan.get('vector') or plan.get('settings', {}).get('vectors')
+                vector = (plan['source'].get('vector') if isinstance(plan.get('source'), dict) else None) or plan.get('vector') or plan.get('settings', {}).get('vectors')
                 if vector:
                     vector_path = Path(vector)
                     if not vector_path.is_absolute():
@@ -232,6 +246,10 @@ def package(repo, destination, samples=3, sample_mb=256, full_audio=False, only=
         for name in ('phi4', 'minicpm'):
             requirements = repo/f'.venv-bbh-{name}'/'experiment-requirements.txt'
             if requirements.is_file(): metadata_files.append(requirements)
+    if only and 'strengths' in only:
+        metadata_files.extend(outputs.glob('*strength*.log'))
+        requirements = repo/'.venv-diffa/experiment-requirements.txt'
+        if requirements.is_file(): metadata_files.append(requirements)
     source_index = source_audio_index(metadata_files)
     tracked = subprocess.run(['git', 'ls-files', '-z'], cwd=repo, capture_output=True, check=True).stdout
     code_files = [repo/os.fsdecode(p) for p in tracked.split(b'\0') if p]
@@ -271,6 +289,8 @@ def package(repo, destination, samples=3, sample_mb=256, full_audio=False, only=
                 continue
             selected = []
             sections = [plan] if isinstance(plan, list) else [plan.get(k, []) for k in ('recordings', 'extraction', 'collection', 'test', 'pairs')]
+            if isinstance(plan, dict):
+                sections.extend(plan[k].get('records', []) for k in ('source', 'target') if isinstance(plan.get(k), dict))
             for section in sections:
                 ids = []
                 for row in section if isinstance(section, list) else []:

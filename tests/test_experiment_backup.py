@@ -13,6 +13,27 @@ import pack_experiment_backup as run
 
 
 class EvidenceBackupTests(unittest.TestCase):
+    def test_strengths_include_raw_answers_external_vector_and_nested_audio(self):
+        with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
+            root=Path(d); repo, source, _, _ = self.repo(root)
+            folder=repo/'outputs/winning-strengths/gsm8k'; folder.mkdir(parents=True)
+            external=repo/'outputs/other-vector';external.mkdir();vector=external/'direction.pt';vector.write_bytes(b'vector')
+            row=dict(question_id='q0', voice='Jenny', style='neutral', audio_file=str(source/'q0-neutral.wav'))
+            plan=dict(kind='strengths',source=dict(vector=str(vector)),target=dict(records=[row]),
+                      strengths=[-2,-1.5,-1,-.5,0,.5,1,1.5,2])
+            (folder/'run_config.json').write_text(json.dumps(plan))
+            (folder/'results.jsonl').write_text(json.dumps(dict(row,condition='neutral',response='#### 2'))+'\n')
+            path=run.package(repo,root/'downloads',samples=1,only=['strengths'])
+            with zipfile.ZipFile(path) as archive:
+                names=archive.namelist();m=json.loads(archive.read('MANIFEST.json'))
+                self.assertIn('outputs/winning-strengths/gsm8k/results.jsonl',names)
+                self.assertTrue(any(n.startswith('referenced-vectors/') for n in names))
+                self.assertEqual(len(m['audio_samples']),1)
+                status=next(r for r in m['runs'] if r['experiment']=='DIFFA strengths gsm8k')
+                self.assertEqual(status['planned_answers'],9)
+                self.assertEqual(status['saved_unique_answers'],1)
+                self.assertTrue(status['required_vector_present'])
+
     def test_phi_focus_preserves_small_collection_means_and_ignores_unrelated_runs(self):
         with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
             root=Path(d);repo,source,_,_=self.repo(root)
