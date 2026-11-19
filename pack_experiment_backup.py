@@ -57,6 +57,7 @@ GROUPS = {
                 'gsm-happy400-start400-n400/minicpm', 'azure-gsm-happy400-start400-n400', 'bbh-three-candidates/minicpm', 'gsm8k-candidates/minicpm',
                 'azure-kimi-gsm8k1269', 'azure-bbh-three-models-regenerated'),
 }
+GROUPS['step'] = ('step-gsm400', 'step-gsm718')
 GROUPS['emotions'] = ('available-audio-emotions',)
 GROUPS['voice'] = ('multiarith290-guy-delivery', 'azure-multiarith290-guy', 'multiarith580-angry-mean',
                    'multiarith290-guy-four-emotions', 'azure-multiarith290-guy-happy-sad')

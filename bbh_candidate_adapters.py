@@ -12,7 +12,7 @@ import shutil
 CATALOG = Path(__file__).with_name('bbh_candidate_models.json')
 MODELS = json.loads(CATALOG.read_text())
 ALLOW = ['*.json', '*.py', '*.safetensors', '*.model', '*.tiktoken', '*.txt', '*.jinja', '*.jinja2', '*.yaml']
-IGNORE = ['think/*', 'assets/*', 'figures/*', 'examples/*', 'static/*']
+IGNORE = ['think/*', 'assets/*', 'figures/*', 'examples/*', 'static/*', 'token2wav/*']
 
 
 def load_audio(path, sample_rate=16000):
@@ -44,7 +44,8 @@ def checkpoint(key):
     if index.is_file():
         try:
             shards = set(json.loads(index.read_text())['weight_map'].values())
-            core = ['config.json', 'generation_config.json', 'tokenizer_config.json', 'tokenizer.json']
+            core = ['config.json', 'tokenizer_config.json', 'tokenizer.json']
+            if key != 'step': core.append('generation_config.json')
             if shards and all((cached/name).is_file() and (cached/name).stat().st_size > 0 for name in [*core, *shards]):
                 print(f'{key}: reusing indexed pinned checkpoint; no weight download required.', flush=True)
                 return str(cached)
@@ -68,6 +69,9 @@ def make_generator(key):
     import torch
     from transformers import AutoProcessor
     path = checkpoint(key)
+    if key == 'step':
+        from step_audio_adapter import make_generator as step_generator
+        return step_generator(path)
     if key == 'phi4':
         from transformers import AutoModelForCausalLM, GenerationConfig
         processor = AutoProcessor.from_pretrained(path, trust_remote_code=True)

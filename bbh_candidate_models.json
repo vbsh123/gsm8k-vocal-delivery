@@ -40,5 +40,18 @@
     "attention": "sdpa",
     "documentation": "https://huggingface.co/nvidia/audio-flamingo-3-hf",
     "notes": "Official Transformers conversion; native 30-second windows and 600-second cap. Reject longer recordings instead of truncating. AF-Think adapter not loaded."
+  },
+  "step": {
+    "model": "stepfun-ai/Step-Audio-2-mini",
+    "revision": "e36fdd5d71e0ea22f09dd94bbab9bfc544ca1e36",
+    "python": "3.10+",
+    "torch": "2.6.0",
+    "torchaudio": "2.6.0",
+    "transformers": "4.49.0",
+    "weights_gib": 15.488312520086765,
+    "attention": "native upstream default",
+    "documentation": "https://huggingface.co/stepfun-ai/Step-Audio-2-mini",
+    "upstream_inference_revision": "76e272b56c3917a8d7188f18bbb5a65dfc8a0845",
+    "notes": "Native 25-second audio windows, full recording; text-output chat template, no TTS prefix or vocoder. Existing DIFFA environment; do not change its packages. Native model forward/cache behavior preserved."
   }
 }

@@ -109,7 +109,8 @@ class CandidateTests(unittest.TestCase):
                 self.kwargs = kwargs; return torch.tensor([[1, 2, 7, 8]])
             def chat(self, **kwargs):
                 self.kwargs = kwargs; return 'The answer is (C).'
-        for key in adapters.MODELS:
+        # Step's native template/decoder has separate coverage in test_step_audio.
+        for key in ('phi4','minicpm','flamingo'):
             processor, model = Processor(), Model()
             processor.tokenizer = SimpleNamespace(encode=lambda text, **kwargs: [7, 8])
             auto = lambda value: SimpleNamespace(from_pretrained=lambda *args, **kwargs: value)
