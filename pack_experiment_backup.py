@@ -42,7 +42,7 @@ GROUPS = {
     'moss': ('bbh-three-regenerated-models/moss', 'bbh-three-audio-models/moss', 'azure-bbh-three-models-regenerated'),
     'kimi': ('bbh-three-regenerated-models/kimi', 'bbh-three-audio-models/kimi', 'azure-bbh-three-models-regenerated'),
     'phi': ('gsm8k-candidates/phi4', 'gsm-happy400/phi4', 'azure-gsm-happy400', 'bbh-three-candidates/phi4', 'bbh-five-candidates/phi4',
-            'phi4-answer-only-followup', 'phi4-reasoning-emotion100-gsm8k', 'phi4-gsm100-layer-drift',
+            'phi4-answer-only-followup', 'phi4-reasoning-emotion100-gsm8k', 'phi4-gsm100-layer-drift', 'phi4-gsm100-layer-drift-neutral-from-angry',
             'phi4-gsm400-all-layers-test869-minus1',
             'phi4-instruction-controls100', 'phi4-instruction-controls100-format-please',
             'phi4-gsm-reverse400-400-L17', 'phi4-gsm-reverse400-400-L30',

@@ -11,7 +11,8 @@ from collect_instruction_controls import validate
 from audit_reasoning_emotion import PROTOCOLS
 
 
-def analyze(source, output, top=8):
+def analyze(source, output, top=8, direction="neutral-to-angry"):
+    if direction not in ("neutral-to-angry","angry-to-neutral"):raise ValueError("Unknown drift direction.")
     import torch
     torch.set_num_threads(min(torch.get_num_threads(), 4))
     plan = json.loads((source/'run_config.json').read_text())
@@ -28,10 +29,12 @@ def analyze(source, output, top=8):
     if len(ids) != 100 or len(set(ids)) != 100:
         raise ValueError('Need all100 unique original matched question captures.')
     n, a = torch.stack(neutral), torch.stack(angry)
-    delta = a-n; nn = n.norm(dim=-1); an = a.norm(dim=-1); dn = delta.norm(dim=-1)
+    delta = a-n if direction=='neutral-to-angry' else n-a
+    nn = n.norm(dim=-1); an = a.norm(dim=-1); dn = delta.norm(dim=-1)
     valid = (nn > 0)&(an > 0)
     cosine = (n*a).sum(-1)/(nn*an).clamp_min(1e-30)
-    relative = 100*dn/nn.clamp_min(1e-30)
+    neutral_relative=100*dn/nn.clamp_min(1e-30);angry_relative=100*dn/an.clamp_min(1e-30)
+    relative=neutral_relative if direction=='neutral-to-angry' else angry_relative
     units = delta/dn.clamp_min(1e-30).unsqueeze(-1)
     summaries, pairs = [], []
     for g, group in enumerate(('answer', 'audio')):
@@ -43,25 +46,33 @@ def analyze(source, output, top=8):
             # quantile(.5), unlike torch.median, averages the middle two entries for even N.
             summaries.append(dict(group=group, layer=layer, pairs=count,
                 mean_relative_change_pct=float(rel.mean()), median_relative_change_pct=float(rel.quantile(.5)),
+                mean_neutral_referenced_change_pct=float(neutral_relative[:,layer,g][keep].mean()),
+                mean_angry_referenced_change_pct=float(angry_relative[:,layer,g][keep].mean()),
                 mean_representation_cosine=float(cos.mean()), mean_shift_norm=float(dn[:, layer, g][keep].mean()),
                 norm_of_mean_shift=float(delta[:, layer, g][keep].mean(0).norm()),
                 shift_direction_consistency=float(units[:, layer, g][keep].mean(0).norm())))
             for i, qid in enumerate(ids):
                 pairs.append(dict(question_id=qid, group=group, layer=layer, valid_nonzero_norms=bool(valid[i, layer, g]),
                     relative_change_pct=float(relative[i, layer, g]) if valid[i, layer, g] else None,
+                    neutral_norm=float(nn[i,layer,g]),angry_norm=float(an[i,layer,g]),
+                    neutral_referenced_change_pct=float(neutral_relative[i,layer,g]) if valid[i,layer,g] else None,
+                    angry_referenced_change_pct=float(angry_relative[i,layer,g]) if valid[i,layer,g] else None,
                     representation_cosine=float(cosine[i, layer, g]) if valid[i, layer, g] else None,
                     shift_norm=float(dn[i, layer, g])))
     output.mkdir(parents=True, exist_ok=True)
     for name, rows in [('layer-summary.csv', summaries), ('pair-metrics.csv', pairs)]:
         with (output/name).open('w', newline='') as stream:
             writer = csv.DictWriter(stream, fieldnames=list(rows[0])); writer.writeheader(); writer.writerows(rows)
+    formula='||angry-neutral||/||neutral||' if direction=='neutral-to-angry' else '||neutral-angry||/||angry||'
     note = ('Initial native forward, not whole-generation pooled states. Same100 neutral/angry audio and reasoning prompt. '
-            'Relative drift is ||angry-neutral||/||neutral|| per question, then mean across questions. '
+            f'Relative drift is {formula} per question, then mean across questions. '
             'Large change does not establish a useful steering layer or explain accuracy. '
             'Different audio lengths/positions can contribute. No outcome filtering or new inference.')
     (output/'summary.json').write_text(json.dumps(dict(protocol='phi4-same100-initial-layer-drift-v1',
-        source=str(source.absolute()), questions=ids, rows=summaries, note=note), indent=2)+'\n')
-    print('Phi SAME100: angry versus neutral; initial forward; ranked by mean relative activation change.')
+        source=str(source.absolute()), questions=ids, rows=summaries, note=note,direction=direction,
+        reference_condition='neutral' if direction=='neutral-to-angry' else 'angry',relative_change_formula='100*'+formula), indent=2)+'\n')
+    print(f'Phi SAME100: {direction}; initial forward; ranked by mean relative activation change.')
+    print('Relative change:', '100*'+formula)
     for group in ('answer', 'audio'):
         print(f'\n{group.upper()} positions:')
         print('Layer  Mean change %  Median change %  Mean cosine  Shift consistency')
@@ -76,11 +87,15 @@ def analyze(source, output, top=8):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--source', type=Path, default=Path('outputs/phi4-reasoning-emotion100-gsm8k'))
-    p.add_argument('--output', type=Path, default=Path('outputs/phi4-gsm100-layer-drift'))
+    p.add_argument('--output', type=Path)
+    p.add_argument('--direction',choices=('neutral-to-angry','angry-to-neutral'),default='neutral-to-angry')
     p.add_argument('--top', type=int, default=8)
     args = p.parse_args()
     if not 1 <= args.top <= 32: p.error('--top must be between1 and32')
-    analyze(args.source, args.output, args.top)
+    output=args.output or Path('outputs/phi4-gsm100-layer-drift'+('' if args.direction=='neutral-to-angry' else '-neutral-from-angry'))
+    if args.direction=='angry-to-neutral' and output.resolve()==Path('outputs/phi4-gsm100-layer-drift').resolve():
+        p.error('Use a separate output folder for reverse drift; preserve the original ranking.')
+    analyze(args.source, output, args.top,args.direction)
 
 
 if __name__ == '__main__': main()

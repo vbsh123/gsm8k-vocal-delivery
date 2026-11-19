@@ -33,6 +33,19 @@ class PhiLayerDriftTests(unittest.TestCase):
                 pairs = list(csv.DictReader(stream))
             row = next(r for r in pairs if r['question_id'] == 'q4' and r['group'] == 'answer' and r['layer'] == '0')
             self.assertAlmostEqual(float(row['representation_cosine']), math.sqrt(2/3))
+            reverse=Path(d)/'reverse'
+            original=(output/'layer-summary.csv').read_bytes()
+            with patch.object(collect_instruction_controls,'state_shape',return_value=shape):
+                analyze(source,reverse,direction='angry-to-neutral')
+            backward=json.loads((reverse/'summary.json').read_text())
+            reverse_row=backward['rows'][0]
+            expected_reverse=sum(100*4/math.sqrt((i-4)**2+2*i*i) for i in range(1,100))/99
+            self.assertAlmostEqual(reverse_row['mean_relative_change_pct'],expected_reverse,places=5)
+            self.assertNotAlmostEqual(reverse_row['mean_relative_change_pct'],summary['rows'][0]['mean_relative_change_pct'])
+            for field in ('mean_representation_cosine','mean_shift_norm','norm_of_mean_shift','shift_direction_consistency'):
+                self.assertAlmostEqual(reverse_row[field],summary['rows'][0][field])
+            self.assertEqual(backward['reference_condition'],'angry')
+            self.assertEqual((output/'layer-summary.csv').read_bytes(),original)
             # Missing one original capture must not silently change the selected cohort.
             (source/'states/000-angry-reasoning.pt').unlink()
             with patch.object(collect_instruction_controls, 'state_shape', return_value=shape):
