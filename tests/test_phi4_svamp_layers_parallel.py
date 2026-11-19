@@ -34,6 +34,28 @@ class NightlyTests(unittest.TestCase):
             prepare.assert_called_once()
             self.assertEqual(events[:6],['start0','start1','start2','wait0','wait1','wait2'])
 
+    def test_gpu_wait_happens_before_any_worker_starts(self):
+        events=[]
+        with tempfile.TemporaryDirectory() as tmp,redirect_stdout(io.StringIO()):
+            args=SimpleNamespace(output=Path(tmp),data_root=Path(tmp)/'data',layers=[0,1,2],workers=3,
+                strengths=[-1.],collection_size=300,test_size=300,wait_for_gpu=True)
+            def start(*a,**k):
+                events.append('start');process=MagicMock();process.poll.return_value=0;process.wait.return_value=0
+                return process
+            with patch.object(nightly.subprocess,'run'),patch.object(nightly,'wait_for_gpu',side_effect=lambda stack:events.append('gpu-ready')),\
+                 patch.object(nightly.subprocess,'Popen',side_effect=start):
+                nightly.launch(args)
+            self.assertEqual(events,['gpu-ready','start','start','start'])
+
+    def test_gpu_wait_checks_active_processes_until_idle(self):
+        from contextlib import ExitStack
+        with tempfile.TemporaryDirectory() as tmp,redirect_stdout(io.StringIO()):
+            with patch.object(nightly.Path,'open',return_value=(Path(tmp)/'gpu.lock').open('a')),\
+                 patch.object(nightly.subprocess,'check_output',side_effect=['123\n','']),\
+                 patch.object(nightly.time,'sleep') as sleep,ExitStack() as stack:
+                nightly.wait_for_gpu(stack)
+            sleep.assert_called_once_with(30)
+
     def test_collection_generates_once_per_delivery_for_multiple_layers_and_resumes(self):
         from kimi_bbh_layer_diagnostic import digest
         with tempfile.TemporaryDirectory() as tmp,redirect_stdout(io.StringIO()):

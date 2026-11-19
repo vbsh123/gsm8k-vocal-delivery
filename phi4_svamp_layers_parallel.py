@@ -5,6 +5,7 @@ import fcntl
 import json
 from pathlib import Path
 import subprocess
+import time
 
 import phi4_sweep as sweep
 import phi4_task_steering as task
@@ -75,6 +76,15 @@ def worker(args):
         sweep.run(args,native=native)
 
 
+def wait_for_gpu(stack):
+    lock=stack.enter_context(Path('outputs/jenny-task-vectors.lock').open('a'))
+    print('Waiting for shared GPU lock; all three workers start together afterward.',flush=True)
+    fcntl.flock(lock,fcntl.LOCK_EX)
+    while subprocess.check_output(['nvidia-smi','--query-compute-apps=pid','--format=csv,noheader'],text=True).strip():
+        print('Waiting for active GPU work to finish.',flush=True)
+        time.sleep(30)
+
+
 def launch(args):
     args.output.mkdir(parents=True,exist_ok=True)
     with sweep.job_lock(args.output/'nightly-launcher'),ExitStack() as stack:
@@ -85,6 +95,7 @@ def launch(args):
         freeze(args.output/'nightly-assignment.json',dict(protocol='phi4-svamp-parallel-layers-v1',
             layers_by_worker=assignments,strengths=args.strengths,collection_size=args.collection_size,test_size=args.test_size,
             note='Exploratory sweep on previously inspected test questions; no GPU queue.'))
+        if getattr(args,'wait_for_gpu',False):wait_for_gpu(stack)
         children=[]
         try:
             for i,layers in enumerate(assignments):
@@ -114,6 +125,7 @@ def main():
     parser.add_argument('--strengths',type=float,nargs='+',default=[-1.,1.])
     parser.add_argument('--workers',type=int,default=3)
     parser.add_argument('--worker-id',type=int)
+    parser.add_argument('--wait-for-gpu',action='store_true',help='Parent waits for shared GPU lock and no active GPU processes, then starts all workers together.')
     parser.add_argument('--collection-size',type=int,default=300)
     parser.add_argument('--test-size',type=int,default=300)
     parser.add_argument('--data-root',type=Path,default=Path('outputs/phi4-next-tasks'))

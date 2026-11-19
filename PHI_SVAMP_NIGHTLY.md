@@ -1,7 +1,10 @@
 # Three-worker SVAMP layer sweep
 
 Run after the current experiments finish and room is available for three Phi models.
-This launcher does not wait for a GPU queue and does not stop existing processes.
+By default this launcher does not wait for a GPU queue and does not stop existing processes.
+Add `--wait-for-gpu` to wait for the shared GPU lock and active GPU processes
+to finish. The parent holds that lock until all three workers finish; workers
+start together after the wait, without acquiring separate GPU locks.
 Each process checks available memory before loading; GPU execution is not tested locally.
 
 ```bash
@@ -28,8 +31,8 @@ Existing compatible collection pairs, vectors, test baselines and completed
 answers are reused. Interrupted runs resume with the identical command. There
 are 16,800 planned steered answers and at most 1,800 collection generations
 before reuse. Baseline generation may be duplicated between workers if absent.
-Per-setting and collection-file locks protect against duplicate writers; there
-is no shared GPU lock. Do not run an overlapping sweep on these same settings.
+Per-setting and collection-file locks protect against duplicate writers; the parent acquires
+the shared GPU lock only when `--wait-for-gpu` is supplied. Do not run an overlapping sweep on these same settings.
 
 ```bash
 tail -F outputs/phi4-svamp-layers-nightly.log \
