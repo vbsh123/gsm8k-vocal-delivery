@@ -81,3 +81,19 @@ tail -F outputs/phi4-nightly-focused.log outputs/phi4-opposite-recovery.log outp
 ```
 
 The helper stops only this repository's nightly wrapper/opposite diagnostic. The focused continuation runs L2/L6/L7/L17/L30 answer at minus1 on both input styles, skipping completed answers. It preserves the frozen original config and all prior results, including audio targets, and records the new execution scope separately. The summary still displays every saved target. The queue then continues to SVAMP/BBH3/BBH5 at L17 answer minus1.5. It does not automatically choose a different layer or launch full869 GSM evaluation.
+
+## Guy happy/sad extension
+
+```bash
+git pull --ff-only
+nohup bash run_multiarith_guy_happy_sad.sh > outputs/multiarith-guy-happy-sad.log 2>&1 </dev/null &
+tail -F outputs/multiarith-guy-happy-sad.log
+```
+
+The DIFFA machine generates only happy/sad Guy clips on the same290 MultiArith questions. It copies all580 completed neutral/angry textual answers into a separate four-emotion output, retaining source hashes and leaving original files untouched. Same original prompt, seed42, fast_dllm128steps/block32/512tokens, temperature0, no steering or vector collection. Only580 new model calls are needed. TTS can run alongside transfer; native evaluation waits on the existing shared GPU lock, so a running transfer queue finishes first. No transfer process is stopped or relaunched. The four-emotion report compares each emotion against neutral using installed GSM8K filters/metric plus numeric equivalence. These additional comparisons were chosen after observing the first two conditions and are exploratory, with unadjusted tests. The `voice` backup group includes the added raw answers/configs/audio samples.
+
+CPU summary:
+
+```bash
+OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 .venv-diffa/bin/python run_multiarith_second_voice.py --mode summary --output outputs/multiarith290-guy-four-emotions
+```

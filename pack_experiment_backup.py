@@ -57,7 +57,8 @@ GROUPS = {
                 'gsm-happy400-start400-n400/minicpm', 'azure-gsm-happy400-start400-n400', 'bbh-three-candidates/minicpm', 'gsm8k-candidates/minicpm',
                 'azure-kimi-gsm8k1269', 'azure-bbh-three-models-regenerated'),
 }
-GROUPS['voice'] = ('multiarith290-guy-delivery', 'azure-multiarith290-guy', 'multiarith580-angry-mean')
+GROUPS['voice'] = ('multiarith290-guy-delivery', 'azure-multiarith290-guy', 'multiarith580-angry-mean',
+                   'multiarith290-guy-four-emotions', 'azure-multiarith290-guy-happy-sad')
 GROUPS['transfer'] = ('winning-transfer', *GROUPS['strengths'][1:])
 GROUPS['phi'] += ('phi4-next-tasks', 'phi4-task-steering', 'phi4-gsm400-opposite-all-layers-minus1')
 EXTRA_RUNS = {f'Phi {name} L{layer}': f'phi4-{folder}-L{layer}'
@@ -76,6 +77,7 @@ EXTRA_RUNS.update({'Phi GSM original': 'gsm8k-candidates/phi4/original',
 EXTRA_RUNS['Phi MultiArith L17 -1.5/-2'] = 'phi4-multiarith-reverse290-290-L17-extra-minus1.5-minus2'
 EXTRA_RUNS['Flamingo GSM400'] = 'gsm400-candidates/flamingo/original'
 EXTRA_RUNS['Phi opposite recovery diagnostic'] = 'phi4-gsm400-opposite-all-layers-minus1'
+EXTRA_RUNS['DIFFA Guy four emotions'] = 'multiarith290-guy-four-emotions'
 EXTRA_RUNS['DIFFA MultiArith Guy delivery'] = 'multiarith290-guy-delivery'
 EXTRA_RUNS['Phi all-layer recovery diagnostic'] = 'phi4-gsm400-all-layers-test869-minus1'
 EXTRA_RUNS.update({f'Phi GSM L17 {a}': f'phi4-gsm-reverse400-869-L17-a{a}' for a in ('-1.5', '-2')})

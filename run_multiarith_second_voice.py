@@ -56,7 +56,7 @@ def evaluate(plan,output):
                 or row['max_new_tokens']!=512 or row['interventions']):raise ValueError('Saved new-voice response differs.')
         done.add(key)
     jobs=[(key,r) for key,r in tasks.items() if key not in done]
-    if not jobs:print('All580 new-voice answers saved; no model loaded.');return
+    if not jobs:print(f'All{len(tasks)} voice-delivery answers saved; no model loaded.');return
     cache=Path(os.environ.get('HF_HOME','/workspace/.hf_home')).absolute()
     os.environ.update(HF_HOME=str(cache),HF_HUB_CACHE=str(cache/'hub'),HUGGINGFACE_HUB_CACHE=str(cache/'hub'))
     os.environ.pop('TRANSFORMERS_CACHE',None)
