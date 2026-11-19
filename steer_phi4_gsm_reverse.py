@@ -192,8 +192,10 @@ def collect(plan, output, native, config_hash):
     return vector['angry_minus_neutral']
 
 
-def completed(plan, output, config_hash, repair=False):
-    rows = read_rows(output/'results.jsonl', repair=repair); done = {}
+def completed(plan, output, config_hash, repair=False, result_paths=None):
+    paths = result_paths if result_paths is not None else [output/'results.jsonl']
+    if repair and len(paths)>1: raise ValueError('Repair only a single owned result file, never another active worker file.')
+    rows = [r for path in paths for r in read_rows(path, repair=repair)]; done = {}
     tasks = {(r['question_id'], r['voice']): r for r in plan['test']}
     for r in rows:
         key = r['question_id'], r['voice']; c = r['condition']
@@ -237,10 +239,12 @@ def reuse_answers(plan, output, config_hash, source, baseline_only=False):
     return count
 
 
-def evaluate(plan, output, native, vector, config_hash):
-    _, done = completed(plan, output, config_hash, repair=True)
+def evaluate(plan, output, native, vector, config_hash, conditions=None, result_file=None, result_paths=None):
+    result_file = result_file or output/'results.jsonl'
+    read_rows(result_file, repair=True)
+    _, done = completed(plan, output, config_hash, result_paths=result_paths)
     vector_hash = digest(output/'style-vectors.pt')
-    jobs = [(r, c, a) for r in plan['test'] for c, a in plan['strengths'].items() if (r['question_id'], r['voice'], c) not in done]
+    jobs = [(r, c, a) for r in plan['test'] for c, a in plan['strengths'].items() if (conditions is None or c in conditions) and (r['question_id'], r['voice'], c) not in done]
     for i, (row, condition, strength) in enumerate(jobs, 1):
         print(f'Evaluate [{i}/{len(jobs)}] {row["question_id"]} {condition}', flush=True)
         start = time.monotonic()
@@ -250,15 +254,19 @@ def evaluate(plan, output, native, vector, config_hash):
                      revision=plan['recipe']['revision'], strength=strength, layer=plan['layer'], group='answer',
                      vector_sha256=vector_hash if strength else None, generation_seconds=time.monotonic()-start,
                      interventions=[dict(layer=plan['layer'], group='answer', strength=strength)] if strength else [])
-        with (output/'results.jsonl').open('a') as stream: stream.write(json.dumps(saved)+'\n'); stream.flush()
+        with result_file.open('a') as stream: stream.write(json.dumps(saved)+'\n'); stream.flush()
         print(trace['response'], flush=True)
 
 
-def report(output):
+def report(output, result_paths=None, conditions=None, report_suffix=""):
     from rescore_audio_steering import HarnessTaskScorer, numeric_equal, paired
     path = output/'run_config.json'
     if not path.exists(): print('Phi reverse steering: not prepared.'); return
-    plan = json.loads(path.read_text()); rows, _ = completed(plan, output, digest(path))
+    plan = json.loads(path.read_text()); rows, _ = completed(plan, output, digest(path), result_paths=result_paths)
+    if conditions is not None:
+        if 'neutral' not in conditions or not set(conditions)<=set(plan['strengths']): raise ValueError('Need neutral and valid comparison conditions.')
+        plan = dict(plan, strengths={c:a for c,a in plan['strengths'].items() if c in conditions})
+        rows = [r for r in rows if r['condition'] in conditions]
     total = len(plan['test'])*len(plan['strengths'])
     pair_folder = Path(plan['shared_collection'])/'pairs' if plan.get('shared_collection') else output/'pairs'
     collection_status = 'frozen vector reused' if plan.get('fixed_vector_source') else f'{len(list(pair_folder.glob("*.pt")))}/{len(plan["collection"])} collection pairs'
@@ -290,8 +298,8 @@ def report(output):
                 comparisons.append(dict(condition=c, metric=m, **result))
                 print(f'{c} / {m}: gain={result["gain_pp"]:+.2f} pp; W/L={result["wins"]}/{result["losses"]}; '
                       f'p={result["mcnemar_exact_p"]:.4g}; CI={result["ci95_gain_pp"]}', flush=True)
-    (output/'rescored.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in scored))
-    (output/'summary.json').write_text(json.dumps(dict(protocol=plan['protocol'], matched_questions=n, accuracy=accuracy,
+    (output/f'rescored{report_suffix}.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in scored))
+    (output/f'summary{report_suffix}.json').write_text(json.dumps(dict(protocol=plan['protocol'], matched_questions=n, accuracy=accuracy,
         comparisons=comparisons, scorer=scorer.provenance, note=plan['scoring']), indent=2)+'\n')
 
 

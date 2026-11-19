@@ -136,3 +136,23 @@ Layer7 was selected using subsets of these test questions, so this is an explora
 ```bash
 OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 .venv-diffa/bin/python run_phi4_gsm_L7.py --mode summary
 ```
+
+## Two Phi workers, one L7 strength each
+
+```bash
+git pull --ff-only
+.venv-diffa/bin/python stop_phi4_nightly_opposite.py --l7-only
+nohup bash run_phi4_gsm_L7_split.sh > outputs/phi4-gsm-L7-split.log 2>&1 </dev/null &
+tail -F outputs/phi4-gsm-L7-worker0-minus1.log outputs/phi4-gsm-L7-worker1-minus1.5.log
+```
+
+Stop only the old L7 wrapper/model before switching; no completed records are deleted. Both workers share the frozen869 cohort and400-question L7 vector. Worker0 evaluates minus1, worker1 minus1.5. Each has an18GiB Torch limit and a separate results-workerN.jsonl file plus duplicate-writer lock. Existing serial and diagnostic answers are reused without copies into worker files. The wrapper reserves the shared GPU and starts both workers together after existing GPU work ends; they do not wait for each other. Reports and Phi ZIP status combine the original results.jsonl with both worker files and reject duplicates. Interrupted tails are repaired only in a worker's own file.
+
+Individual-strength summaries use all available matched pairs for that strength, without waiting for the other worker:
+
+```bash
+OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 .venv-diffa/bin/python run_phi4_gsm_L7.py --mode summary --strength -1
+OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 .venv-diffa/bin/python run_phi4_gsm_L7.py --mode summary --strength -1.5
+```
+
+Omit --strength to compare neutral and both strengths on their common completed questions. All results remain exploratory and tests unadjusted.

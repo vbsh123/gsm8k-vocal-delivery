@@ -54,11 +54,16 @@ class L7FollowupTests(unittest.TestCase):
                 (203,['python','phi4_task_steering.py','--mode','run','--layer','17','--strength','-1.5']),
                 (204,['python','phi4_task_steering.py','--mode','run','--layer','7','--strength','-1.5']),
                 (205,['python','phi4_task_steering.py','--mode','run','--layer','17','--strength','-1']),
-                (206,['python','phi4_task_steering.py','--mode','summary','--layer','17','--strength','-1.5'])]
+                (206,['python','phi4_task_steering.py','--mode','summary','--layer','17','--strength','-1.5']),
+                (208,['bash','run_phi4_gsm_L7.sh']),
+                (209,['python','run_phi4_gsm_L7.py','--mode','run']),
+                (210,['python','run_phi4_gsm_L7.py','--mode','worker','--worker-id','1']),
+                (211,['python','run_phi4_gsm_L7.py','--mode','summary'])]
             for pid,args in records:
                 path=proc/str(pid);path.mkdir();(path/'cwd').symlink_to(repo);(path/'cmdline').write_bytes(b'\0'.join(a.encode() for a in args)+b'\0')
             self.assertEqual(stop.targets(repo,proc),[(201,True)])
             self.assertEqual(stop.targets(repo,proc,include_l17_tasks=True),[(201,True),(202,True),(203,False)])
+            self.assertEqual(stop.targets(repo,proc,l7_only=True),[(208,True),(209,False),(210,False)])
 
 
 if __name__=='__main__':unittest.main()

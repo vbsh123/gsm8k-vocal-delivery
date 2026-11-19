@@ -1,5 +1,6 @@
 """Full869 noncollection GSM8K questions, fixed L7 answer vector, strengths minus1/minus1.5."""
 import argparse
+import fcntl
 import json
 from pathlib import Path
 
@@ -7,8 +8,17 @@ import phi4_all_layer_diagnostic as diagnostic
 import phi4_opposite_recovery as opposite
 import steer_phi4_gsm_reverse as engine
 from kimi_bbh_layer_diagnostic import atomic_save,digest,freeze
+from steer import read_rows
 
 DEFAULT_OUTPUT=Path('outputs/phi4-gsm400-test869-L7-minus1-minus1.5')
+
+
+def result_files(output):
+    return [output/'results.jsonl']+sorted(output.glob('results-worker*.jsonl'))
+
+
+def completed(plan,output):
+    return engine.completed(plan,output,digest(output/'run_config.json'),result_paths=result_files(output))
 
 
 def fixed_vector(plan,output):
@@ -54,7 +64,8 @@ def append_reused(plan,output,row,condition,source):
 
 
 def reuse(plan,original,source,output):
-    _,done=engine.completed(plan,output,digest(output/'run_config.json'),repair=True)
+    read_rows(output/'results.jsonl',repair=True)
+    _,done=completed(plan,output)
     _,refs=diagnostic.references(original,source)
     for row in refs.values():
         key=row['question_id'],row['voice'],'neutral'
@@ -99,20 +110,40 @@ def prepare(source,output):
     return plan
 
 
-def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--mode',choices=('prepare','run','summary'),default='run')
-    p.add_argument('--source',type=Path,default=diagnostic_source());p.add_argument('--output',type=Path,default=DEFAULT_OUTPUT);args=p.parse_args()
-    if args.mode=='summary':engine.report(args.output);return
-    if args.mode=='prepare':prepare(args.source,args.output);return
-    plan=json.loads((args.output/'run_config.json').read_text());vector=fixed_vector(plan,args.output)
-    _,done=engine.completed(plan,args.output,digest(args.output/'run_config.json'),repair=True)
-    if len(done)==len(plan['test'])*len(plan['strengths']):print('All answers complete; no model loaded.');return
+def execute(plan,output,worker_id=None):
+    vector=fixed_vector(plan,output)
+    _,done=completed(plan,output)
+    conditions=list(plan['strengths']) if worker_id is None else [list(plan['strengths'])[worker_id+1]]
+    needed=[(r['question_id'],r['voice'],c) for r in plan['test'] for c in conditions]
+    if all(k in done for k in needed):print('Assigned answers complete; no model loaded.');return
     import torch
     diagnostic.candidates.concurrent_budget_now(18.)
     native=engine.NativePhi(7)
-    (args.output/'runtime.json').write_text(json.dumps(dict(torch=torch.__version__,transformers=engine.version('transformers'),
-        gpu=torch.cuda.get_device_name(0),script_sha256=digest(__file__),engine_sha256=digest(engine.__file__)),indent=2)+'\n')
-    engine.evaluate(plan,args.output,native,vector,digest(args.output/'run_config.json'))
+    suffix='' if worker_id is None else f'-worker{worker_id}'
+    (output/f'runtime{suffix}.json').write_text(json.dumps(dict(torch=torch.__version__,transformers=engine.version('transformers'),
+        gpu=torch.cuda.get_device_name(0),script_sha256=digest(__file__),engine_sha256=digest(engine.__file__),
+        worker_id=worker_id,conditions=conditions,gpu_budget_gib=18.),indent=2)+'\n')
+    engine.evaluate(plan,output,native,vector,digest(output/'run_config.json'),conditions=conditions,
+        result_file=output/('results.jsonl' if worker_id is None else f'results-worker{worker_id}.jsonl'),
+        result_paths=result_files(output))
+
+
+def main():
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--mode',choices=('prepare','run','worker','summary'),default='run')
+    p.add_argument('--source',type=Path,default=diagnostic_source());p.add_argument('--output',type=Path,default=DEFAULT_OUTPUT)
+    p.add_argument('--worker-id',type=int,choices=(0,1));p.add_argument('--strength',type=float,choices=(-1.,-1.5),help='Optional individual-strength summary.')
+    args=p.parse_args()
+    if args.mode=='summary':
+        conditions=None if args.strength is None else ['neutral',f'neutral-L7-answer-a{args.strength:g}']
+        engine.report(args.output,result_paths=result_files(args.output),conditions=conditions,
+            report_suffix='' if args.strength is None else f'-strength{args.strength:g}');return
+    if args.mode=='prepare':prepare(args.source,args.output);return
+    if args.mode=='worker' and args.worker_id is None:p.error('Worker needs --worker-id0 or1.')
+    plan=json.loads((args.output/'run_config.json').read_text())
+    if args.mode=='run':execute(plan,args.output);return
+    with (args.output/f'worker{args.worker_id}.lock').open('w') as lock:
+        fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        execute(plan,args.output,args.worker_id)
 
 
 def diagnostic_source():return Path('outputs/phi4-gsm400-all-layers-test869-minus1')
