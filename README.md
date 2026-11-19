@@ -70,6 +70,12 @@ Use `--mode prepare --datasets ifeval` first to reuse/generate neutral and angry
 missing recordings require the Azure credentials. The source data/checkers use the
 pinned Google Research revision. IFEval scores do not judge factual correctness.
 
+The default `--group answer` targets last prediction positions throughout generation.
+`--group audio` collects the mean at audio-token positions during native prefill and
+steers those positions only on prefill; subsequent decoding uses the native KV cache.
+This refers to positions within a Phi language-decoder layer, not layers of its audio
+encoder. Group selection is recorded in conditions, vectors, caches and output folders.
+
 To use a smaller disjoint cohort, pass `--collection-size 300 --test-size 300`
 and a separate output root, for example `--output outputs/phi4-sweeps/svamp300-300`.
 The runner selects a prefix of each existing frozen half independently, preserves the

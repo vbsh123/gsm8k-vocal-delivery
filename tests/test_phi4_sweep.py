@@ -73,6 +73,20 @@ class SweepTests(unittest.TestCase):
             args.collection_size=301
             with self.assertRaises(ValueError):sweep.subset_data(args,original,path)
 
+    def test_audio_group_uses_separate_run_and_collection_cache(self):
+        from types import SimpleNamespace
+        with tempfile.TemporaryDirectory() as tmp,redirect_stdout(io.StringIO()):
+            root=Path(tmp);source=root/'data';(source/'multiarith').mkdir(parents=True)
+            data,path=fixture(source/'multiarith')
+            args=SimpleNamespace(mode='run',datasets=['multiarith'],layers=[0],strengths=[-1.],group='audio',data_root=source,output=root/'out')
+            with patch.object(sweep.task,'evaluate') as evaluate,patch.object(sweep,'score_in_cpu_environment') as score:
+                sweep.run(args)
+            plan,output,cache=evaluate.call_args.args
+            self.assertEqual(plan['group'],'audio');self.assertEqual(plan['layer'],0)
+            self.assertEqual(output.name,'L0-audio-a-1');self.assertIn('audio',plan['recordings'][-1]['condition'])
+            self.assertEqual(sweep.group_options(args),['--group','audio'])
+            self.assertEqual(score.call_count,1)
+
     def test_different_jobs_can_run_but_duplicate_writer_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)

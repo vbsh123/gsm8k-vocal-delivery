@@ -56,6 +56,10 @@ def job_lock(output):
         yield
 
 
+def group_options(args):
+    return ['--group',getattr(args,'group','answer')]
+
+
 def cohort_options(args):
     result=[]
     for name in ('collection_size','test_size'):
@@ -81,6 +85,7 @@ def subset_data(args,data,path):
 
 
 def run(args):
+    group=getattr(args,'group','answer')
     for dataset in args.datasets:
         path=args.data_root/dataset/'data_config.json'
         if args.mode=='prepare' or not path.exists():task.prepare_data(dataset,args.data_root)
@@ -88,12 +93,12 @@ def run(args):
         if args.mode=='prepare':continue
         for layer in args.layers:
             for strength in args.strengths:
-                output=args.output/dataset/f'L{layer}-answer-a{strength:g}'
+                output=args.output/dataset/f'L{layer}-{group}-a{strength:g}'
                 if args.mode=='summary':task.report(output);continue
                 with job_lock(output):
-                    plan=task.make_plan(data,path,layer,'answer',strength)
+                    plan=task.make_plan(data,path,layer,group,strength)
                     freeze(output/'run_config.json',plan);reuse_baselines(plan,output,args.output)
-                    print(f'STAGE: {dataset} L{layer} answer x{strength:g}; {len(data["collection"])} collection /{len(data["test"])} test.',flush=True)
+                    print(f'STAGE: {dataset} L{layer} {group} x{strength:g}; {len(data["collection"])} collection /{len(data["test"])} test.',flush=True)
                     task.evaluate(plan,output,args.output/'collection-cache')
                     score_in_cpu_environment(args,dataset,layer,strength)
 
@@ -102,7 +107,7 @@ def score_in_cpu_environment(args,dataset,layer,strength):
     python=os.environ.get('DIFFA_PYTHON','.venv-diffa/bin/python')
     subprocess.run([python,'-u',str(Path(__file__).resolve()),'--mode','summary',
         '--datasets',dataset,'--layers',str(layer),'--strengths',str(strength),
-        '--data-root',str(args.data_root),'--output',str(args.output),*cohort_options(args)],check=True)
+        '--data-root',str(args.data_root),'--output',str(args.output),*cohort_options(args),*group_options(args)],check=True)
 
 
 def parallel(args):
@@ -111,7 +116,7 @@ def parallel(args):
         cpu=os.environ.get('DIFFA_PYTHON','.venv-diffa/bin/python')
         print('STAGE: Prepare/reuse selected datasets and audio once on CPU.',flush=True)
         subprocess.run([cpu,'-u',str(Path(__file__).resolve()),'--mode','prepare',
-            '--datasets',*args.datasets,'--data-root',str(args.data_root),'--output',str(args.output),*cohort_options(args)],check=True)
+            '--datasets',*args.datasets,'--data-root',str(args.data_root),'--output',str(args.output),*cohort_options(args),*group_options(args)],check=True)
         if not args.no_wait:
             gpu=stack.enter_context(Path('outputs/jenny-task-vectors.lock').open('a'))
             print('Waiting for shared GPU lock; two layer workers start together afterward.',flush=True)
@@ -124,7 +129,7 @@ def parallel(args):
                 log_path=args.output/f'worker-L{layer}.log';log=stack.enter_context(log_path.open('a'))
                 command=['.venv-bbh-phi4/bin/python','-u',str(Path(__file__).resolve()),'--mode','run','--no-wait',
                     '--datasets',*args.datasets,'--layers',str(layer),'--strengths',*[str(s) for s in args.strengths],
-                    '--data-root',str(args.data_root),'--output',str(args.output),*cohort_options(args)]
+                    '--data-root',str(args.data_root),'--output',str(args.output),*cohort_options(args),*group_options(args)]
                 process=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT)
                 workers.append((layer,process));print(f'STARTED L{layer}, PID{process.pid}; log: {log_path}',flush=True)
             failed=[]
@@ -145,6 +150,7 @@ def main():
     p.add_argument('--mode',choices=('prepare','run','summary','parallel'),default='run')
     p.add_argument('--datasets',nargs='+',choices=tuple(task.TASKS),default=list(task.TASKS))
     p.add_argument('--layers',type=int,nargs='+',default=[2])
+    p.add_argument('--group',choices=('answer','audio'),default='answer')
     p.add_argument('--strengths',type=float,nargs='+',default=[-1.,-1.5])
     p.add_argument('--data-root',type=Path,default=Path('outputs/phi4-next-tasks'))
     p.add_argument('--output',type=Path,default=Path('outputs/phi4-sweeps'))
