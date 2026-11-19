@@ -20,6 +20,25 @@ def fixture(root):
 
 
 class SweepTests(unittest.TestCase):
+    def test_summary_wrapper_and_run_scoring_use_cpu_environment(self):
+        import os,subprocess
+        from types import SimpleNamespace
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);script=root/'run_phi4_sweep.sh'
+            script.write_text((Path(sweep.__file__).parent/script.name).read_text())
+            for env,label in [('.venv-diffa','cpu'),('.venv-bbh-phi4','phi')]:
+                python=root/env/'bin/python';python.parent.mkdir(parents=True)
+                python.write_text('#!/bin/sh\necho '+label+'\n');python.chmod(0o755)
+            for flags,label in [(['--mode','summary'],'cpu'),(['--mode=summary'],'cpu'),(['--mode','prepare'],'cpu'),([], 'phi')]:
+                result=subprocess.check_output(['bash',str(script),*flags],text=True,env={k:v for k,v in os.environ.items() if k!='DIFFA_PYTHON'})
+                self.assertEqual(result.strip(),label)
+            args=SimpleNamespace(data_root=root/'data',output=root/'results')
+            with patch.dict(os.environ,{},clear=True),patch.object(sweep.subprocess,'run') as run:
+                sweep.score_in_cpu_environment(args,'gsm8k',6,-1.)
+            command=run.call_args.args[0]
+            self.assertEqual(command[0],'.venv-diffa/bin/python')
+            self.assertIn('summary',command);self.assertIn('gsm8k',command)
+
     def test_different_jobs_can_run_but_duplicate_writer_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)

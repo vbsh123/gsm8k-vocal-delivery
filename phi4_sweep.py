@@ -4,6 +4,7 @@ from contextlib import ExitStack,contextmanager
 import fcntl
 import json
 import math
+import os
 from pathlib import Path
 import subprocess
 import time
@@ -68,7 +69,15 @@ def run(args):
                     plan=task.make_plan(data,path,layer,'answer',strength)
                     freeze(output/'run_config.json',plan);reuse_baselines(plan,output,args.output)
                     print(f'STAGE: {dataset} L{layer} answer x{strength:g}; {len(data["collection"])} collection /{len(data["test"])} test.',flush=True)
-                    task.evaluate(plan,output,args.output/'collection-cache');task.report(output)
+                    task.evaluate(plan,output,args.output/'collection-cache')
+                    score_in_cpu_environment(args,dataset,layer,strength)
+
+
+def score_in_cpu_environment(args,dataset,layer,strength):
+    python=os.environ.get('DIFFA_PYTHON','.venv-diffa/bin/python')
+    subprocess.run([python,'-u',str(Path(__file__).resolve()),'--mode','summary',
+        '--datasets',dataset,'--layers',str(layer),'--strengths',str(strength),
+        '--data-root',str(args.data_root),'--output',str(args.output)],check=True)
 
 
 def main():
