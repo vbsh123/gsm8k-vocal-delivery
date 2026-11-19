@@ -22,6 +22,31 @@ class OppositeRecoveryTests(unittest.TestCase):
         self.assertEqual({key[2] for key in tasks},{'neutral','angry'})
         for key,row in tasks.items():self.assertEqual(key[2],row['style'])
 
+    def test_focused_resume_skips_completed_shortlist_without_loading_model(self):
+        with tempfile.TemporaryDirectory() as d:
+            output=Path(d);(output/'run_config.json').write_text('{}')
+            plan=dict(layers=list(range(32)),groups=['answer','audio'],input_styles=['neutral','angry'])
+            task=('q','Jenny','neutral',2,'answer');other=('q','Jenny','neutral',3,'audio')
+            with patch.object(run,'completed',return_value=({task:{},other:{}},{task:{}})), \
+                 patch.object(run.diagnostic.engine,'NativePhi') as model:
+                run.run(plan,{},output,layers=[2],groups=['answer'])
+                model.assert_not_called()
+            self.assertEqual(json.loads((output/'execution-L2-answer.json').read_text())['layers'],[2])
+
+    def test_stop_helper_matches_only_same_repo_wrapper_and_run(self):
+        import stop_phi4_nightly_opposite as stop
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);proc=root/'proc';proc.mkdir();repo=root/'repo';repo.mkdir();other=root/'other';other.mkdir()
+            records=[(101,repo,['bash','run_phi4_nightly_followups.sh']),
+                (102,repo,['python','phi4_opposite_recovery.py','--mode','run']),
+                (103,repo,['python','phi4_opposite_recovery.py','--mode','summary']),
+                (104,other,['python','phi4_opposite_recovery.py','--mode','run']),
+                (105,repo,['python','phi4_task_steering.py','--mode','run'])]
+            for pid,cwd,args in records:
+                path=proc/str(pid);path.mkdir();(path/'cwd').symlink_to(cwd)
+                (path/'cmdline').write_bytes(b'\0'.join(a.encode() for a in args)+b'\0')
+            self.assertEqual(stop.targets(repo,proc),[(101,True),(102,False)])
+
     def test_prepare_reuses_existing_vector_freezes_receipts_and_is_disjoint(self):
         with tempfile.TemporaryDirectory() as d:
             root=Path(d);source=root/'original';source.mkdir();output=root/'opposite'

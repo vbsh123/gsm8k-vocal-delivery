@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")"
+diagnostic_args=()
+case "${1:-all}" in
+  all) ;;
+  --focused) diagnostic_args=(--layers 2 6 7 17 30 --groups answer) ;;
+  *) echo 'Usage: bash run_phi4_nightly_followups.sh [--focused]'; exit 2 ;;
+esac
 mkdir -p outputs
 exec 8>outputs/phi4-nightly-followups.lock
 flock -n 8 || { echo 'Phi nightly follow-ups already queued.'; exit 1; }
@@ -29,9 +35,9 @@ while [[ -n "$(nvidia-smi --query-compute-apps=pid --format=csv,noheader)" ]]; d
     echo 'Waiting for active GPU work.'
     sleep 30
 done
-echo 'STAGE: Opposite cohort, neutral correct / angry wrong. Reuse400 vectors; both input styles; all32 layers -1.'
+echo "STAGE: Opposite cohort; reuse400 vectors; both inputs; -1. Targets: ${diagnostic_args[*]:-all32 layers /answer and audio}"
 OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 .venv-diffa/bin/python -u phi4_opposite_recovery.py --mode prepare >outputs/phi4-opposite-recovery.log 2>&1
-.venv-bbh-phi4/bin/python -u phi4_opposite_recovery.py --mode run >>outputs/phi4-opposite-recovery.log 2>&1
+.venv-bbh-phi4/bin/python -u phi4_opposite_recovery.py --mode run "${diagnostic_args[@]}" >>outputs/phi4-opposite-recovery.log 2>&1
 OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 .venv-diffa/bin/python -u phi4_opposite_recovery.py --mode summary >>outputs/phi4-opposite-recovery.log 2>&1
 echo 'STAGE: Prepare/resume SVAMP500/500 and BBH3/5 125/125 audio and splits.'
 bash prepare_phi4_next_tasks.sh >outputs/phi4-next-tasks-prepare.log 2>&1

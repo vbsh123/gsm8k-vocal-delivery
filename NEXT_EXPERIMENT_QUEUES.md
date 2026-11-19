@@ -70,3 +70,14 @@ This supersedes the earlier manual choose-layer step for this requested nightly 
 First the opposite diagnostic selects neutral-numeric-correct / angry-numeric-wrong among the same 869 noncollection questions, using the original fixed all-layer400 vectors. All32 layers, answer/audio groups, at −1 are tested independently on both angry input (recovery) and neutral input (correctness retention). This remains an outcome-selected diagnostic without significance tests. It preserves the existing neutral-wrong/angry-correct diagnostic intact. No extra vector collection is needed for this GSM diagnostic.
 
 Then SVAMP500/500 and BBH3/BBH5 125/125 are prepared/resumed and run at L17 answer −1.5, each collecting its own angry-minus-neutral vector and evaluating all neutral, angry and steered-neutral test questions. This part is full-cohort held-out evaluation, with ordinary unadjusted paired reporting. Each task releases its model before the next starts. The new opposite results are included in `pack_experiment_backup.py --only phi`.
+
+## Focus the opposite diagnostic on shortlisted answer layers
+
+```bash
+git pull --ff-only
+.venv-diffa/bin/python stop_phi4_nightly_opposite.py
+nohup bash run_phi4_nightly_followups.sh --focused > outputs/phi4-nightly-focused.log 2>&1 </dev/null &
+tail -F outputs/phi4-nightly-focused.log outputs/phi4-opposite-recovery.log outputs/phi4-prepared-tasks-L17-minus1.5.log
+```
+
+The helper stops only this repository's nightly wrapper/opposite diagnostic. The focused continuation runs L2/L6/L7/L17/L30 answer at minus1 on both input styles, skipping completed answers. It preserves the frozen original config and all prior results, including audio targets, and records the new execution scope separately. The summary still displays every saved target. The queue then continues to SVAMP/BBH3/BBH5 at L17 answer minus1.5. It does not automatically choose a different layer or launch full869 GSM evaluation.

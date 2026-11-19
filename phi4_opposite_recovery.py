@@ -64,10 +64,16 @@ def completed(plan,output,original):
     return tasks,done
 
 
-def run(plan,original,output):
+def run(plan,original,output,layers=None,groups=None):
     import torch
     tasks,done=completed(plan,output,original)
-    if len(done)==len(tasks):print('Opposite diagnostic already complete; no model loaded.');return
+    layers=plan['layers'] if layers is None else layers
+    groups=plan['groups'] if groups is None else groups
+    if not set(layers)<=set(plan['layers']) or not set(groups)<=set(plan['groups']):raise ValueError('Requested layers/groups outside original plan.')
+    tasks={key:row for key,row in tasks.items() if key[3] in layers and key[4] in groups}
+    freeze(output/('execution-L'+'-'.join(map(str,layers))+'-'+ '-'.join(groups)+'.json'),
+        dict(run_config_sha256=digest(output/'run_config.json'),layers=layers,groups=groups,input_styles=plan['input_styles'],strength=-1.))
+    if all(key in done for key in tasks):print('Requested opposite diagnostic targets complete; no model loaded.');return
     vector=torch.load(plan['vector'],map_location='cpu',weights_only=True)
     if (vector['angry_minus_neutral'].shape!=diagnostic.SHAPE or vector['recipe']!=plan['recipe']
             or vector['groups']!=plan['groups'] or not torch.isfinite(vector['angry_minus_neutral']).all()):raise ValueError('Vector shape/model/groups differ.')
@@ -112,11 +118,15 @@ def summary(plan,original,output):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--mode',choices=('prepare','run','summary'),default='run')
-    p.add_argument('--source',type=Path,default=DEFAULT_SOURCE);p.add_argument('--output',type=Path,default=DEFAULT_OUTPUT);args=p.parse_args()
+    p.add_argument('--source',type=Path,default=DEFAULT_SOURCE);p.add_argument('--output',type=Path,default=DEFAULT_OUTPUT)
+    p.add_argument('--layers',type=int,nargs='+',help='Run only these layer indices; retain all saved answers.')
+    p.add_argument('--groups',choices=diagnostic.GROUPS,nargs='+',help='Run only these position groups.')
+    args=p.parse_args()
+    if args.layers and (len(set(args.layers))!=len(args.layers) or any(i<0 or i>=32 for i in args.layers)):p.error('Need unique layers0..31.')
     if args.mode=='prepare':prepare(args.source,args.output);return
     plan=json.loads((args.output/'run_config.json').read_text());_,original=validate_source(plan)
     if args.mode=='summary':summary(plan,original,args.output)
-    else:run(plan,original,args.output)
+    else:run(plan,original,args.output,args.layers,args.groups)
 
 
 if __name__=='__main__':main()
