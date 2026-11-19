@@ -24,13 +24,19 @@ def main():
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--model", choices=["emotion2vec", "sensevoice"], default="emotion2vec")
     parser.add_argument("--summary-only", action="store_true")
+    parser.add_argument("--styles", nargs="+", help="Classify/report only these requested styles; keep other saved predictions.")
     args = parser.parse_args()
     output = args.path / f"results-{args.model}.jsonl"
     if args.summary_only:
-        summarize([json.loads(line) for line in output.read_text().splitlines() if line.strip()], args.model)
+        rows = [json.loads(line) for line in output.read_text().splitlines() if line.strip()]
+        summarize([r for r in rows if not args.styles or r["requested_style"] in args.styles], args.model)
         return
     tasks = [json.loads(line) for line in (args.path / "plan.jsonl").read_text().splitlines()
              if line.strip()]
+    if args.styles:
+        tasks = [t for t in tasks if t["style"] in args.styles]
+    if not tasks:
+        parser.error("No clips match the requested styles.")
     import librosa
     import soundfile as sf
 
