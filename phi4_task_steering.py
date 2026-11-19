@@ -22,6 +22,7 @@ from pack_experiment_backup import snapshot
 from steer import read_rows
 
 TASKS={
+    'ifeval':dict(half=254),
     'gsm8k':dict(half=400),
     'multiarith':dict(half=290),
     'svamp':dict(filename='SVAMP-source.json',url=svamp.SOURCE_URL,sha=svamp.SOURCE_SHA256,half=500,
@@ -40,6 +41,9 @@ def questions(task,data):
 
 
 def prepare_data(task,root):
+    if task=='ifeval':
+        from phi4_ifeval import prepare
+        return prepare(root)
     spec=TASKS[task];folder=root/task
     if task in ('gsm8k','multiarith'):
         folder.mkdir(parents=True,exist_ok=True)
@@ -101,7 +105,7 @@ def make_plan(data,data_path,layer,group,strength):
     return dict(protocol='phi4-task-own-mean-steering-v1',task=data['task'],data_config_sha256=digest(data_path),
         recipe=dict(gsm.MODELS['phi4'],dtype='bfloat16',do_sample=False,num_beams=1,use_cache=True,repetition_penalty=1.,text_only_output=True),
         collection=data['collection'],bank={p['question_id']:data['bank'][p['question_id']] for p in data['test']},
-        recordings=tasks,prompt=data['prompt'],seed=42,max_new_tokens=512,layer=layer,group=group,strength=strength,
+        recordings=tasks,prompt=data['prompt'],seed=42,max_new_tokens=data.get('max_new_tokens',512),layer=layer,group=group,strength=strength,
         vector_definition='Own-task angry-minus-neutral raw mean on collection half. Answer: all native generation '
             'last-prediction forwards including prefill. Audio: native audio positions on prefill only. Equal per-question mean.',
         selection='Frozen half/half data split; whole test half evaluated, no recovery/outcome/classifier filter. '
@@ -112,7 +116,7 @@ class Native:
     def __init__(self,plan):self.native=engine.NativePhi(plan['layer']);self.plan=plan
     def generate(self,row,prompt,direction=None,strength=0.,observe=False):
         trace=native_hooks.generate(self.native,row,prompt,collect=observe,target=None if observe or not strength else self.plan['layer'],
-            group=self.plan['group'],direction=direction,strength=strength,capture_layers=[self.plan['layer']] if observe else None)
+            group=self.plan['group'],direction=direction,strength=strength,capture_layers=[self.plan['layer']] if observe else None,max_new_tokens=self.plan['max_new_tokens'])
         if observe:
             trace['mean']=trace.pop('means')[0,native_hooks.GROUPS.index(self.plan['group'])]
         return trace
@@ -123,7 +127,7 @@ def completed(plan,output,repair=False):
     for r in read_rows(output/'results.jsonl',repair=repair):
         key=r['question_id'],r['voice'],r['condition']
         if (key not in tasks or key in done or r['run_config_sha256']!=config_hash or r['prompt']!=plan['prompt']
-                or r['audio_sha256']!=tasks[key]['audio_sha256'] or r['seed']!=42 or r['max_new_tokens']!=512
+                or r['audio_sha256']!=tasks[key]['audio_sha256'] or r['seed']!=42 or r['max_new_tokens']!=plan['max_new_tokens']
                 or r['strength']!=tasks[key]['strength'] or r['reference_answer']!=tasks[key]['reference_answer']
                 or r['model']!=plan['recipe']['model'] or r['revision']!=plan['recipe']['revision']):raise ValueError('Saved steering answer differs.')
         done[key]=r
@@ -131,7 +135,7 @@ def completed(plan,output,repair=False):
 
 
 def reuse(plan,output):
-    if plan['task']=='svamp':return
+    if plan['task'] not in ('bbh3','bbh5'):return
     source=Path('outputs')/('bbh-three-candidates' if plan['task']=='bbh3' else 'bbh-five-candidates')/'phi4/original'
     config=source/'run_config.json';results=source/'results.jsonl'
     if not config.exists() or not results.exists():return
@@ -148,7 +152,7 @@ def reuse(plan,output):
                     or row['max_new_tokens']!=512 or row['interventions'] or row['reference_answer']!=task['reference_answer']
                     or row['model']!=plan['recipe']['model'] or row['revision']!=plan['recipe']['revision']):continue
             saved=dict(task,response=row['response'],response_tokens=row['response_tokens'],prompt=plan['prompt'],
-                seed=42,max_new_tokens=512,run_config_sha256=digest(output/'run_config.json'),reused_from=str(source),
+                seed=42,max_new_tokens=plan['max_new_tokens'],run_config_sha256=digest(output/'run_config.json'),reused_from=str(source),
                 model=plan['recipe']['model'],revision=plan['recipe']['revision'],interventions=[])
             stream.write(json.dumps(saved)+'\n');done[key]=saved
 
@@ -203,7 +207,7 @@ def evaluate(plan,output,collection_root=None):
         if key in done:continue
         print(f'{plan["task"]} [{i}/{len(tasks)}] {row["question_id"]} {row["condition"]}',flush=True)
         trace=native.generate(row,plan['prompt'],vector if row['strength'] else None,row['strength'])
-        saved=dict(row,**trace,prompt=plan['prompt'],seed=42,max_new_tokens=512,
+        saved=dict(row,**trace,prompt=plan['prompt'],seed=42,max_new_tokens=plan['max_new_tokens'],
             run_config_sha256=digest(output/'run_config.json'),model=plan['recipe']['model'],revision=plan['recipe']['revision'],
             vector_sha256=digest(output/'style-vectors.pt') if row['strength'] else None,
             interventions=[dict(layer=plan['layer'],group=plan['group'],strength=row['strength'])] if row['strength'] else [])
@@ -219,6 +223,9 @@ def report(output):
     plan=json.loads(path.read_text());_,done=completed(plan,output);rows=list(done.values())
     print(f'{plan["task"]}: {len(rows)}/{len(plan["recordings"])} answers; L{plan["layer"]} {plan["group"]} x{plan["strength"]}.')
     if not rows:return
+    if plan['task']=='ifeval':
+        from phi4_ifeval import report as report_official
+        report_official(plan,output,rows);return
     math_task=plan['task'] in ('gsm8k','svamp','multiarith')
     print('Math: installed GSM8K filters/metric on dataset references; numeric equivalence additional. SVAMP/MultiArith are spoken adaptations using these filters.' if math_task else 'BBH: installed upstream task scoring on saved native audio-adapted responses.')
     name='gsm8k' if math_task else 'bbh_cot_zeroshot_logical_deduction_'+('three' if plan['task']=='bbh3' else 'five')+'_objects'

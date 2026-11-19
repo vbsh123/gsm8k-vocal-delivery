@@ -177,7 +177,7 @@ def hooks(layers, audio_mask, collect=False, target=None, group='answer', direct
         for handle in handles: handle.remove()
 
 
-def generate(native, row, prompt, collect=False, target=None, group='answer', direction=None, strength=-1., capture_layers=None):
+def generate(native, row, prompt, collect=False, target=None, group='answer', direction=None, strength=-1., capture_layers=None, max_new_tokens=512):
     import torch
     if digest(row['audio_file']) != row['audio_sha256']: raise ValueError('Audio changed.')
     engine.seed(); inputs = native.processor(text=engine.phi_prompt(prompt), audios=[(engine.load_audio(row['audio_file']), 16000)],
@@ -191,11 +191,11 @@ def generate(native, row, prompt, collect=False, target=None, group='answer', di
     started = time.monotonic()
     if not collect and target is None:
         with torch.inference_mode(): result = native.model.generate(**inputs, generation_config=native.config,
-            max_new_tokens=512, do_sample=False, num_beams=1, repetition_penalty=1., use_cache=True)
+            max_new_tokens=max_new_tokens, do_sample=False, num_beams=1, repetition_penalty=1., use_cache=True)
         totals, counts, audio = {}, {}, {}
     else:
         with torch.inference_mode(), hooks(native.layers, audio_mask, collect, target, group, direction, strength, capture_layers) as (totals, counts, audio):
-            result = native.model.generate(**inputs, generation_config=native.config, max_new_tokens=512,
+            result = native.model.generate(**inputs, generation_config=native.config, max_new_tokens=max_new_tokens,
                 do_sample=False, num_beams=1, repetition_penalty=1., use_cache=True)
     suffix = result[:, inputs['input_ids'].shape[1]:]
     trace = dict(response=native.processor.batch_decode(suffix, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0],

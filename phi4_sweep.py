@@ -35,10 +35,10 @@ def reuse_baselines(plan,output,root):
                 if condition not in ('neutral','angry') or key not in targets or key in done:continue
                 expected=targets[key]
                 if (row.get('audio_sha256')!=expected['audio_sha256'] or row.get('prompt')!=plan['prompt']
-                    or row.get('seed')!=42 or row.get('max_new_tokens')!=512 or row.get('reference_answer')!=expected['reference_answer']
+                    or row.get('seed')!=42 or row.get('max_new_tokens')!=plan['max_new_tokens'] or row.get('reference_answer')!=expected['reference_answer']
                     or row.get('model')!=plan['recipe']['model'] or row.get('revision')!=plan['recipe']['revision']
                     or row.get('strength',0)!=0 or row.get('interventions')):continue
-                saved=dict(expected,response=row['response'],response_tokens=row['response_tokens'],prompt=plan['prompt'],seed=42,max_new_tokens=512,
+                saved=dict(expected,response=row['response'],response_tokens=row['response_tokens'],prompt=plan['prompt'],seed=42,max_new_tokens=plan['max_new_tokens'],
                     model=plan['recipe']['model'],revision=plan['recipe']['revision'],interventions=[],
                     run_config_sha256=digest(output/'run_config.json'),reused_from=str(source))
                 stream.write(json.dumps(saved)+'\n');done[key]=saved;count+=1

@@ -50,6 +50,13 @@ Existing compatible unsteered answers are reused. Missing SVAMP/BBH audio can be
 prepared/reused through Azure; credentials are needed only when recordings are missing.
 These are exploratory settings on previously inspected datasets.
 
+IFEval is also supported with `--datasets ifeval`. It preserves the original spoken508
+cohort and fixed254/254 split in `configs/ifeval-spoken508-split.json`, uses1024 native
+Phi output tokens, and reports official strict/loose prompt and instruction compliance.
+Use `--mode prepare --datasets ifeval` first to reuse/generate neutral and angry audio;
+missing recordings require the Azure credentials. The source data/checkers use the
+pinned Google Research revision. IFEval scores do not judge factual correctness.
+
 For two independent GSM strength workers on layer2:
 
 ```bash
