@@ -1,5 +1,6 @@
 """Prepare SVAMP/BBH3/BBH5; later run own-vector Phi steering at an explicitly chosen layer."""
 import argparse
+import fcntl
 import hashlib
 import json
 import math
@@ -157,31 +158,34 @@ def collection_vector(plan,output,native,root):
     import torch
     from kimi_bbh_layer_diagnostic import atomic_save
     cache=root/plan['task']/f"L{plan['layer']}-{plan['group']}";cache.mkdir(parents=True,exist_ok=True)
-    common={k:plan[k] for k in ('task','collection','recipe','prompt','seed','max_new_tokens','layer','group','vector_definition')}
-    common['protocol']='phi4-sweep-collection-v1';freeze(cache/'run_config.json',common)
-    if plan['task']=='gsm8k':
-        source=Path('outputs/phi4-gsm400-all-layers-test869-minus1')
-        original=json.loads((source/'run_config.json').read_text())
-        for key in ('collection','recipe','prompt'):
-            if original[key]!=plan[key]:raise ValueError('GSM source collection recipe differs: '+key)
-        saved=torch.load(source/'style-vectors.pt',map_location='cpu',weights_only=True)
-        if saved['run_config_sha256']!=digest(source/'run_config.json') or saved['collection_question_ids']!=[p['question_id'] for p in plan['collection']]:
-            raise ValueError('GSM source vector provenance differs.')
-        if saved['groups']!=['answer','audio'] or saved['angry_minus_neutral'].shape!=native_hooks.SHAPE or saved['recipe']!=plan['recipe'] or not torch.isfinite(saved['angry_minus_neutral']).all():raise ValueError('GSM source vector layout differs.')
-        vector=saved['angry_minus_neutral'][plan['layer'],saved['groups'].index(plan['group'])]
-        provenance=dict(source=str(source/'style-vectors.pt'),sha256=digest(source/'style-vectors.pt'))
-    else:
-        vector=engine.collect(common,cache,native,digest(cache/'run_config.json'))
-        provenance=dict(source=str(cache/'style-vectors.pt'),sha256=digest(cache/'style-vectors.pt'))
-    state=dict(protocol=plan['protocol'],run_config_sha256=digest(output/'run_config.json'),layer=plan['layer'],group=plan['group'],
-        collection_question_ids=[p['question_id'] for p in plan['collection']],model=plan['recipe']['model'],revision=plan['recipe']['revision'],
-        angry_minus_neutral=vector,source_vector=provenance)
-    path=output/'style-vectors.pt'
-    if path.exists():
-        old=torch.load(path,map_location='cpu',weights_only=True)
-        if old['run_config_sha256']!=state['run_config_sha256'] or not torch.equal(old['angry_minus_neutral'],vector):raise ValueError('Sweep vector changed.')
-    else:atomic_save(path,state)
-    return vector
+    with (cache/'collection.lock').open('a') as lock:
+        fcntl.flock(lock,fcntl.LOCK_EX)
+        common={k:plan[k] for k in ('task','collection','recipe','prompt','seed','max_new_tokens','layer','group','vector_definition')}
+        common['protocol']='phi4-sweep-collection-v1';freeze(cache/'run_config.json',common)
+        if plan['task']=='gsm8k':
+            source=Path('outputs/phi4-gsm400-all-layers-test869-minus1')
+            original=json.loads((source/'run_config.json').read_text())
+            for key in ('collection','recipe','prompt'):
+                if original[key]!=plan[key]:raise ValueError('GSM source collection recipe differs: '+key)
+            saved=torch.load(source/'style-vectors.pt',map_location='cpu',weights_only=True)
+            if saved['run_config_sha256']!=digest(source/'run_config.json') or saved['collection_question_ids']!=[p['question_id'] for p in plan['collection']]:
+                raise ValueError('GSM source vector provenance differs.')
+            if saved['groups']!=['answer','audio'] or saved['angry_minus_neutral'].shape!=native_hooks.SHAPE or saved['recipe']!=plan['recipe'] or not torch.isfinite(saved['angry_minus_neutral']).all():raise ValueError('GSM source vector layout differs.')
+            vector=saved['angry_minus_neutral'][plan['layer'],saved['groups'].index(plan['group'])]
+            provenance=dict(source=str(source/'style-vectors.pt'),sha256=digest(source/'style-vectors.pt'))
+        else:
+            vector=engine.collect(common,cache,native,digest(cache/'run_config.json'))
+            provenance=dict(source=str(cache/'style-vectors.pt'),sha256=digest(cache/'style-vectors.pt'))
+        state=dict(protocol=plan['protocol'],run_config_sha256=digest(output/'run_config.json'),layer=plan['layer'],group=plan['group'],
+            collection_question_ids=[p['question_id'] for p in plan['collection']],model=plan['recipe']['model'],revision=plan['recipe']['revision'],
+            angry_minus_neutral=vector,source_vector=provenance)
+        path=output/'style-vectors.pt'
+        if path.exists():
+            old=torch.load(path,map_location='cpu',weights_only=True)
+            if old['run_config_sha256']!=state['run_config_sha256'] or not torch.equal(old['angry_minus_neutral'],vector):raise ValueError('Sweep vector changed.')
+        else:atomic_save(path,state)
+        return vector
+
 
 
 def evaluate(plan,output,collection_root=None):

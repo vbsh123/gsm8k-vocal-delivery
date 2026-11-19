@@ -20,6 +20,24 @@ def fixture(root):
 
 
 class SweepTests(unittest.TestCase):
+    def test_different_jobs_can_run_but_duplicate_writer_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            with sweep.job_lock(root/'gsm8k/L6'):
+                with sweep.job_lock(root/'multiarith/L7'):pass
+                with self.assertRaisesRegex(SystemExit,'Already running'):
+                    with sweep.job_lock(root/'gsm8k/L6'):pass
+            with sweep.job_lock(root/'gsm8k/L6'):pass
+
+    def test_no_wait_does_not_acquire_global_output_queue(self):
+        import sys
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            with patch.object(sys,'argv',['phi4_sweep.py','--no-wait','--output',str(root)]),patch.object(sweep,'run') as run:
+                sweep.main()
+            run.assert_called_once()
+            self.assertFalse((root/'queue.lock').exists())
+
     def test_collection_once_for_two_strengths_and_layer_isolation(self):
         with tempfile.TemporaryDirectory() as tmp,redirect_stdout(io.StringIO()):
             root=Path(tmp);data,path=fixture(root);calls=[]

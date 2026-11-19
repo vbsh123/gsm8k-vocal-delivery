@@ -1,6 +1,6 @@
 """Sequential own-task Phi sweeps with chosen datasets, layers and signed strengths."""
 import argparse
-from contextlib import ExitStack
+from contextlib import ExitStack,contextmanager
 import fcntl
 import json
 import math
@@ -44,6 +44,16 @@ def reuse_baselines(plan,output,root):
     print(f'Reused {count} compatible unsteered answers.',flush=True)
 
 
+@contextmanager
+def job_lock(output):
+    """Different settings may run concurrently; duplicate writers cannot."""
+    output.mkdir(parents=True,exist_ok=True)
+    with (output/'run.lock').open('a') as lock:
+        try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        except BlockingIOError:raise SystemExit(f'Already running: {output}') from None
+        yield
+
+
 def run(args):
     for dataset in args.datasets:
         path=args.data_root/dataset/'data_config.json'
@@ -54,11 +64,11 @@ def run(args):
             for strength in args.strengths:
                 output=args.output/dataset/f'L{layer}-answer-a{strength:g}'
                 if args.mode=='summary':task.report(output);continue
-                output.mkdir(parents=True,exist_ok=True)
-                plan=task.make_plan(data,path,layer,'answer',strength)
-                freeze(output/'run_config.json',plan);reuse_baselines(plan,output,args.output)
-                print(f'STAGE: {dataset} L{layer} answer x{strength:g}; {len(data["collection"])} collection /{len(data["test"])} test.',flush=True)
-                task.evaluate(plan,output,args.output/'collection-cache');task.report(output)
+                with job_lock(output):
+                    plan=task.make_plan(data,path,layer,'answer',strength)
+                    freeze(output/'run_config.json',plan);reuse_baselines(plan,output,args.output)
+                    print(f'STAGE: {dataset} L{layer} answer x{strength:g}; {len(data["collection"])} collection /{len(data["test"])} test.',flush=True)
+                    task.evaluate(plan,output,args.output/'collection-cache');task.report(output)
 
 
 def main():
@@ -77,7 +87,6 @@ def main():
     if args.mode!='run':run(args);return
     args.output.mkdir(parents=True,exist_ok=True)
     with ExitStack() as stack:
-        own=stack.enter_context((args.output/'queue.lock').open('w'));fcntl.flock(own,fcntl.LOCK_EX|fcntl.LOCK_NB)
         if not args.no_wait:
             gpu=stack.enter_context(Path('outputs/jenny-task-vectors.lock').open('w'))
             print('Waiting for shared GPU lock.',flush=True);fcntl.flock(gpu,fcntl.LOCK_EX)
