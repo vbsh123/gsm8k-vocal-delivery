@@ -166,7 +166,7 @@ def collection_vector(plan,output,native,root):
         fcntl.flock(lock,fcntl.LOCK_EX)
         common={k:plan[k] for k in ('task','collection','recipe','prompt','seed','max_new_tokens','layer','group','vector_definition')}
         common['protocol']='phi4-sweep-collection-v1';freeze(cache/'run_config.json',common)
-        if plan['task']=='gsm8k':
+        if plan['task']=='gsm8k' and len(plan['collection'])==400:
             source=Path('outputs/phi4-gsm400-all-layers-test869-minus1')
             original=json.loads((source/'run_config.json').read_text())
             for key in ('collection','recipe','prompt'):

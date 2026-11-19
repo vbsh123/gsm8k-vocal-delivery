@@ -70,6 +70,18 @@ Use `--mode prepare --datasets ifeval` first to reuse/generate neutral and angry
 missing recordings require the Azure credentials. The source data/checkers use the
 pinned Google Research revision. IFEval scores do not judge factual correctness.
 
+To use a smaller disjoint cohort, pass `--collection-size 300 --test-size 300`
+and a separate output root, for example `--output outputs/phi4-sweeps/svamp300-300`.
+The runner selects a prefix of each existing frozen half independently, preserves the
+original selection and hashes in a derived cohort config, and collects vectors only
+from the selected collection questions. It never moves collection questions into test.
+The chosen test questions may already have been inspected; this remains exploratory.
+Example one-worker sequential layer run:
+
+```bash
+bash run_phi4_sweep.sh --datasets svamp --layers 29 28 --strengths -1 -1.5 --collection-size 300 --test-size 300 --output outputs/phi4-sweeps/svamp300-300 --no-wait
+```
+
 For two independent GSM strength workers on layer2:
 
 ```bash

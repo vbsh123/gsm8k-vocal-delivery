@@ -17,6 +17,7 @@ from steer import read_rows
 def baseline_sources(dataset,root):
     paths=list((root/dataset).glob('*/results.jsonl'))
     paths+=list((Path('outputs/phi4-task-steering')/dataset).glob('*/results.jsonl'))
+    paths+=list((Path('outputs/phi4-sweeps')/dataset).glob('*/results.jsonl'))
     if dataset=='gsm8k':
         paths+=list(Path('outputs/phi4-gsm400-all-layers-test869-minus1').glob('references*.jsonl'))
         paths+=list(Path('outputs/gsm8k-candidates/phi4/original').glob('results.jsonl'))
@@ -55,12 +56,36 @@ def job_lock(output):
         yield
 
 
+def cohort_options(args):
+    result=[]
+    for name in ('collection_size','test_size'):
+        value=getattr(args,name,None)
+        if value is not None:result.extend(['--'+name.replace('_','-'),str(value)])
+    return result
+
+
+def subset_data(args,data,path):
+    collection_size=getattr(args,'collection_size',None);test_size=getattr(args,'test_size',None)
+    if collection_size is None and test_size is None:return data,path
+    c=collection_size if collection_size is not None else len(data['collection'])
+    t=test_size if test_size is not None else len(data['test'])
+    if not 0<c<=len(data['collection']) or not 0<t<=len(data['test']):raise ValueError('Requested cohort exceeds the existing frozen halves.')
+    collection=data['collection'][:c];test=data['test'][:t]
+    train_ids={p['question_id'] for p in collection};test_ids={p['question_id'] for p in test}
+    if len(train_ids)!=c or len(test_ids)!=t or train_ids & test_ids:raise ValueError('Duplicate or overlapping collection/test questions.')
+    selected=dict(data,collection=collection,test=test,source_data_config=str(path.resolve()),source_data_config_sha256=digest(path),
+        cohort_selection=f'First{c} collection and first{t} test questions from the existing separately frozen halves; no outcome filtering. Test cohort may have been inspected previously.')
+    target=args.output/'cohorts'/data['task']/'data_config.json';target.parent.mkdir(parents=True,exist_ok=True);freeze(target,selected)
+    print(f'{data["task"]}: selected {c} collection /{t} disjoint test questions from existing halves.',flush=True)
+    return selected,target
+
+
 def run(args):
     for dataset in args.datasets:
         path=args.data_root/dataset/'data_config.json'
         if args.mode=='prepare' or not path.exists():task.prepare_data(dataset,args.data_root)
+        data,path=subset_data(args,json.loads(path.read_text()),path)
         if args.mode=='prepare':continue
-        data=json.loads(path.read_text())
         for layer in args.layers:
             for strength in args.strengths:
                 output=args.output/dataset/f'L{layer}-answer-a{strength:g}'
@@ -77,7 +102,7 @@ def score_in_cpu_environment(args,dataset,layer,strength):
     python=os.environ.get('DIFFA_PYTHON','.venv-diffa/bin/python')
     subprocess.run([python,'-u',str(Path(__file__).resolve()),'--mode','summary',
         '--datasets',dataset,'--layers',str(layer),'--strengths',str(strength),
-        '--data-root',str(args.data_root),'--output',str(args.output)],check=True)
+        '--data-root',str(args.data_root),'--output',str(args.output),*cohort_options(args)],check=True)
 
 
 def parallel(args):
@@ -86,7 +111,7 @@ def parallel(args):
         cpu=os.environ.get('DIFFA_PYTHON','.venv-diffa/bin/python')
         print('STAGE: Prepare/reuse selected datasets and audio once on CPU.',flush=True)
         subprocess.run([cpu,'-u',str(Path(__file__).resolve()),'--mode','prepare',
-            '--datasets',*args.datasets,'--data-root',str(args.data_root),'--output',str(args.output)],check=True)
+            '--datasets',*args.datasets,'--data-root',str(args.data_root),'--output',str(args.output),*cohort_options(args)],check=True)
         if not args.no_wait:
             gpu=stack.enter_context(Path('outputs/jenny-task-vectors.lock').open('a'))
             print('Waiting for shared GPU lock; two layer workers start together afterward.',flush=True)
@@ -99,7 +124,7 @@ def parallel(args):
                 log_path=args.output/f'worker-L{layer}.log';log=stack.enter_context(log_path.open('a'))
                 command=['.venv-bbh-phi4/bin/python','-u',str(Path(__file__).resolve()),'--mode','run','--no-wait',
                     '--datasets',*args.datasets,'--layers',str(layer),'--strengths',*[str(s) for s in args.strengths],
-                    '--data-root',str(args.data_root),'--output',str(args.output)]
+                    '--data-root',str(args.data_root),'--output',str(args.output),*cohort_options(args)]
                 process=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT)
                 workers.append((layer,process));print(f'STARTED L{layer}, PID{process.pid}; log: {log_path}',flush=True)
             failed=[]
@@ -123,8 +148,13 @@ def main():
     p.add_argument('--strengths',type=float,nargs='+',default=[-1.,-1.5])
     p.add_argument('--data-root',type=Path,default=Path('outputs/phi4-next-tasks'))
     p.add_argument('--output',type=Path,default=Path('outputs/phi4-sweeps'))
+    p.add_argument('--collection-size',type=int,help='Use a prefix of the frozen collection half; requires a separate --output.')
+    p.add_argument('--test-size',type=int,help='Use a prefix of the frozen test half; requires a separate --output.')
     p.add_argument('--no-wait',action='store_true',help='Skip shared GPU queue; use only when enough GPU memory is available.')
     args=p.parse_args()
+    if (args.collection_size is not None or args.test_size is not None) and args.output==Path('outputs/phi4-sweeps'):
+        p.error('Use a separate --output for a custom-size cohort to preserve existing runs.')
+    if any(n is not None and n<=0 for n in (args.collection_size,args.test_size)):p.error('Cohort sizes must be positive.')
     if any(layer not in range(32) for layer in args.layers):p.error('Layers must be0..31.')
     if any(not math.isfinite(s) or s==0 for s in args.strengths):p.error('Supply finite nonzero strengths; baseline0 is automatic.')
     args.datasets=list(dict.fromkeys(args.datasets));args.layers=list(dict.fromkeys(args.layers));args.strengths=list(dict.fromkeys(args.strengths))

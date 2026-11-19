@@ -58,6 +58,21 @@ class SweepTests(unittest.TestCase):
                 self.assertIn('--no-wait',command);self.assertIn('ifeval',command);self.assertIn('-1.5',command)
             self.assertTrue((args.output/'worker-L17.log').exists());self.assertTrue((args.output/'worker-L30.log').exists())
 
+    def test300300_keeps_existing_halves_disjoint_and_freezes_selection(self):
+        from types import SimpleNamespace
+        with tempfile.TemporaryDirectory() as tmp,redirect_stdout(io.StringIO()):
+            root=Path(tmp);path=root/'original.json'
+            original=dict(task='svamp',collection=[dict(question_id=f'train{i}') for i in range(500)],test=[dict(question_id=f'test{i}') for i in range(500)])
+            freeze(path,original);before=path.read_bytes()
+            args=SimpleNamespace(output=root/'subset',collection_size=300,test_size=300)
+            selected,derived=sweep.subset_data(args,original,path)
+            self.assertEqual(len(selected['collection']),300);self.assertEqual(len(selected['test']),300)
+            self.assertEqual(selected['test'][0]['question_id'],'test0');self.assertEqual(selected['collection'][-1]['question_id'],'train299')
+            self.assertEqual(path.read_bytes(),before);self.assertEqual(len(original['collection']),500)
+            self.assertEqual(sweep.cohort_options(args),['--collection-size','300','--test-size','300'])
+            args.collection_size=301
+            with self.assertRaises(ValueError):sweep.subset_data(args,original,path)
+
     def test_different_jobs_can_run_but_duplicate_writer_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)
