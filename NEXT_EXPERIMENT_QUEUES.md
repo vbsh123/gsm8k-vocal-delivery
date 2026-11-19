@@ -119,3 +119,20 @@ After both models finish, the wrapper creates the evidence ZIP automatically. To
 ```
 
 This includes all current raw strength/transfer answers, configs, vectors, the complete classifier audits, historical label files recorded in the inventory manifest, code and up to100MiB sample audio. Running experiments are partial snapshots with counts, not implicitly completed runs. Full model weights and all waveform banks are excluded. Keep the printed ZIP and SHA256 file.
+
+## Replace the L17 task queue with full GSM L7 evaluation
+
+```bash
+git pull --ff-only
+.venv-diffa/bin/python stop_phi4_nightly_opposite.py --include-l17-tasks
+nohup bash run_phi4_gsm_L7.sh > outputs/phi4-gsm-L7-minus1-minus1.5.log 2>&1 </dev/null &
+tail -F outputs/phi4-gsm-L7-minus1-minus1.5.log
+```
+
+This cancels the superseded nightly/opposite chain and, if already started, only its L17 answer minus1.5 task wrapper/native model in this repository. Completed files are retained. Existing CPU audio preparation may finish; no new L17 SVAMP/BBH model runs are scheduled. The new runner waits for GPU access and evaluates all869 noncollection GSM questions at L7 answer minus1 and minus1.5. It reuses the original400-question L7 vector, all869 neutral baselines, and matching L7 minus1 neutral-input diagnostic answers. It neither recollects vectors nor regenerates audio nor launches SVAMP/BBH. The869 are the same full comparison cohort used for L17/L30, rather than truncating to800. There are1738 planned steered answers minus reused matching diagnostic answers; the869 neutral responses are copied with provenance.
+
+Layer7 was selected using subsets of these test questions, so this is an exploratory full-cohort follow-up, not an untouched confirmatory layer comparison. The exact prior inputs, source vector element and reuse provenance are checked and recorded. Saved output is included in the Phi evidence ZIP.
+
+```bash
+OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 .venv-diffa/bin/python run_phi4_gsm_L7.py --mode summary
+```
