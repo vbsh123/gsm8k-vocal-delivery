@@ -97,3 +97,25 @@ CPU summary:
 ```bash
 OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 .venv-diffa/bin/python run_multiarith_second_voice.py --mode summary --output outputs/multiarith290-guy-four-emotions
 ```
+
+## Preserve both emotion classifiers on all surviving audio
+
+```bash
+git pull --ff-only
+nohup bash run_available_audio_emotions.sh > outputs/available-audio-emotions.log 2>&1 </dev/null &
+tail -F outputs/available-audio-emotions.log
+```
+
+This waits only for active TTS preparation, then inventories all surviving audio under outputs and resolvable experiment references. Byte-identical recordings are classified once, with every source/voice/requested-style alias retained. emotion2vec and SenseVoice run sequentially on GPU, alongside transfer if VRAM permits; CPU is an optional first argument. Whole recordings are resampled to mono16kHz, without cropping or a silent chunk fallback. Errors/OOMs are saved explicitly and appear in coverage summaries. No answer or emotion outcome filtering is applied.
+
+Audit files live in outputs/available-audio-emotions: audio_inventory.jsonl, inventory_manifest.json, both results-MODEL.jsonl files, runtime receipts and summary.json. Each prediction has the audio SHA256. emotion2vec retains its full class scores; SenseVoice retains its emotion tag and raw tagged transcript (not invented probabilities). Identical-byte aliases can include multiple requested styles; summaries count one hash per voice/style. Classifier labels are not human ground truth.
+
+The audit does not regenerate deleted audio. Missing, ambiguous or mismatched references are listed. Old saved classifier files are retained in the final ZIP separately; they are not silently mixed into this new hash-verified audit. Audio generated after inventory will require a later inventory/resume. Completed hashes are skipped; `--retry-errors` on classify explicitly retries failed hashes, with the latest attempt used by summaries.
+
+After both models finish, the wrapper creates the evidence ZIP automatically. To make another snapshot manually:
+
+```bash
+.venv-diffa/bin/python pack_experiment_backup.py --only strengths voice transfer emotions --destination /workspace --samples 3 --sample-mb 100
+```
+
+This includes all current raw strength/transfer answers, configs, vectors, the complete classifier audits, historical label files recorded in the inventory manifest, code and up to100MiB sample audio. Running experiments are partial snapshots with counts, not implicitly completed runs. Full model weights and all waveform banks are excluded. Keep the printed ZIP and SHA256 file.

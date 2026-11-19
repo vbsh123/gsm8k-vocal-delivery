@@ -57,6 +57,7 @@ GROUPS = {
                 'gsm-happy400-start400-n400/minicpm', 'azure-gsm-happy400-start400-n400', 'bbh-three-candidates/minicpm', 'gsm8k-candidates/minicpm',
                 'azure-kimi-gsm8k1269', 'azure-bbh-three-models-regenerated'),
 }
+GROUPS['emotions'] = ('available-audio-emotions',)
 GROUPS['voice'] = ('multiarith290-guy-delivery', 'azure-multiarith290-guy', 'multiarith580-angry-mean',
                    'multiarith290-guy-four-emotions', 'azure-multiarith290-guy-happy-sad')
 GROUPS['transfer'] = ('winning-transfer', *GROUPS['strengths'][1:])
@@ -277,6 +278,14 @@ def package(repo, destination, samples=3, sample_mb=256, full_audio=False, only=
         metadata_files.extend(outputs.glob('*flamingo*.log'))
         requirements = repo/'.venv-bbh-flamingo/experiment-requirements.txt'
         if requirements.is_file(): metadata_files.append(requirements)
+    if only and 'emotions' in only:
+        metadata_files.extend(outputs.glob('*emotion*.log'))
+        receipt = outputs/'available-audio-emotions/inventory_manifest.json'
+        if receipt.is_file():
+            for item in json.loads(snapshot(receipt)[0]).get('legacy_predictions', []):
+                file = Path(item['path'])
+                if outputs in file.parents and file.suffix.lower() in TEXT and file.is_file():
+                    metadata_files.append(file)
     source_index = source_audio_index(metadata_files)
     tracked = subprocess.run(['git', 'ls-files', '-z'], cwd=repo, capture_output=True, check=True).stdout
     code_files = [repo/os.fsdecode(p) for p in tracked.split(b'\0') if p]
@@ -306,7 +315,7 @@ def package(repo, destination, samples=3, sample_mb=256, full_audio=False, only=
         core_roots = [outputs/relative for relative in RUNS.values()]
         for file in sorted(set(metadata_files), key=lambda p: (not any(root in p.parents for root in core_roots), str(p))):
             data = add(file, file.relative_to(repo).as_posix())
-            if data is None or file.name not in ('plan.jsonl', 'run_config.json', 'split.json', 'collection-config.json', 'data_config.json'):
+            if data is None or file.name not in ('plan.jsonl', 'run_config.json', 'split.json', 'collection-config.json', 'data_config.json', 'audio_inventory.jsonl'):
                 continue
             try:
                 plan = [json.loads(line) for line in data.splitlines() if line.strip()] if file.suffix == '.jsonl' else json.loads(data)

@@ -13,6 +13,21 @@ import pack_experiment_backup as run
 
 
 class EvidenceBackupTests(unittest.TestCase):
+    def test_emotions_archive_includes_complete_new_and_historical_labels(self):
+        with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
+            root=Path(d);repo,source,_,_=self.repo(root)
+            audit=repo/'outputs/available-audio-emotions';audit.mkdir()
+            legacy=source/'results-sensevoice.jsonl';legacy.write_text('{"emotion":"neutral"}\n')
+            (audit/'inventory_manifest.json').write_text(json.dumps(dict(legacy_predictions=[dict(path=str(legacy))])))
+            for model in ('emotion2vec','sensevoice'):
+                (audit/f'results-{model}.jsonl').write_text(json.dumps(dict(audio_sha256='abc',emotion='angry'))+'\n')
+            path=run.package(repo,root/'downloads',samples=0,only=['emotions'])
+            with zipfile.ZipFile(path) as archive:
+                names=archive.namelist()
+                self.assertIn('outputs/available-audio-emotions/results-emotion2vec.jsonl',names)
+                self.assertIn('outputs/available-audio-emotions/results-sensevoice.jsonl',names)
+                self.assertIn(str(legacy.relative_to(repo)),names)
+
     def test_transfer_and_new_voice_backups_include_actual_answers_and_counts(self):
         with tempfile.TemporaryDirectory() as d, redirect_stdout(io.StringIO()):
             root=Path(d);repo,source,_,_=self.repo(root)

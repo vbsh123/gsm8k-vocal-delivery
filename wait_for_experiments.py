@@ -7,6 +7,7 @@ import time
 
 
 NAMES={
+    'emotion-audio-preparation':{'cloud_tts_smoke.py','prepare_multiarith_guy_emotions.py'},
     'phi-layer-nightly-inputs':{'run_phi4_layers_then_prepare.sh','run_phi4_all_layers_split.sh',
         'run_phi4_all_layer_diagnostic.sh','phi4_all_layer_diagnostic.py','prepare_phi4_next_tasks.sh'},
     'winning-inputs':{'run_missing_experiments.sh','run_reasoning_transfer.py',
