@@ -40,6 +40,19 @@ bash run_phi4_sweep.sh --datasets gsm8k svamp multiarith bbh3 bbh5 --layers 2 17
 bash run_phi4_sweep.sh --mode summary --datasets gsm8k svamp multiarith bbh3 bbh5 --layers 2 17 --strengths -1 -1.5
 ```
 
+To queue two layer workers side by side across all six tasks:
+
+```bash
+bash run_phi4_sweep.sh --mode parallel --datasets gsm8k multiarith svamp bbh3 bbh5 ifeval --layers 17 30 --strengths -1 -1.5
+```
+
+Parallel mode prepares/reuses audio once using the CPU environment, waits for the
+shared GPU once, and launches one native Phi worker per layer. Each worker processes
+the selected datasets and strengths sequentially. Logs are
+`outputs/phi4-sweeps/worker-L17.log` and `worker-L30.log`; summaries use the existing
+CPU evaluator. Choose exactly two distinct layers. Existing queued GPU jobs finish
+first unless `--no-wait` is explicitly supplied.
+
 Runs execute sequentially and wait for the shared GPU queue by default; `--no-wait`
 allows explicit concurrency. GSM reuses the original400-question all-layer vector
 and evaluates all869 noncollection questions. MultiArith uses290/290, SVAMP500/500,

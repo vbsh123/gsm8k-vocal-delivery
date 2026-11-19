@@ -29,7 +29,7 @@ class SweepTests(unittest.TestCase):
             for env,label in [('.venv-diffa','cpu'),('.venv-bbh-phi4','phi')]:
                 python=root/env/'bin/python';python.parent.mkdir(parents=True)
                 python.write_text('#!/bin/sh\necho '+label+'\n');python.chmod(0o755)
-            for flags,label in [(['--mode','summary'],'cpu'),(['--mode=summary'],'cpu'),(['--mode','prepare'],'cpu'),([], 'phi')]:
+            for flags,label in [(['--mode','summary'],'cpu'),(['--mode=summary'],'cpu'),(['--mode','prepare'],'cpu'),(['--mode','parallel'],'cpu'),([], 'phi')]:
                 result=subprocess.check_output(['bash',str(script),*flags],text=True,env={k:v for k,v in os.environ.items() if k!='DIFFA_PYTHON'})
                 self.assertEqual(result.strip(),label)
             args=SimpleNamespace(data_root=root/'data',output=root/'results')
@@ -38,6 +38,25 @@ class SweepTests(unittest.TestCase):
             command=run.call_args.args[0]
             self.assertEqual(command[0],'.venv-diffa/bin/python')
             self.assertIn('summary',command);self.assertIn('gsm8k',command)
+
+    def test_parallel_prepares_once_then_starts_both_layers_before_waiting(self):
+        from types import SimpleNamespace
+        from unittest.mock import MagicMock
+        events=[]
+        with tempfile.TemporaryDirectory() as tmp,redirect_stdout(io.StringIO()):
+            args=SimpleNamespace(output=Path(tmp)/'out',data_root=Path(tmp)/'data',datasets=['gsm8k','ifeval'],layers=[17,30],strengths=[-1.,-1.5],no_wait=True)
+            workers=[]
+            def start(command,**kwargs):
+                layer=command[command.index('--layers')+1];events.append('start'+layer)
+                process=MagicMock();process.pid=int(layer);process.wait.side_effect=lambda: events.append('wait'+layer) or 0
+                workers.append(command);return process
+            with patch.object(sweep.subprocess,'run') as prepare,patch.object(sweep.subprocess,'Popen',side_effect=start):
+                sweep.parallel(args)
+            prepare.assert_called_once()
+            self.assertEqual(events,['start17','start30','wait17','wait30'])
+            for command in workers:
+                self.assertIn('--no-wait',command);self.assertIn('ifeval',command);self.assertIn('-1.5',command)
+            self.assertTrue((args.output/'worker-L17.log').exists());self.assertTrue((args.output/'worker-L30.log').exists())
 
     def test_different_jobs_can_run_but_duplicate_writer_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:

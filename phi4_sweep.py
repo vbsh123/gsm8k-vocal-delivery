@@ -80,9 +80,44 @@ def score_in_cpu_environment(args,dataset,layer,strength):
         '--data-root',str(args.data_root),'--output',str(args.output)],check=True)
 
 
+def parallel(args):
+    """Prepare audio once, reserve the GPU once, then launch one worker per layer."""
+    with job_lock(args.output/'parallel-launcher'), ExitStack() as stack:
+        cpu=os.environ.get('DIFFA_PYTHON','.venv-diffa/bin/python')
+        print('STAGE: Prepare/reuse selected datasets and audio once on CPU.',flush=True)
+        subprocess.run([cpu,'-u',str(Path(__file__).resolve()),'--mode','prepare',
+            '--datasets',*args.datasets,'--data-root',str(args.data_root),'--output',str(args.output)],check=True)
+        if not args.no_wait:
+            gpu=stack.enter_context(Path('outputs/jenny-task-vectors.lock').open('a'))
+            print('Waiting for shared GPU lock; two layer workers start together afterward.',flush=True)
+            fcntl.flock(gpu,fcntl.LOCK_EX)
+            while subprocess.check_output(['nvidia-smi','--query-compute-apps=pid','--format=csv,noheader'],text=True).strip():
+                print('Waiting for active GPU work.',flush=True);time.sleep(30)
+        workers=[]
+        try:
+            for layer in args.layers:
+                log_path=args.output/f'worker-L{layer}.log';log=stack.enter_context(log_path.open('a'))
+                command=['.venv-bbh-phi4/bin/python','-u',str(Path(__file__).resolve()),'--mode','run','--no-wait',
+                    '--datasets',*args.datasets,'--layers',str(layer),'--strengths',*[str(s) for s in args.strengths],
+                    '--data-root',str(args.data_root),'--output',str(args.output)]
+                process=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT)
+                workers.append((layer,process));print(f'STARTED L{layer}, PID{process.pid}; log: {log_path}',flush=True)
+            failed=[]
+            for layer,process in workers:
+                code=process.wait();print(f'L{layer} worker finished: exit{code}',flush=True)
+                if code:failed.append((layer,code))
+            if failed:raise SystemExit(f'Failed layer workers: {failed}; saved results retained. Check their logs and resume.')
+        except BaseException:
+            # Only stop children belonging to this launcher if it is interrupted.
+            for _,process in workers:
+                if process.poll() is None:process.terminate()
+            for _,process in workers:process.wait()
+            raise
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--mode',choices=('prepare','run','summary'),default='run')
+    p.add_argument('--mode',choices=('prepare','run','summary','parallel'),default='run')
     p.add_argument('--datasets',nargs='+',choices=tuple(task.TASKS),default=list(task.TASKS))
     p.add_argument('--layers',type=int,nargs='+',default=[2])
     p.add_argument('--strengths',type=float,nargs='+',default=[-1.,-1.5])
@@ -93,6 +128,9 @@ def main():
     if any(layer not in range(32) for layer in args.layers):p.error('Layers must be0..31.')
     if any(not math.isfinite(s) or s==0 for s in args.strengths):p.error('Supply finite nonzero strengths; baseline0 is automatic.')
     args.datasets=list(dict.fromkeys(args.datasets));args.layers=list(dict.fromkeys(args.layers));args.strengths=list(dict.fromkeys(args.strengths))
+    if args.mode=='parallel':
+        if len(args.layers)!=2:p.error('Parallel mode needs exactly two distinct layers.')
+        args.output.mkdir(parents=True,exist_ok=True);parallel(args);return
     if args.mode!='run':run(args);return
     args.output.mkdir(parents=True,exist_ok=True)
     with ExitStack() as stack:

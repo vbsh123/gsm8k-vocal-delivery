@@ -14,5 +14,5 @@ for argument in "$@"; do
     previous="$argument"
 done
 python=.venv-bbh-phi4/bin/python
-if [[ "$mode" == summary || "$mode" == prepare ]]; then python="${DIFFA_PYTHON:-.venv-diffa/bin/python}"; fi
+if [[ "$mode" == summary || "$mode" == prepare || "$mode" == parallel ]]; then python="${DIFFA_PYTHON:-.venv-diffa/bin/python}"; fi
 exec "$python" -u phi4_sweep.py "$@"
