@@ -13,6 +13,53 @@ This repo generates stimuli, evaluates them with DIFFA-2, and extracts candidate
 delivery directions. It does not claim that requested emotions were realized or
 that the extracted directions improve reasoning.
 
+## Current evidence report (19 November 2026)
+
+The downloaded evidence is organized locally at `Downloads/emotional-audio` in the existing
+numbered folder layout. Open `07-reports/production/index.html` for the offline results report,
+its `data/` folder for CSV/JSON exports, and `figures/` for publication-ready SVG/PNG plots.
+The workspace README and `EVIDENCE_INDEX.json` map raw answers, configs, vectors and original archives.
+These private/local artifacts are not bundled into the Git repository.
+
+```bash
+python organize_experiment_evidence.py --help
+python build_final_results_report.py --root /path/to/emotional-audio
+```
+
+The report separates scoring/prompt cohorts, shows completed strengths and transfer coverage,
+and preserves incomplete/missing evidence labels. New Phi evidence is deferred.
+CPU reporting requires NumPy, Matplotlib, tokenizers and the archived upstream `lm_eval` evaluator.
+The workspace contains an offline tokenizer and report-builder snapshot; no model generations are needed.
+
+## Configurable Phi follow-ups
+
+Run selected own-task datasets, decoder layers and signed raw-vector strengths:
+
+```bash
+bash run_phi4_sweep.sh --datasets gsm8k svamp multiarith bbh3 bbh5 --layers 2 17 --strengths -1 -1.5
+bash run_phi4_sweep.sh --mode summary --datasets gsm8k svamp multiarith bbh3 bbh5 --layers 2 17 --strengths -1 -1.5
+```
+
+Runs execute sequentially and wait for the shared GPU queue by default; `--no-wait`
+allows explicit concurrency. GSM reuses the original400-question all-layer vector
+and evaluates all869 noncollection questions. MultiArith uses290/290, SVAMP500/500,
+and BBH125/125. Other tasks collect an own-task vector once per layer and reuse it
+across strengths. Configs, responses and vectors are isolated by dataset/layer/strength
+under `outputs/phi4-sweeps`; collection caches are under its `collection-cache` folder.
+Existing compatible unsteered answers are reused. Missing SVAMP/BBH audio can be
+prepared/reused through Azure; credentials are needed only when recordings are missing.
+These are exploratory settings on previously inspected datasets.
+
+For two independent GSM strength workers on layer2:
+
+```bash
+bash run_phi4_gsm_L7_split.sh 2
+```
+
+The historical launcher name is retained; the layer argument defaults to7.
+`inventory_experiment_outputs.py` inventories local run configs, raw-answer file sizes/counts,
+vectors and cached tensor counts without loading models.
+
 ## Vast setup
 
 An A40 with about 45 GB usable VRAM should have ample room for sequential BF16

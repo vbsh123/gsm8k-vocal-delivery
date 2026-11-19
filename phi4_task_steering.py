@@ -21,6 +21,8 @@ from pack_experiment_backup import snapshot
 from steer import read_rows
 
 TASKS={
+    'gsm8k':dict(half=400),
+    'multiarith':dict(half=290),
     'svamp':dict(filename='SVAMP-source.json',url=svamp.SOURCE_URL,sha=svamp.SOURCE_SHA256,half=500,
         sources=['azure-svamp1000','azure-svamp500','azure-svamp500-hashes','azure-svamp-remaining500']),
     'bbh3':dict(filename='logical_deduction_three_objects-source.json',url=bbh3.SOURCE_URL,sha=bbh3.SOURCE_SHA256,half=125,
@@ -37,7 +39,28 @@ def questions(task,data):
 
 
 def prepare_data(task,root):
-    spec=TASKS[task];folder=root/task;source=folder/'audio';source.mkdir(parents=True,exist_ok=True)
+    spec=TASKS[task];folder=root/task
+    if task in ('gsm8k','multiarith'):
+        folder.mkdir(parents=True,exist_ok=True)
+        if task=='gsm8k':
+            path=Path('outputs/phi4-gsm400-all-layers-test869-minus1/run_config.json')
+            original=json.loads(path.read_text());collection=original['collection']
+            test=[dict(question_id=r['question_id'],voice=r['voice'],neutral=r) for r in original['recordings'] if r['style']=='neutral']
+            bank=original['bank'];prompt=original['prompt']
+        else:
+            from phi4_reverse_followups import multi_selection
+            collection,records,bank=multi_selection(Path('outputs/azure-multiarith580'))
+            test=[dict(question_id=r['question_id'],voice=r['voice'],neutral=r) for r in records];prompt=gsm.ORIGINAL
+        expected=(400,869) if task=='gsm8k' else (290,290)
+        train_ids={p['question_id'] for p in collection};test_ids={p['question_id'] for p in test}
+        if (len(collection),len(test))!=expected or len(train_ids)!=expected[0] or len(test_ids)!=expected[1] or train_ids & test_ids:
+            raise ValueError('Unexpected or overlapping frozen collection/test split.')
+        data=dict(protocol='phi4-next-task-data-v1',task=task,prompt=prompt,seed=42,
+            collection=collection,test=test,bank=bank,source='existing frozen experiment split')
+        freeze(folder/'data_config.json',data)
+        print(f'{task}: reused {len(collection)} collection /{len(test)} test; no new TTS.',flush=True)
+        return data
+    source=folder/'audio';source.mkdir(parents=True,exist_ok=True)
     path=folder/spec['filename'];candidates=[Path('outputs')/p for p in spec['sources']]
     if not path.exists():
         cached=next((p/spec['filename'] for p in candidates if (p/spec['filename']).is_file()),None)
@@ -73,7 +96,7 @@ def make_plan(data,data_path,layer,group,strength):
     tasks=[]
     for pair in data['test']:
         for condition,style,amount in [('neutral','neutral',0.),('angry','angry',0.),(label,'neutral',strength)]:
-            tasks.append(dict(pair[style],condition=condition,strength=amount))
+            if style in pair:tasks.append(dict(pair[style],condition=condition,strength=amount))
     return dict(protocol='phi4-task-own-mean-steering-v1',task=data['task'],data_config_sha256=digest(data_path),
         recipe=dict(gsm.MODELS['phi4'],dtype='bfloat16',do_sample=False,num_beams=1,use_cache=True,repetition_penalty=1.,text_only_output=True),
         collection=data['collection'],bank={p['question_id']:data['bank'][p['question_id']] for p in data['test']},
@@ -129,7 +152,39 @@ def reuse(plan,output):
             stream.write(json.dumps(saved)+'\n');done[key]=saved
 
 
-def evaluate(plan,output):
+def collection_vector(plan,output,native,root):
+    """Collect once per task/layer/group, reusing the same direction across strengths."""
+    import torch
+    from kimi_bbh_layer_diagnostic import atomic_save
+    cache=root/plan['task']/f"L{plan['layer']}-{plan['group']}";cache.mkdir(parents=True,exist_ok=True)
+    common={k:plan[k] for k in ('task','collection','recipe','prompt','seed','max_new_tokens','layer','group','vector_definition')}
+    common['protocol']='phi4-sweep-collection-v1';freeze(cache/'run_config.json',common)
+    if plan['task']=='gsm8k':
+        source=Path('outputs/phi4-gsm400-all-layers-test869-minus1')
+        original=json.loads((source/'run_config.json').read_text())
+        for key in ('collection','recipe','prompt'):
+            if original[key]!=plan[key]:raise ValueError('GSM source collection recipe differs: '+key)
+        saved=torch.load(source/'style-vectors.pt',map_location='cpu',weights_only=True)
+        if saved['run_config_sha256']!=digest(source/'run_config.json') or saved['collection_question_ids']!=[p['question_id'] for p in plan['collection']]:
+            raise ValueError('GSM source vector provenance differs.')
+        if saved['groups']!=['answer','audio'] or saved['angry_minus_neutral'].shape!=native_hooks.SHAPE or saved['recipe']!=plan['recipe'] or not torch.isfinite(saved['angry_minus_neutral']).all():raise ValueError('GSM source vector layout differs.')
+        vector=saved['angry_minus_neutral'][plan['layer'],saved['groups'].index(plan['group'])]
+        provenance=dict(source=str(source/'style-vectors.pt'),sha256=digest(source/'style-vectors.pt'))
+    else:
+        vector=engine.collect(common,cache,native,digest(cache/'run_config.json'))
+        provenance=dict(source=str(cache/'style-vectors.pt'),sha256=digest(cache/'style-vectors.pt'))
+    state=dict(protocol=plan['protocol'],run_config_sha256=digest(output/'run_config.json'),layer=plan['layer'],group=plan['group'],
+        collection_question_ids=[p['question_id'] for p in plan['collection']],model=plan['recipe']['model'],revision=plan['recipe']['revision'],
+        angry_minus_neutral=vector,source_vector=provenance)
+    path=output/'style-vectors.pt'
+    if path.exists():
+        old=torch.load(path,map_location='cpu',weights_only=True)
+        if old['run_config_sha256']!=state['run_config_sha256'] or not torch.equal(old['angry_minus_neutral'],vector):raise ValueError('Sweep vector changed.')
+    else:atomic_save(path,state)
+    return vector
+
+
+def evaluate(plan,output,collection_root=None):
     import torch
     reuse(plan,output);tasks,done=completed(plan,output,repair=True)
     if len(done)==len(tasks):print('All answers complete; no model loaded.');return
@@ -139,7 +194,7 @@ def evaluate(plan,output):
     (output/'runtime.json').write_text(json.dumps(dict(torch=torch.__version__,transformers=engine.version('transformers'),
         gpu=torch.cuda.get_device_name(0),script_sha256=digest(__file__),native_hooks_sha256=digest(native_hooks.__file__),
         policy='No GPU queue/lock;18 GiB Torch cap'),indent=2)+'\n')
-    vector=engine.collect(plan,output,native,digest(output/'run_config.json'))
+    vector=collection_vector(plan,output,native,collection_root) if collection_root else engine.collect(plan,output,native,digest(output/'run_config.json'))
     for i,(key,row) in enumerate(tasks.items(),1):
         if key in done:continue
         print(f'{plan["task"]} [{i}/{len(tasks)}] {row["question_id"]} {row["condition"]}',flush=True)
@@ -160,8 +215,8 @@ def report(output):
     plan=json.loads(path.read_text());_,done=completed(plan,output);rows=list(done.values())
     print(f'{plan["task"]}: {len(rows)}/{len(plan["recordings"])} answers; L{plan["layer"]} {plan["group"]} x{plan["strength"]}.')
     if not rows:return
-    math_task=plan['task']=='svamp'
-    print('SVAMP: installed GSM8K filters/metric on SVAMP references; numeric/tolerance additional, not an official SVAMP harness task.' if math_task else 'BBH: installed upstream task scoring on saved native audio-adapted responses.')
+    math_task=plan['task'] in ('gsm8k','svamp','multiarith')
+    print('Math: installed GSM8K filters/metric on dataset references; numeric equivalence additional. SVAMP/MultiArith are spoken adaptations using these filters.' if math_task else 'BBH: installed upstream task scoring on saved native audio-adapted responses.')
     name='gsm8k' if math_task else 'bbh_cot_zeroshot_logical_deduction_'+('three' if plan['task']=='bbh3' else 'five')+'_objects'
     scorer=HarnessTaskScorer(name,output/'harness/upstream')
     docs=[dict(question=plan['bank'][r['question_id']]['question'],answer=r['reference_answer']) if math_task else
@@ -173,11 +228,11 @@ def report(output):
         r['scores']['format-compliant']=values['strict-match'][i]['prediction']!='[invalid]' if math_task else bits[i]
         if math_task:
             pred=values['flexible-extract'][i]['prediction']
-            r['scores'].update({'flexible-numeric':numeric_equal(pred,r['reference_answer']),
-                               'author-tolerance':numeric_within_tolerance(pred,r['reference_answer'])})
+            r['scores']['flexible-numeric']=numeric_equal(pred,r['reference_answer'])
+            if plan['task']=='svamp':r['scores']['author-tolerance']=numeric_within_tolerance(pred,r['reference_answer'])
     labels=list(dict.fromkeys(r['condition'] for r in plan['recordings']));groups={c:{(r['question_id'],r['voice']):r for r in rows if r['condition']==c} for c in labels}
     keys=sorted(set.intersection(*(set(g) for g in groups.values())));accuracy=[];comparisons=[]
-    print(len(keys),'questions completed in ALL THREE conditions; unadjusted paired tests.')
+    print(len(keys),f'questions completed in all {len(groups)} conditions; unadjusted paired tests.')
     if keys:
         for c,g in groups.items():
             lengths=[g[k]['response_tokens'] for k in keys]
