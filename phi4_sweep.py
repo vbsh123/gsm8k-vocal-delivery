@@ -84,7 +84,7 @@ def subset_data(args,data,path):
     return selected,target
 
 
-def run(args):
+def run(args,native=None):
     group=getattr(args,'group','answer')
     for dataset in args.datasets:
         path=args.data_root/dataset/'data_config.json'
@@ -99,7 +99,10 @@ def run(args):
                     plan=task.make_plan(data,path,layer,group,strength)
                     freeze(output/'run_config.json',plan);reuse_baselines(plan,output,args.output)
                     print(f'STAGE: {dataset} L{layer} {group} x{strength:g}; {len(data["collection"])} collection /{len(data["test"])} test.',flush=True)
-                    task.evaluate(plan,output,args.output/'collection-cache')
+                    if native is None:
+                        task.evaluate(plan,output,args.output/'collection-cache')
+                    else:
+                        task.evaluate(plan,output,args.output/'collection-cache',native=native)
                     score_in_cpu_environment(args,dataset,layer,strength)
 
 

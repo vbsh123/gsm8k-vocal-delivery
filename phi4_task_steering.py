@@ -192,13 +192,16 @@ def collection_vector(plan,output,native,root):
 
 
 
-def evaluate(plan,output,collection_root=None):
+def evaluate(plan,output,collection_root=None,native=None):
     import torch
     reuse(plan,output);tasks,done=completed(plan,output,repair=True)
     if len(done)==len(tasks):print('All answers complete; no model loaded.');return
     from evaluate_bbh_candidates import concurrent_budget_now
-    concurrent_budget_now(18.)
-    native=Native(plan)
+    if native is None:
+        concurrent_budget_now(18.)
+        native=Native(plan)
+    else:
+        native.plan=plan
     (output/'runtime.json').write_text(json.dumps(dict(torch=torch.__version__,transformers=engine.version('transformers'),
         gpu=torch.cuda.get_device_name(0),script_sha256=digest(__file__),native_hooks_sha256=digest(native_hooks.__file__),
         policy='No GPU queue/lock;18 GiB Torch cap'),indent=2)+'\n')
