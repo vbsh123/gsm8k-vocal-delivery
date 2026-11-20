@@ -29,3 +29,15 @@ bash run_phi4_sweep.sh --mode summary --datasets gsm8k --layers $(seq 0 31) \
 ```
 
 The fallback runs layers sequentially in one worker and reuses the400-question all-layer vector collection and neutral answers. It is intentionally not started automatically: inspect the combined result first.
+
+## MultiArith alongside GSM8K
+
+The same runner accepts `--dataset multiarith`. It uses MultiArith's own290 collection/290 test split and own vectors: the existing L0 audio−1 sweep and original L30 answer-vector run. It reuses compatible neutral/audio-only controls and generates missing L30 answer−2 controls as well as combined answers (normally580 new generations). It never substitutes GSM vectors. Thus the combination can be compared against both standalone interventions on identical questions.
+
+```bash
+nohup bash run_phi4_gsm_combo.sh --dataset multiarith \
+  > outputs/phi4-multiarith-combo.log 2>&1 </dev/null &
+bash run_phi4_gsm_combo.sh --dataset multiarith --mode summary
+```
+
+GSM8K and MultiArith have separate output folders and process locks, with no shared GPU wait. Start each once; the original GSM command remains valid.

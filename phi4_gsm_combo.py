@@ -1,4 +1,4 @@
-"""GSM869: combine existing L0 audio -1 and L30 answer -2, reuse both controls."""
+"""Combine L0 audio -1 and L30 answer -2 on frozen GSM8K or MultiArith tests."""
 import argparse
 import fcntl
 import json
@@ -20,7 +20,7 @@ CONDITIONS = {
 }
 
 
-def prepare(output, audio=AUDIO, answer=ANSWER):
+def prepare(output, audio=AUDIO, answer=ANSWER, dataset='gsm8k'):
     import torch
     configs = [json.loads((p/'run_config.json').read_text()) for p in (audio, answer)]
     a, b = configs
@@ -29,7 +29,8 @@ def prepare(output, audio=AUDIO, answer=ANSWER):
     if a.get('seed',42) != 42 or b.get('seed',42) != 42 or a.get('max_new_tokens',512) != 512 or b.get('max_new_tokens',512) != 512:
         raise ValueError('Expected seed42 and 512-token budget.')
     rows = [r for r in a['recordings'] if r['condition']=='neutral']
-    if len(rows)!=869 or len(a['collection'])!=400: raise ValueError('Expected frozen400/869 split.')
+    expected=(400,869) if dataset=='gsm8k' else (290,290)
+    if (len(a['collection']),len(rows))!=expected: raise ValueError(f'Expected frozen{expected[0]}/{expected[1]} split.')
     if {r['question_id'] for r in rows} & {r['question_id'] for r in a['collection']}: raise ValueError('Collection/test overlap.')
     old = {(r['question_id'],r['voice']):r for r in b['test']}
     for r in rows:
@@ -50,6 +51,9 @@ def prepare(output, audio=AUDIO, answer=ANSWER):
     plan=dict(protocol='phi4-gsm-combined-v1',task='gsm8k',recipe=a['recipe'],prompt=a['prompt'],seed=42,max_new_tokens=512,
         collection=a['collection'],bank=a['bank'],test=rows,conditions=CONDITIONS,sources=receipts,
         note='Exploratory combination after layer/strength sweeps; same disjoint869 questions, no new TTS/collection.')
+    if dataset!='gsm8k':
+        plan.update(protocol='phi4-multiarith-combined-v1',task=dataset,
+            note='Exploratory combination after layer/strength sweeps; same disjoint290 questions, no new TTS/collection.')
     output.mkdir(parents=True,exist_ok=True);freeze(output/'run_config.json',plan)
     state=dict(run_config_sha256=digest(output/'run_config.json'),audio=vectors[0],answer=vectors[1])
     path=output/'style-vectors.pt'
@@ -129,7 +133,7 @@ def report(plan,output):
         row['scores']['flexible-numeric']=numeric_equal(scores['flexible-extract'][i]['prediction'],row['reference_answer'])
     groups={c:{(r['question_id'],r['voice']):r for r in rows if r['condition']==c} for c in plan['conditions']}
     keys=sorted(set.intersection(*(set(g) for g in groups.values())))
-    print(f'{len(keys)}/869 questions complete in all FOUR conditions; exploratory, unadjusted paired tests.')
+    print(f'{len(keys)}/{len(plan["test"])} questions complete in all FOUR conditions; exploratory, unadjusted paired tests.')
     comparisons=[]
     if keys:
         for c,g in groups.items():
@@ -146,12 +150,17 @@ def report(plan,output):
 
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--mode',choices=('run','summary'),default='run');p.add_argument('--output',type=Path,default=OUTPUT)
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--mode',choices=('run','summary'),default='run');p.add_argument('--output',type=Path);p.add_argument('--dataset',choices=('gsm8k','multiarith'),default='gsm8k')
     args=p.parse_args()
+    if args.output is None:
+        args.output=OUTPUT if args.dataset=='gsm8k' else Path('outputs/phi4-multiarith-L0audio-minus1-L30answer-minus2')
     if args.mode=='summary':report(json.loads((args.output/'run_config.json').read_text()),args.output);return
     args.output.mkdir(parents=True,exist_ok=True)
     with (args.output/'run.lock').open('a') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
-        plan,vectors=prepare(args.output);run(plan,args.output,vectors)
+        if args.dataset=='gsm8k':plan,vectors=prepare(args.output)
+        else:plan,vectors=prepare(args.output,Path('outputs/phi4-sweeps/multiarith/L0-audio-a-1'),
+            Path('outputs/phi4-multiarith-reverse290-290-L30'),dataset='multiarith')
+        run(plan,args.output,vectors)
 
 if __name__=='__main__':main()
