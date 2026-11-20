@@ -125,8 +125,13 @@ def concurrent_budget(budget_gib):
 
 
 def concurrent_budget_now(budget_gib):
-    """Explicit concurrent launch: cap memory and fail rather than wait for GPU."""
+    """Clear unused local allocations, then cap memory or fail without waiting."""
+    import gc
     import torch
+    # A previous sequential dataset may have released its model while PyTorch
+    # still reserves its blocks. Reclaim only this process's unused memory.
+    gc.collect()
+    torch.cuda.empty_cache()
     free, total = torch.cuda.mem_get_info(0)
     if budget_gib <= 0 or budget_gib*2**30 >= total: raise ValueError('Invalid concurrent GPU budget.')
     if free < (budget_gib+2)*2**30:
