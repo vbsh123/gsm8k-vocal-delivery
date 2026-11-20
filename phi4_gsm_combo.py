@@ -29,10 +29,11 @@ def prepare(output, audio=AUDIO, answer=ANSWER, dataset='gsm8k'):
     if a.get('seed',42) != 42 or b.get('seed',42) != 42 or a.get('max_new_tokens',512) != 512 or b.get('max_new_tokens',512) != 512:
         raise ValueError('Expected seed42 and 512-token budget.')
     rows = [r for r in a['recordings'] if r['condition']=='neutral']
-    expected=(400,869) if dataset=='gsm8k' else (290,290)
+    expected={'gsm8k':(400,869),'multiarith':(290,290),'svamp':(500,500)}[dataset]
     if (len(a['collection']),len(rows))!=expected: raise ValueError(f'Expected frozen{expected[0]}/{expected[1]} split.')
     if {r['question_id'] for r in rows} & {r['question_id'] for r in a['collection']}: raise ValueError('Collection/test overlap.')
-    old = {(r['question_id'],r['voice']):r for r in b['test']}
+    old_rows=b['test'] if 'test' in b else [r for r in b['recordings'] if r['condition']=='neutral']
+    old = {(r['question_id'],r['voice']):r for r in old_rows}
     for r in rows:
         previous=old[(r['question_id'],r['voice'])]
         if any(r[k]!=previous[k] for k in ('audio_sha256','reference_answer')): raise ValueError('Standalone test differs.')
@@ -52,8 +53,8 @@ def prepare(output, audio=AUDIO, answer=ANSWER, dataset='gsm8k'):
         collection=a['collection'],bank=a['bank'],test=rows,conditions=CONDITIONS,sources=receipts,
         note='Exploratory combination after layer/strength sweeps; same disjoint869 questions, no new TTS/collection.')
     if dataset!='gsm8k':
-        plan.update(protocol='phi4-multiarith-combined-v1',task=dataset,
-            note='Exploratory combination after layer/strength sweeps; same disjoint290 questions, no new TTS/collection.')
+        plan.update(protocol=f'phi4-{dataset}-combined-v1',task=dataset,
+            note=f'Exploratory combination after layer/strength sweeps; same disjoint{expected[1]} questions, no new TTS/collection.')
     output.mkdir(parents=True,exist_ok=True);freeze(output/'run_config.json',plan)
     state=dict(run_config_sha256=digest(output/'run_config.json'),audio=vectors[0],answer=vectors[1])
     path=output/'style-vectors.pt'
@@ -150,15 +151,17 @@ def report(plan,output):
 
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--mode',choices=('run','summary'),default='run');p.add_argument('--output',type=Path);p.add_argument('--dataset',choices=('gsm8k','multiarith'),default='gsm8k')
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--mode',choices=('run','summary'),default='run');p.add_argument('--output',type=Path);p.add_argument('--dataset',choices=('gsm8k','multiarith','svamp'),default='gsm8k')
     args=p.parse_args()
     if args.output is None:
-        args.output=OUTPUT if args.dataset=='gsm8k' else Path('outputs/phi4-multiarith-L0audio-minus1-L30answer-minus2')
+        args.output=OUTPUT if args.dataset=='gsm8k' else Path(f'outputs/phi4-{args.dataset}-L0audio-minus1-L30answer-minus2')
     if args.mode=='summary':report(json.loads((args.output/'run_config.json').read_text()),args.output);return
     args.output.mkdir(parents=True,exist_ok=True)
     with (args.output/'run.lock').open('a') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         if args.dataset=='gsm8k':plan,vectors=prepare(args.output)
+        elif args.dataset=='svamp':plan,vectors=prepare(args.output,Path('outputs/phi4-sweeps/svamp/L0-audio-a-1'),
+            Path('outputs/phi4-sweeps/svamp/L30-answer-a-2'),dataset='svamp')
         else:plan,vectors=prepare(args.output,Path('outputs/phi4-sweeps/multiarith/L0-audio-a-1'),
             Path('outputs/phi4-multiarith-reverse290-290-L30'),dataset='multiarith')
         run(plan,args.output,vectors)

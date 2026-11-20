@@ -41,3 +41,12 @@ bash run_phi4_gsm_combo.sh --dataset multiarith --mode summary
 ```
 
 GSM8K and MultiArith have separate output folders and process locks, with no shared GPU wait. Start each once; the original GSM command remains valid.
+
+## SVAMP
+
+```bash
+nohup bash run_phi4_svamp_combo.sh > outputs/phi4-svamp-combo.log 2>&1 </dev/null &
+bash run_phi4_svamp_combo.sh --mode summary
+```
+
+Uses the original500 collection/500 test split. First completes the matching L0 audio−1 and L30 answer−2 standalone runs, then combines them. The earlier L0 SVAMP300/300 run is a different collection cohort and is not substituted. Missing500-question L0 collection vectors and standalone answers are therefore collected/generated once; L30's existing500-question collection cache is reused. Existing audio is reused; no new TTS. All stages run sequentially within this worker without a shared GPU wait, so GSM can continue alongside it. Summary becomes available after the combined stage starts and its configuration exists. Scoring remains upstream GSM8K filters on spoken SVAMP references plus numeric equivalence, not an official SVAMP inference protocol.
