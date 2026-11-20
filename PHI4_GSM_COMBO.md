@@ -50,3 +50,10 @@ bash run_phi4_svamp_combo.sh --mode summary
 ```
 
 Uses the original500 collection/500 test split. Reuses the collected L0 audio and L30 answer vectors and existing neutral answers, then generates only500 combined responses. No standalone control generations, TTS, or collection stages are launched. The L30 vector comes from the completed answer−1 run; the same raw vector is scaled by−2 for this combination. Output: `outputs/phi4-svamp-L0audio-minus1-L30answer-minus2-combined-only`. Summary compares combined against reused neutral answers. A missing neutral baseline causes an error before model load rather than new baseline generation. GSM and MultiArith four-condition runs are unchanged.
+
+SVAMP L0 audio−1 + L30 answer−1 uses the same vectors/baseline and a separate output folder:
+
+```bash
+nohup bash run_phi4_svamp_combo.sh --answer-strength -1 > outputs/phi4-svamp-combo-minus1.log 2>&1 </dev/null &
+bash run_phi4_svamp_combo.sh --answer-strength -1 --mode summary
+```

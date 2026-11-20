@@ -20,7 +20,7 @@ CONDITIONS = {
 }
 
 
-def prepare(output, audio=AUDIO, answer=ANSWER, dataset='gsm8k', combined_only=False):
+def prepare(output, audio=AUDIO, answer=ANSWER, dataset='gsm8k', combined_only=False, answer_strength=-2.):
     import torch
     configs = [json.loads((p/'run_config.json').read_text()) for p in (audio, answer)]
     a, b = configs
@@ -57,6 +57,9 @@ def prepare(output, audio=AUDIO, answer=ANSWER, dataset='gsm8k', combined_only=F
             note=f'Exploratory combination after layer/strength sweeps; same disjoint{expected[1]} questions, no new TTS/collection.')
     if combined_only:
         plan['conditions']={k:v for k,v in CONDITIONS.items() if k in ('neutral','combined')}
+    if answer_strength!=-2.:
+        plan['conditions']={c:[dict(item,strength=answer_strength) if item['group']=='answer' else dict(item) for item in changes]
+            for c,changes in plan['conditions'].items()}
     output.mkdir(parents=True,exist_ok=True);freeze(output/'run_config.json',plan)
     state=dict(run_config_sha256=digest(output/'run_config.json'),audio=vectors[0],answer=vectors[1])
     path=output/'style-vectors.pt'
@@ -155,17 +158,20 @@ def report(plan,output):
 
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--mode',choices=('run','summary'),default='run');p.add_argument('--output',type=Path);p.add_argument('--dataset',choices=('gsm8k','multiarith','svamp'),default='gsm8k')
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--mode',choices=('run','summary'),default='run');p.add_argument('--output',type=Path);p.add_argument('--dataset',choices=('gsm8k','multiarith','svamp'),default='gsm8k');p.add_argument('--answer-strength',type=float,choices=(-1.,-2.),default=-2.)
     args=p.parse_args()
+    if args.answer_strength!=-2. and args.dataset!='svamp':p.error('Alternate answer strength currently supported for SVAMP only.')
     if args.output is None:
         args.output=OUTPUT if args.dataset=='gsm8k' else Path(f'outputs/phi4-{args.dataset}-L0audio-minus1-L30answer-minus2'+('-combined-only' if args.dataset=='svamp' else ''))
+    if args.answer_strength!=-2. and args.output.name.endswith('-combined-only'):
+        args.output=args.output.with_name(args.output.name.replace('L30answer-minus2','L30answer-minus1'))
     if args.mode=='summary':report(json.loads((args.output/'run_config.json').read_text()),args.output);return
     args.output.mkdir(parents=True,exist_ok=True)
     with (args.output/'run.lock').open('a') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         if args.dataset=='gsm8k':plan,vectors=prepare(args.output)
         elif args.dataset=='svamp':plan,vectors=prepare(args.output,Path('outputs/phi4-sweeps/svamp/L0-audio-a-1'),
-            Path('outputs/phi4-sweeps/svamp/L30-answer-a-1'),dataset='svamp',combined_only=True)
+            Path('outputs/phi4-sweeps/svamp/L30-answer-a-1'),dataset='svamp',combined_only=True,answer_strength=args.answer_strength)
         else:plan,vectors=prepare(args.output,Path('outputs/phi4-sweeps/multiarith/L0-audio-a-1'),
             Path('outputs/phi4-multiarith-reverse290-290-L30'),dataset='multiarith')
         run(plan,args.output,vectors)
