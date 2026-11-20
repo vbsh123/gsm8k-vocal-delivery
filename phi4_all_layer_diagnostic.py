@@ -1,6 +1,6 @@
 """Phi all-layer -1 diagnostic: collect400; recoveries selected only from remaining869."""
 import argparse
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 import csv
 import fcntl
 import hashlib
@@ -177,7 +177,7 @@ def hooks(layers, audio_mask, collect=False, target=None, group='answer', direct
         for handle in handles: handle.remove()
 
 
-def generate(native, row, prompt, collect=False, target=None, group='answer', direction=None, strength=-1., capture_layers=None, max_new_tokens=512):
+def generate(native, row, prompt, collect=False, target=None, group='answer', direction=None, strength=-1., capture_layers=None, max_new_tokens=512, interventions=None):
     import torch
     if digest(row['audio_file']) != row['audio_sha256']: raise ValueError('Audio changed.')
     engine.seed(); inputs = native.processor(text=engine.phi_prompt(prompt), audios=[(engine.load_audio(row['audio_file']), 16000)],
@@ -189,14 +189,19 @@ def generate(native, row, prompt, collect=False, target=None, group='answer', di
     if attention is not None and (not attention[0, -1].bool() or not attention[0, audio_mask].bool().all()):
         raise ValueError('Native audio/answer positions overlap padding.')
     started = time.monotonic()
-    if not collect and target is None:
-        with torch.inference_mode(): result = native.model.generate(**inputs, generation_config=native.config,
+    if interventions is not None and (collect or target is not None):
+        raise ValueError('Combined interventions cannot also request collection or a single target.')
+    totals, counts, audio = {}, {}, {}
+    with torch.inference_mode(), ExitStack() as stack:
+        if interventions is not None:
+            for item in interventions:
+                stack.enter_context(hooks(native.layers, audio_mask, target=item['layer'],
+                    group=item['group'], direction=item['direction'], strength=item['strength']))
+        elif collect or target is not None:
+            totals, counts, audio = stack.enter_context(hooks(native.layers, audio_mask,
+                collect, target, group, direction, strength, capture_layers))
+        result = native.model.generate(**inputs, generation_config=native.config,
             max_new_tokens=max_new_tokens, do_sample=False, num_beams=1, repetition_penalty=1., use_cache=True)
-        totals, counts, audio = {}, {}, {}
-    else:
-        with torch.inference_mode(), hooks(native.layers, audio_mask, collect, target, group, direction, strength, capture_layers) as (totals, counts, audio):
-            result = native.model.generate(**inputs, generation_config=native.config, max_new_tokens=max_new_tokens,
-                do_sample=False, num_beams=1, repetition_penalty=1., use_cache=True)
     suffix = result[:, inputs['input_ids'].shape[1]:]
     trace = dict(response=native.processor.batch_decode(suffix, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0],
         response_tokens=int(suffix.shape[1]), generation_seconds=time.monotonic()-started)
