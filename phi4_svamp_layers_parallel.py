@@ -62,17 +62,17 @@ def collect_together(plans, root, native):
 
 def worker(args):
     layers=partitions(args.layers,args.workers)[args.worker_id]
-    print(f'Worker {args.worker_id}: layers {layers}, strengths {args.strengths}; one persistent Phi model.',flush=True)
+    print(f'Worker {args.worker_id}: {args.group} positions, layers {layers}, strengths {args.strengths}; one persistent Phi model.',flush=True)
     path=args.data_root/'svamp/data_config.json'
     data,path=sweep.subset_data(args,json.loads(path.read_text()),path)
-    plans=[task.make_plan(data,path,layer,'answer',args.strengths[0]) for layer in layers]
+    plans=[task.make_plan(data,path,layer,args.group,args.strengths[0]) for layer in layers]
     with sweep.job_lock(args.output/f'nightly-worker{args.worker_id}'):
         from evaluate_bbh_candidates import concurrent_budget_now
         concurrent_budget_now(18.)
         native=task.Native(plans[0])
         collect_together(plans,args.output/'collection-cache',native)
         print(f'Worker {args.worker_id}: collection complete; evaluating assigned layers.',flush=True)
-        args.mode='run';args.layers=layers;args.datasets=['svamp'];args.group='answer'
+        args.mode='run';args.layers=layers;args.datasets=['svamp']
         sweep.run(args,native=native)
 
 
@@ -89,12 +89,14 @@ def launch(args):
     args.output.mkdir(parents=True,exist_ok=True)
     with sweep.job_lock(args.output/'nightly-launcher'),ExitStack() as stack:
         prepare=['bash','run_phi4_sweep.sh','--mode','prepare','--datasets','svamp',
-            '--data-root',str(args.data_root),'--output',str(args.output),*sweep.cohort_options(args)]
+            '--data-root',str(args.data_root),'--output',str(args.output),*sweep.cohort_options(args),*sweep.group_options(args)]
         subprocess.run(prepare,check=True)
         assignments=partitions(args.layers,args.workers)
-        freeze(args.output/'nightly-assignment.json',dict(protocol='phi4-svamp-parallel-layers-v1',
+        assignment=dict(protocol='phi4-svamp-parallel-layers-v1',
             layers_by_worker=assignments,strengths=args.strengths,collection_size=args.collection_size,test_size=args.test_size,
-            note='Exploratory sweep on previously inspected test questions; no GPU queue.'))
+            note='Exploratory sweep on previously inspected test questions; no GPU queue.')
+        if getattr(args,'group','answer')!='answer':assignment['group']=args.group
+        freeze(args.output/'nightly-assignment.json',assignment)
         if getattr(args,'wait_for_gpu',False):wait_for_gpu(stack)
         children=[]
         try:
@@ -104,7 +106,7 @@ def launch(args):
                 command=['.venv-bbh-phi4/bin/python','-u',str(Path(__file__).resolve()),'--worker-id',str(i),
                     '--workers',str(args.workers),'--layers',*[str(x) for x in args.layers],
                     '--strengths',*[str(x) for x in args.strengths],'--output',str(args.output),
-                    '--data-root',str(args.data_root),*sweep.cohort_options(args)]
+                    '--data-root',str(args.data_root),*sweep.cohort_options(args),*sweep.group_options(args)]
                 process=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT)
                 children.append(process)
                 print(f'STARTED worker{i} PID{process.pid}: layers {layers}; log {log_path}',flush=True)
@@ -122,6 +124,7 @@ def launch(args):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--layers',type=int,nargs='+',default=[i for i in range(32) if i not in (17,28,29,30)])
+    parser.add_argument('--group',choices=('answer','audio'),default='answer')
     parser.add_argument('--strengths',type=float,nargs='+',default=[-1.,1.])
     parser.add_argument('--workers',type=int,default=3)
     parser.add_argument('--worker-id',type=int)
@@ -131,6 +134,8 @@ def main():
     parser.add_argument('--data-root',type=Path,default=Path('outputs/phi4-next-tasks'))
     parser.add_argument('--output',type=Path,default=Path('outputs/phi4-sweeps/svamp300-300'))
     args=parser.parse_args()
+    if args.group=='audio' and args.output==Path('outputs/phi4-sweeps/svamp300-300'):
+        parser.error('Use a separate --output for the audio sweep to preserve the answer-sweep assignment.')
     import math
     args.layers=list(dict.fromkeys(args.layers));args.strengths=list(dict.fromkeys(args.strengths))
     if any(i not in range(32) for i in args.layers):parser.error('Layers must be 0..31.')

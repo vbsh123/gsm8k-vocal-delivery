@@ -78,6 +78,43 @@ class NightlyTests(unittest.TestCase):
                 self.assertTrue(torch.equal(saved['angry_minus_neutral'],torch.full((3072,),2.)))
                 self.assertEqual(saved['run_config_sha256'],digest(folder/'run_config.json'))
 
+    def test_audio_worker_preserves_group_in_collection_and_evaluation(self):
+        with tempfile.TemporaryDirectory() as tmp,redirect_stdout(io.StringIO()):
+            root=Path(tmp);source=root/'data/svamp/data_config.json';source.parent.mkdir(parents=True);source.write_text('{}')
+            args=SimpleNamespace(output=root/'out',data_root=root/'data',layers=[1,2],workers=1,worker_id=0,group='audio',strengths=[-1.])
+            with patch.object(nightly.sweep,'subset_data',return_value=({},source)),\
+                 patch.object(nightly.task,'make_plan',return_value={'group':'audio'}) as plan,\
+                 patch('evaluate_bbh_candidates.concurrent_budget_now'),patch.object(nightly.task,'Native') as model,\
+                 patch.object(nightly,'collect_together') as collect,patch.object(nightly.sweep,'run') as evaluate:
+                nightly.worker(args)
+            self.assertTrue(all(call.args[3]=='audio' for call in plan.call_args_list))
+            self.assertEqual(args.group,'audio')
+            collect.assert_called_once();model.assert_called_once();evaluate.assert_called_once_with(args,native=model.return_value)
+
+    def test_audio_parent_passes_group_to_every_worker(self):
+        with tempfile.TemporaryDirectory() as tmp,redirect_stdout(io.StringIO()):
+            args=SimpleNamespace(output=Path(tmp),data_root=Path(tmp)/'data',layers=[1,2,3],workers=3,
+                strengths=[-1.],collection_size=300,test_size=300,group='audio')
+            process=MagicMock();process.poll.return_value=0;process.wait.return_value=0
+            with patch.object(nightly.subprocess,'run') as prepare,patch.object(nightly.subprocess,'Popen',return_value=process) as launch:
+                nightly.launch(args)
+            for command in [prepare.call_args.args[0],*[call.args[0] for call in launch.call_args_list]]:
+                self.assertEqual(command[command.index('--group')+1],'audio')
+
+    def test_audio_collection_selects_audio_component_not_answer(self):
+        with tempfile.TemporaryDirectory() as tmp,redirect_stdout(io.StringIO()):
+            root=Path(tmp);pair=dict(question_id='q',voice='Jenny',neutral={'audio_sha256':'n'},angry={'audio_sha256':'a'})
+            plan=dict(task='svamp',collection=[pair],recipe=dict(model='phi',revision='fixed'),prompt='Prompt',seed=42,
+                max_new_tokens=512,layer=1,group='audio',vector_definition='raw mean')
+            def generate(native,row,prompt,**kwargs):
+                value=1. if row['audio_sha256']=='n' else 3.
+                means=torch.stack((torch.full((3072,),value),torch.full((3072,),-2*value))).unsqueeze(0)
+                return dict(response='2',response_tokens=1,hook_forwards=1,means=means)
+            with patch.object(task.native_hooks,'generate',side_effect=generate):
+                nightly.collect_together([plan],root,SimpleNamespace(native=object()))
+            saved=torch.load(root/'svamp/L1-audio/style-vectors.pt',weights_only=True)
+            self.assertTrue(torch.equal(saved['angry_minus_neutral'],torch.full((3072,),-4.)))
+
     def test_evaluate_reuses_model_and_updates_target_plan(self):
         with tempfile.TemporaryDirectory() as tmp,redirect_stdout(io.StringIO()):
             root=Path(tmp)

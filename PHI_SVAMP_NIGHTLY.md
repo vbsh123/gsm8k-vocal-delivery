@@ -53,3 +53,22 @@ bash run_phi4_sweep.sh --mode summary \
 
 Override `--layers`, `--strengths`, or `--workers` on the launcher if needed.
 Changing collection/test sizes requires a separate `--output` directory.
+
+## Audio-position sweep (three workers)
+
+Audio positions are a separate intervention from answer positions. Use a separate
+output root to preserve the existing answer-sweep assignments. The command below
+excludes L0 audio (already tested) and runs L1..L31 at -1,300/300, waiting for GPU:
+
+```bash
+nohup bash run_phi4_svamp_layers_parallel.sh \
+  --group audio --layers $(seq 1 31) --strengths -1 --wait-for-gpu \
+  --output outputs/phi4-sweeps/svamp300-300-audio \
+  > outputs/phi4-svamp-audio-nightly.log 2>&1 </dev/null &
+```
+
+Worker logs: `outputs/phi4-sweeps/svamp300-300-audio/nightly-worker{0,1,2}.log`.
+For summaries use `run_phi4_sweep.sh --mode summary --datasets svamp --group audio`
+with the same layers, strengths,300/300 sizes and output root. Audio-group
+vectors average native audio positions on prefill; intervention is applied only
+to audio positions on prefill, while subsequent generation uses native caching.
