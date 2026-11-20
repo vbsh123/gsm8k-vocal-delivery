@@ -57,5 +57,10 @@ def make_generator(path):
             raise ValueError('Step input plus generation budget exceeds native context; refusing to crop.')
         with torch.inference_mode():
             outputs=model.generate(**inputs,generation_config=generation,tokenizer=tokenizer)
-        return decode_suffix(tokenizer,outputs[0,inputs['input_ids'].shape[-1]:],eos)
+        suffix=outputs[0,inputs['input_ids'].shape[-1]:]
+        generate.last_trace=dict(generated_token_ids=suffix.tolist(),input_tokens=inputs['input_ids'].shape[-1],ended_with_eos=bool(len(suffix) and suffix[-1].item()==eos))
+        return decode_suffix(tokenizer,suffix,eos)
+    # Expose the native instance to observational collectors; no forward/cache changes.
+    generate.model=model
+    generate.tokenizer=tokenizer
     return generate

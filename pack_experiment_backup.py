@@ -60,7 +60,8 @@ GROUPS = {
 GROUPS['additional-benchmarks'] = ('bbh-tracking250', 'bbh-reasoning200-diffa2', 'azure-bbh-reasoning200',
     'azure-bbh-reasoning250', 'spoken-ifbench-diffa2', 'azure-spoken-ifbench',
     'bbh-seven250-angry-mean', 'azure-bbh-seven250')
-GROUPS['step'] = ('step-gsm400', 'step-gsm718', 'step-calculations20', 'step-gsm400-calculations')
+GROUPS['step'] = ('step-gsm400', 'step-gsm718', 'step-calculations20', 'step-gsm400-calculations', 'step-gsm400-vectors')
+GROUPS['step-vectors'] = ('step-gsm400-vectors',)
 GROUPS['emotions'] = ('available-audio-emotions',)
 GROUPS['emotion-steering'] = ('diffa-gsm8k-happy', 'diffa-gsm8k-sad')
 GROUPS['voice'] = ('multiarith290-guy-delivery', 'azure-multiarith290-guy', 'multiarith580-angry-mean',
@@ -82,6 +83,7 @@ EXTRA_RUNS.update({'Phi GSM original': 'gsm8k-candidates/phi4/original',
                    'Phi GSM L30 -1.5': 'phi4-gsm-reverse400-869-L30-a-1.5',
                    'Phi GSM L30 -2': 'phi4-gsm-reverse400-869-L30-a-2'})
 EXTRA_RUNS['Phi MultiArith L17 -1.5/-2'] = 'phi4-multiarith-reverse290-290-L17-extra-minus1.5-minus2'
+EXTRA_RUNS['Step disjoint vector collection'] = 'step-gsm400-vectors'
 EXTRA_RUNS['Flamingo GSM400'] = 'gsm400-candidates/flamingo/original'
 EXTRA_RUNS['Phi GSM869 L7 -1/-1.5'] = 'phi4-gsm400-test869-L7-minus1-minus1.5'
 EXTRA_RUNS['Phi opposite recovery diagnostic'] = 'phi4-gsm400-opposite-all-layers-minus1'
@@ -251,6 +253,8 @@ def package(repo, destination, samples=3, sample_mb=256, full_audio=False, only=
     preserve_small_pairs = bool(only and any(g in only for g in ('phi', 'minicpm')))
     if preserve_small_pairs:
         manifest['note'] = 'Live read-only snapshot. Selected Phi/MiniCPM small per-question mean/state caches included; model weights excluded. Incomplete final JSONL fragments omitted in archive only.'
+    preserve_step_pairs=bool(only and 'step-vectors' in only)
+    if preserve_step_pairs:manifest['note']='Live read-only snapshot; Step per-pair means up to4 MiB included for vector audits, alongside raw answers/configs/vectors; model weights excluded.'
     roots = [outputs, repo/'recovery-backups']
     if only:
         roots = sorted({root/name for root in roots for group in only for name in GROUPS[group]})
@@ -265,6 +269,8 @@ def package(repo, destination, samples=3, sample_mb=256, full_audio=False, only=
                 if file.suffix.lower() in TEXT:
                     metadata_files.append(file)
                 elif file.suffix == '.pt' and preserve_small_pairs and root.name.startswith(('phi4', 'minicpm')) and file.stat().st_size <= 2*1024**2:
+                    metadata_files.append(file)
+                elif file.suffix == '.pt' and preserve_step_pairs and root.name=='step-gsm400-vectors' and file.stat().st_size <= 4*1024**2:
                     metadata_files.append(file)
                 elif file.suffix == '.pt' and not any('pairs' in p or 'activations' in p for p in file.relative_to(root).parts[:-1]):
                     if 'vector' in file.name or file.stat().st_size <= 64*1024**2:

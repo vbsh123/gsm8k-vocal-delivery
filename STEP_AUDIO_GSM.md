@@ -120,3 +120,55 @@ The original400-question results are preserved; new results go to
 GPU wait are unchanged. Resume with the same command. The prompt was chosen after
 inspecting the20-question diagnostic, so this is an exploratory follow-up; those
 questions are not independent confirmation.
+
+## Disjoint Step activation collection
+
+The evaluation runner does not capture hidden states. Queue a separate collection
+after it; missing activations cannot be recovered from saved text alone:
+
+```bash
+nohup bash run_step_gsm_vectors.sh > outputs/step-gsm400-vectors.log 2>&1 </dev/null &
+tail -F outputs/step-gsm400-vectors.log
+bash run_step_gsm_vectors.sh --mode summary
+```
+
+Default400 neutral/angry pairs (800 additional full generations), sampled with
+seed42 from the original500 DIFFA collection exclusions. They are disjoint from
+all718 original evaluation questions, including the current Step400. No correctness
+or emotion-classifier filtering and no TTS. The calculations prompt, checkpoint,
+512-token greedy decoder and native audio path match the current Step evaluation.
+The collector waits for that evaluation's run lock and the shared GPU lock/idle.
+It never attaches to or changes the already running process.
+
+Passive hooks observe all28 **language decoder** layers (not the32-layer audio
+encoder). Audio means use initial prefill audio-patch positions. Answer means
+observe the last prediction state once per native forward, including the initial
+assistant boundary that predicts the first answer token. Each condition's forward
+means are averaged independently, then angry minus neutral is computed per
+question and questions receive equal weight.
+
+`outputs/step-gsm400-vectors/` retains:
+
+- `initial-vectors.pt`: first-prefill angry-minus-neutral means for answer/audio.
+- `style-vectors.pt`: full-generation mean answer prediction states and initial
+  audio states, angry minus neutral, for future steering.
+- `pairs/`: both conditions' mean/initial states, raw responses, token IDs, EOS
+  flags and forward counts (roughly1.3 GiB at400 pairs).
+- `results.jsonl`: raw collection answers, updated after each completed pair.
+- `layer-drift.csv`: initial-state mean/median relative change, cosine and shift
+  consistency across all layers and both groups.
+- Frozen source IDs/audio hashes, runtime and code hashes, and descriptive
+  collection scoring. Collection accuracy is not held-out validation.
+
+Capture hooks do not replace block outputs or patch native audio/cache handling.
+Initial-state geometry and generation-history means are distinct; the latter can
+reflect differing output lengths/content and are not proof of a reasoning mechanism.
+Resume skips saved pairs and retains frozen vectors. No steering is launched.
+
+`--only step` includes the vectors, raw responses and summaries. For auditing the
+per-pair state means as well, explicitly package:
+
+```bash
+.venv-diffa/bin/python pack_experiment_backup.py --only step-vectors \
+  --destination /workspace --samples 3 --sample-mb 100
+```

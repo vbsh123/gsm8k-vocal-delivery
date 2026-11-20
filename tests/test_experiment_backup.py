@@ -208,6 +208,22 @@ class EvidenceBackupTests(unittest.TestCase):
                 self.assertEqual({a['style'] for a in manifest['audio_samples']}, {'neutral', 'angry'})
                 self.assertEqual([r['experiment'] for r in manifest['runs']], ['MultiArith steering'])
 
+    def test_step_vector_backup_keeps_per_pair_means_only_when_requested(self):
+        with tempfile.TemporaryDirectory() as d,redirect_stdout(io.StringIO()):
+            root=Path(d);repo,_,_,_=self.repo(root)
+            folder=repo/'outputs/step-gsm400-vectors';(folder/'pairs').mkdir(parents=True)
+            (folder/'pairs/00000.pt').write_bytes(b'x'*(3*1024**2))
+            (folder/'style-vectors.pt').write_bytes(b'raw mean')
+            (folder/'run_config.json').write_text(json.dumps(dict(recordings=[])))
+            path=run.package(repo,root/'downloads',samples=0,only=['step-vectors'])
+            with zipfile.ZipFile(path) as z:
+                self.assertIn('outputs/step-gsm400-vectors/pairs/00000.pt',z.namelist())
+                self.assertIn('outputs/step-gsm400-vectors/style-vectors.pt',z.namelist())
+            path=run.package(repo,root/'downloads',samples=0,only=['step'])
+            with zipfile.ZipFile(path) as z:
+                self.assertNotIn('outputs/step-gsm400-vectors/pairs/00000.pt',z.namelist())
+                self.assertIn('outputs/step-gsm400-vectors/style-vectors.pt',z.namelist())
+
 
 if __name__ == '__main__':
     unittest.main()
