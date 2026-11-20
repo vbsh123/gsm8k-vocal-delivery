@@ -103,4 +103,41 @@ class StepTests(unittest.TestCase):
             self.assertEqual(events,['wait','load']);generate.assert_called_once()
 
 
+class CalculationPromptTests(unittest.TestCase):
+    fixture = StepTests.fixture
+    def test_calculations_prompt_keeps_baseline_ids_and_cannot_overwrite_original(self):
+        from step_calculations20 import PROMPT
+        with tempfile.TemporaryDirectory() as tmp,redirect_stdout(io.StringIO()):
+            root=Path(tmp);args=self.fixture(root);original=run.prepare(args)
+            args.source=args.output/'run_config.json';args.output=root/'calculations';args.prompt='calculations'
+            updated=run.prepare(args)
+            self.assertEqual(list(updated['bank']),list(original['bank']))
+            self.assertEqual(updated['recordings'],original['recordings'])
+            self.assertEqual(updated['prompt'],PROMPT)
+            args.output=root/'out'
+            with self.assertRaises(ValueError):run.prepare(args)
+
+    def test_reuse_maps_audio_only_and_rejects_changed_prompt(self):
+        from step_calculations20 import PROMPT
+        with tempfile.TemporaryDirectory() as tmp,redirect_stdout(io.StringIO()):
+            root=Path(tmp);args=self.fixture(root);args.prompt='calculations';plan=run.prepare(args)
+            diagnostic=root/'diagnostic';diagnostic.mkdir()
+            config=dict(protocol='step-calculations-same20-v1',prompt=PROMPT,system_prompt=plan['system_prompt'],recipe=plan['recipe'],seed=42,max_new_tokens=512)
+            (diagnostic/'run_config.json').write_text(json.dumps(config))
+            records=[]
+            for task in plan['recordings'][:2]:
+                records.append(dict(task,condition=task['style']+'-calculations',prompt=PROMPT,seed=42,max_new_tokens=512,
+                    model=plan['recipe']['model'],revision=plan['recipe']['revision'],interventions=[],response='#### 2',response_tokens=6))
+            records.append(dict(question_id='text-only',condition='text-calculations',response='#### 2'))
+            (diagnostic/'results.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in records))
+            self.assertEqual(run.reuse_diagnostic(plan,args.output,diagnostic),2)
+            self.assertEqual(run.reuse_diagnostic(plan,args.output,diagnostic),0)
+            saved=run.read_rows(args.output/'results.jsonl')
+            self.assertEqual({r['condition'] for r in saved},{'neutral','angry'})
+            self.assertEqual(len(run.candidates.pending([(args.output,plan)])),6)
+            config['prompt']='different'
+            (diagnostic/'run_config.json').write_text(json.dumps(config))
+            with self.assertRaisesRegex(ValueError,'mixed-prompt'):run.reuse_diagnostic(plan,args.output,diagnostic)
+
+
 if __name__=='__main__':unittest.main()

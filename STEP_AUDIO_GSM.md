@@ -101,3 +101,22 @@ tail -F outputs/step-calculations20.log
 This is a small exploratory diagnostic, not a replacement benchmark. No solutions
 or reference answers are passed to the model. Text versus audio is a modality
 comparison; output length alone does not establish an internal reasoning mechanism.
+
+## Full400 with required calculations
+
+```bash
+git pull --ff-only
+nohup bash run_step_gsm_calculations.sh > outputs/step-gsm400-calculations.log 2>&1 </dev/null &
+tail -F outputs/step-gsm400-calculations.log
+bash run_step_gsm_calculations.sh --mode summary
+```
+
+Uses the exact frozen400 questions and audio from `outputs/step-gsm400`, with the
+same prompt as the20-question calculation diagnostic. Neutral/angry audio only;
+no text condition and no new TTS. Existing40 matching audio answers from that
+diagnostic are reused, leaving760 new generations when the diagnostic is complete.
+The original400-question results are preserved; new results go to
+`outputs/step-gsm400-calculations`. Checkpoint, decoder,512-token budget and shared
+GPU wait are unchanged. Resume with the same command. The prompt was chosen after
+inspecting the20-question diagnostic, so this is an exploratory follow-up; those
+questions are not independent confirmation.
