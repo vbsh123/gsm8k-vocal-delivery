@@ -57,6 +57,9 @@ GROUPS = {
                 'gsm-happy400-start400-n400/minicpm', 'azure-gsm-happy400-start400-n400', 'bbh-three-candidates/minicpm', 'gsm8k-candidates/minicpm',
                 'azure-kimi-gsm8k1269', 'azure-bbh-three-models-regenerated'),
 }
+GROUPS['additional-benchmarks'] = ('bbh-tracking250', 'bbh-reasoning200-diffa2', 'azure-bbh-reasoning200',
+    'azure-bbh-reasoning250', 'spoken-ifbench-diffa2', 'azure-spoken-ifbench',
+    'bbh-seven250-angry-mean', 'azure-bbh-seven250')
 GROUPS['step'] = ('step-gsm400', 'step-gsm718')
 GROUPS['emotions'] = ('available-audio-emotions',)
 GROUPS['voice'] = ('multiarith290-guy-delivery', 'azure-multiarith290-guy', 'multiarith580-angry-mean',
@@ -265,7 +268,7 @@ def package(repo, destination, samples=3, sample_mb=256, full_audio=False, only=
                 elif file.suffix == '.pt' and not any('pairs' in p or 'activations' in p for p in file.relative_to(root).parts[:-1]):
                     if 'vector' in file.name or file.stat().st_size <= 64*1024**2:
                         metadata_files.append(file)
-    metadata_files.extend(repo.glob('*.log'))
+    if not (only and 'phi-deliveries' in only):metadata_files.extend(repo.glob('*.log'))
     if preserve_small_pairs:
         if 'phi' in only: metadata_files.extend(outputs.glob('*phi4*.log'))
         if 'minicpm' in only: metadata_files.extend(outputs.glob('*minicpm*.log'))
@@ -297,6 +300,11 @@ def package(repo, destination, samples=3, sample_mb=256, full_audio=False, only=
         code_files.extend(p for p in walk(scorer) if p.suffix in {'.py', '.jsonl', '.txt'})
     if (repo/'RECOVERY_PLAN.md').is_file():
         code_files.append(repo/'RECOVERY_PLAN.md')
+
+    if only and 'additional-benchmarks' in only:
+        upstream=repo/'external/ifbench'
+        if upstream.is_dir():
+            code_files.extend(p for p in walk(upstream) if p.suffix in {'.py','.jsonl','.txt'} or p.name=='LICENSE')
 
     packed_sources = set()
     with zipfile.ZipFile(partial, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=1, allowZip64=True) as archive:
