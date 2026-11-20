@@ -8,13 +8,15 @@ nohup bash run_diffa_happy_nightly.sh > outputs/diffa-happy-nightly.log 2>&1 </d
 tail -F outputs/diffa-happy-nightly.log
 ```
 
-Default queue:
+Default queue, across GSM8K, SVAMP, MultiArith, BBH3, BBH5 and IFEval:
 
-1. For GSM8K, SVAMP, MultiArith, BBH3, BBH5 and IFEval: prepare missing Jenny happy audio, collect happy-minus-neutral vectors, evaluate unsteered happy and neutral steered at L31 answer×+1. Finish these primary results across all six tasks first.
-2. Own-vector strengths−2,−1.5,−1,−0.5,+0.5,+1,+1.5,+2. The completed+1 results and neutral baseline are reused.
-3. All30 off-diagonal task-vector transfers at+1. Target prompts, budgets and neutral recordings stay unchanged.
+1. Prepare missing Jenny happy audio and collect happy-minus-neutral vectors.
+2. Compare unsteered happy delivery against existing neutral responses.
+3. Steer neutral with its own happy vector at L31 answer×+1, then stop.
 
-This is a long resumable queue, not a guarantee that all stages finish in one night. One DIFFA model is loaded after waiting for the shared GPU lock and active GPU work. Stages run sequentially within that process; no model training/checkpoint changes. Finished pairs and answers are skipped on resume. An output queue lock prevents duplicate writers. An existing paused process holding the GPU/lock must be resumed or stopped by the user; this runner never stops other jobs.
+**No signed-strength sweep or transfers are scheduled by default.** These require explicit `--stages` options in a separate request. The default strength list is only+1.
+
+One DIFFA model is loaded after waiting for the shared GPU lock and active GPU work. Tasks run sequentially within that process; no model training/checkpoint changes. Finished pairs and answers are skipped on resume. An output queue lock prevents duplicate writers. Unrelated legacy audio plan entries without question IDs/text/audio paths are ignored during inventory; requested task recordings still must pass the frozen question/audio checks.
 
 ## Questions, prompts, and neutral reuse
 
@@ -36,8 +38,8 @@ Under `outputs/diffa-happy-winners`:
 - `<task>/pairs/*.pt`: passive per-pair means and raw responses; allow several GiB across all tasks. Disk space is checked before model loading.
 - `<task>/style-vectors.pt`, `layer-drift.csv`, `collection-results.jsonl`: all-layer directions, drift and collection raw text.
 - `<task>/delivery/{results,rescored}.jsonl`, `summary.json`: neutral versus happy, held-out only.
-- `<task>/strength-<value>/`: neutral versus own happy-vector steering.
-- `transfer/<target>__from__<source>/`: off-diagonal+1 steering.
+- `<task>/strength-1/`: neutral versus own happy-vector+1 steering.
+- Additional strengths/transfers are opt-in only; the default run creates neither.
 - Root queue manifest, code hashes and runtime model configuration.
 
 Summaries use the same existing upstream saved-answer scorers as the angry experiments: GSM8K filters on math references, BBH task scoring, official IFEval checkers. Numeric equivalence, SVAMP author tolerance, and math-format extractability remain separate diagnostics. Mean/median response tokens exclude special tokens and are retokenized when older results lack counts. Paired McNemar tests and95% question-paired bootstrap intervals are exploratory and unadjusted. No emotion-classifier filtering or new reasoning-versus-no-reasoning contrast is included.
@@ -51,12 +53,11 @@ bash run_diffa_happy_nightly.sh --mode summary
 # One dataset's results.
 bash run_diffa_happy_nightly.sh --mode summary --datasets gsm8k
 
-# Optional shorter run: only collection, happy delivery and own+1 on all six.
-# Choose this before the initial launch, since queue settings are frozen.
+# Explicitly state the default scope if desired.
 bash run_diffa_happy_nightly.sh --stages primary
 ```
 
-The default full command already includes primary, strengths and transfer; do not launch the shorter variant alongside it. The existing angry output folders remain unchanged.
+The default command and `--stages primary` are the same run; do not launch both. The existing angry output folders remain unchanged.
 
 ```bash
 # Evidence after/during the queue: results, prompts, vectors, summaries and samples.

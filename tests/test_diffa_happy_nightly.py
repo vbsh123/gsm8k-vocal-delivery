@@ -11,6 +11,23 @@ import diffa_happy_nightly as run
 
 
 class HappyNightlyTests(unittest.TestCase):
+    def test_default_queue_is_only_collection_delivery_and_own_plus1(self):
+        args=run.arguments([])
+        self.assertEqual(args.stages,['primary'])
+        self.assertEqual(args.strengths,[1.])
+        self.assertEqual(args.datasets,list(run.DATASETS))
+
+    def test_audio_inventory_skips_unrelated_legacy_entries_without_ids(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);clip=root/'clip.wav';clip.write_bytes(b'audio')
+            valid=dict(question_id='q',question='question',audio_path='clip.wav',provider='azure',voice=run.VOICE,style='happy')
+            invalid=[None,'legacy',dict(valid,question_id=None),{k:v for k,v in valid.items() if k!='question_id'},
+                {k:v for k,v in valid.items() if k!='audio_path'},dict(valid,voice='Ryan'),dict(valid,audio_path='missing.wav')]
+            (root/'plan.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in [*invalid,valid]))
+            found=run.audio_inventory(root)
+            self.assertEqual(list(found),[('q','happy')])
+            self.assertEqual(found['q','happy'][0][0],valid)
+
     def fixture(self,root):
         audio=root/'audio';audio.mkdir();out=root/'new';out.mkdir();old=root/'old';old.mkdir()
         inventory={}
@@ -54,6 +71,25 @@ class HappyNightlyTests(unittest.TestCase):
             self.assertEqual(len(run.read_rows(delivery/'results.jsonl')),2)
             (old/'results.jsonl').unlink();(delivery/'results.jsonl').unlink()
             with self.assertRaisesRegex(ValueError,'no neutral evaluation'):run.reuse_delivery(plan,delivery)
+
+    def test_only_missing_happy_audio_is_generated(self):
+        import shutil
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);out,old,inventory,target=self.fixture(root)
+            original,source=inventory.pop(('train','happy'))[0]
+            calls=[]
+            def tts(destination,questions,styles):
+                calls.append((questions,styles));destination.mkdir(parents=True)
+                shutil.copyfile(source/original['audio_path'],destination/'generated.wav')
+                row=dict(original,audio_path='generated.wav')
+                (destination/'plan.jsonl').write_text(json.dumps(row)+'\n')
+            with patch.object(run.winners,'load_dataset',return_value=target),patch('run_reasoning_transfer.generate_audio',side_effect=tts):
+                plan=run.task_plan('ifeval',dict(run=str(old)),out,inventory)
+            self.assertEqual(len(calls),1)
+            self.assertEqual([q['question_id'] for q in calls[0][0]],['train'])
+            self.assertEqual(calls[0][1],['happy'])
+            self.assertEqual(plan['pairs'][0]['emotion']['style'],'happy')
+            self.assertEqual(plan['recordings'][0]['audio_sha256'],target['records'][0]['audio_sha256'])
 
     def test_happy_vector_key_and_positive_sign(self):
         with tempfile.TemporaryDirectory() as d:
@@ -142,7 +178,7 @@ class HappyNightlyTests(unittest.TestCase):
             model=SimpleNamespace(config=SimpleNamespace(to_dict=lambda:{}))
             previous=Path.cwd();os.chdir(root);(root/'outputs').mkdir()
             try:
-                with patch.object(sys,'argv',['night','--catalog',str(path),'--output',str(output),'--datasets','gsm8k','svamp','--strengths','-1','1']), \
+                with patch.object(sys,'argv',['night','--catalog',str(path),'--output',str(output),'--datasets','gsm8k','svamp','--stages','primary','strengths','transfer','--strengths','-1','1']), \
                     patch.object(run,'audio_inventory',return_value=inventory), \
                     patch.object(run.winners,'load_dataset',side_effect=lambda name,entry:targets[entry['run']]), \
                     patch.object(run,'collect',side_effect=collect),patch.object(run,'deliver'), \

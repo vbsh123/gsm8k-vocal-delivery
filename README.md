@@ -34,9 +34,9 @@ The workspace contains an offline tokenizer and report-builder snapshot; no mode
 ## DIFFA happy overnight follow-up
 
 [DIFFA_HAPPY_NIGHTLY.md](DIFFA_HAPPY_NIGHTLY.md) documents the six-task happy delivery,
-matched-pair vector collection, own steering, signed strengths and cross-task transfer queue.
+matched-pair vector collection and own-vector+1 steering queue. Signed strengths and transfers require explicit opt-in.
 It reuses held-out neutral answers, generates only missing happy audio, and waits for the GPU.
-Primary happy/own+1 results across all tasks run before the larger sweeps.
+The default run stops after happy delivery and own+1 results across all tasks.
 
 ```bash
 nohup bash run_diffa_happy_nightly.sh > outputs/diffa-happy-nightly.log 2>&1 </dev/null &

@@ -26,6 +26,8 @@ def audio_inventory(root):
     found={}
     for path in sorted(root.rglob('plan.jsonl')):
         for row in read_rows(path):
+            if not isinstance(row,dict):continue
+            if not all(isinstance(row.get(k),str) and row[k] for k in ('question_id','question','audio_path')):continue
             if row.get('provider')!='azure' or row.get('voice')!=VOICE or row.get('style') not in ('neutral','happy'):continue
             if 'question' not in row or not (path.parent/row['audio_path']).is_file():continue
             found.setdefault((row['question_id'],row['style']),[]).append((row,path.parent))
@@ -297,16 +299,21 @@ def summarize(root,names):
         if (folder/'run_config.json').exists():report_steering(folder)
 
 
-def main():
+def arguments(argv=None):
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--mode',choices=('run','prepare','summary'),default='run')
     p.add_argument('--datasets',choices=DATASETS,nargs='+',default=list(DATASETS))
-    p.add_argument('--stages',choices=STAGES,nargs='+',default=list(STAGES))
-    p.add_argument('--strengths',type=float,nargs='+',default=list(winners.STRENGTHS))
+    p.add_argument('--stages',choices=STAGES,nargs='+',default=['primary'])
+    p.add_argument('--strengths',type=float,nargs='+',default=[1.])
     p.add_argument('--catalog',type=Path,default=Path('winning_diffa_catalog.json'))
     p.add_argument('--output',type=Path,default=Path('outputs/diffa-happy-winners'))
-    args=p.parse_args()
+    args=p.parse_args(argv)
     if not args.strengths or not all(math.isfinite(x) for x in args.strengths):p.error('Strengths must be finite.')
+    return args
+
+
+def main():
+    args=arguments()
     root=args.output;root.mkdir(parents=True,exist_ok=True)
     if args.mode=='summary':summarize(root,args.datasets);return
     with (root/'queue.lock').open('a') as own:
@@ -328,7 +335,8 @@ def main():
             raise RuntimeError(f'Need approximately{(pending_bytes*1.1+512*2**20)/2**30:.1f} GiB free for remaining all-layer pair caches; no files deleted.')
         winners.freeze(root/'queue_manifest.json',dict(protocol=PROTOCOL,datasets=args.datasets,stages=args.stages,
             strengths=args.strengths,layer=31,group='answer',transfer_strength=1.,
-            order='All six primary delivery+own x1 first; signed strengths next; off-diagonal x1 transfers last.',
+            order='Happy collection, delivery comparison and own x1 steering only.' if args.stages==['primary'] else
+                'Explicitly selected stages: primary first, then requested strengths/transfers.',
             note='Exploratory. Same collection/test IDs and historical prompts/budgets; no held-out neutral inference.'))
         with Path('outputs/jenny-task-vectors.lock').open('a') as lock:
             print('Waiting for shared DIFFA GPU lock.',flush=True);fcntl.flock(lock,fcntl.LOCK_EX)
