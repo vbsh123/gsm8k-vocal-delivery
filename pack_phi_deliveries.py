@@ -30,6 +30,8 @@ def candidate(config,outputs):
     expected={identity(r):r for r in plan.get('recordings',[]) if identity(r)[2] in ('neutral','angry')}
     if {k[2] for k in expected}!={'neutral','angry'}:return None
     task=plan.get('task','gsm8k' if config.parent.name=='phi4-gsm400-all-layers-test869-minus1' else None)
+    task={'bbh_cot_zeroshot_logical_deduction_three_objects':'bbh3',
+          'bbh_cot_zeroshot_logical_deduction_five_objects':'bbh5'}.get(task,task)
     if task is None:raise ValueError('Unknown Phi delivery task: '+str(config))
     references=config.parent.name=='phi4-gsm400-all-layers-test869-minus1'
     paths=sorted(config.parent.glob('references*.jsonl')) if references else [config.parent/'results.jsonl']
