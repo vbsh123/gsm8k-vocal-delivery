@@ -31,6 +31,18 @@ and preserves incomplete/missing evidence labels. New Phi evidence is deferred.
 CPU reporting requires NumPy, Matplotlib, tokenizers and the archived upstream `lm_eval` evaluator.
 The workspace contains an offline tokenizer and report-builder snapshot; no model generations are needed.
 
+## DIFFA happy overnight follow-up
+
+[DIFFA_HAPPY_NIGHTLY.md](DIFFA_HAPPY_NIGHTLY.md) documents the six-task happy delivery,
+matched-pair vector collection, own steering, signed strengths and cross-task transfer queue.
+It reuses held-out neutral answers, generates only missing happy audio, and waits for the GPU.
+Primary happy/own+1 results across all tasks run before the larger sweeps.
+
+```bash
+nohup bash run_diffa_happy_nightly.sh > outputs/diffa-happy-nightly.log 2>&1 </dev/null &
+bash run_diffa_happy_nightly.sh --mode summary
+```
+
 ## Configurable Phi follow-ups
 
 Run selected own-task datasets, decoder layers and signed raw-vector strengths:

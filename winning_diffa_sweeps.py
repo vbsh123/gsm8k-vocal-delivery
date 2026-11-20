@@ -59,14 +59,14 @@ def vector_path(folder, config, override=None):
     return Path(override or config.get('vector') or folder/'style-vectors.pt').absolute()
 
 
-def read_vector(path):
+def read_vector(path, emotion='angry'):
     import torch
     state = torch.load(path, map_location='cpu', weights_only=True)
     if state.get('mode', 'fixed') != 'fixed' or state.get('method', 'mean') != 'mean':
         raise ValueError(f'Expected the original fixed DIFFA mean vector: {path}')
     try:
-        count = int(state['pair_counts']['angry'][31])
-        vector = state['pair_mean_sums']['angry'][31, state['groups'].index('answer')].float()/count
+        count = int(state['pair_counts'][emotion][31])
+        vector = state['pair_mean_sums'][emotion][31, state['groups'].index('answer')].float()/count
     except (KeyError, IndexError, ValueError, ZeroDivisionError) as error:
         raise ValueError(f'Missing DIFFA L31 answer mean: {path}') from error
     if count <= 0 or vector.ndim != 1 or not torch.isfinite(vector).all():
@@ -293,7 +293,7 @@ def generate_job(plan, folder, model, tokenizer, features):
     target, source = plan['target'], plan['source']
     if digest(source['vector']) != source['vector_sha256']:
         raise ValueError('Source vector changed after queue preparation.')
-    vector, _ = read_vector(source['vector'])
+    vector, _ = read_vector(source['vector'], source.get('emotion','angry'))
     if vector.numel() != model.llm_model.get_input_embeddings().weight.shape[1]:
         raise ValueError('Source direction does not match the DIFFA hidden dimension.')
     vector = vector.to(device='cuda', dtype=torch.bfloat16)

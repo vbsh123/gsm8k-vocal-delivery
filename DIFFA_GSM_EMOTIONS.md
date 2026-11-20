@@ -1,5 +1,7 @@
 # DIFFA GSM8K happy / sad directions
 
+For the newer six-task happy queue that matches the historical angry collection IDs and prompts, use [DIFFA_HAPPY_NIGHTLY.md](DIFFA_HAPPY_NIGHTLY.md). The GSM-only protocol below remains a separate aligned-prompt experiment.
+
 Start with happy versus neutral. No training or model checkpoint changes.
 
 ```bash

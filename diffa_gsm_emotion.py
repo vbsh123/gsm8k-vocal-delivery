@@ -126,7 +126,7 @@ def prepare(args):
     return plan
 
 
-def capture(model, generate, decoder):
+def capture(model, generate, decoder, max_new_tokens=512):
     """Observe all block/group means during the unchanged full native decoding run."""
     import torch
     layers = model.llm_model.model.transformer.blocks
@@ -140,7 +140,7 @@ def capture(model, generate, decoder):
         def observe(module, inputs, result):
             h = result[0]
             spans = [slice(bounds['start'], bounds['acoustic_end']), slice(bounds['acoustic_end'], bounds['end']),
-                     slice(bounds['start'], bounds['end']), slice(-512, None)]
+                     slice(bounds['start'], bounds['end']), slice(-max_new_tokens, None)]
             traces[index].append(torch.stack([h[0, span].detach().float().mean(0).cpu() for span in spans]))
         return observe
     decoder.insert_audio_embedding = insert
@@ -222,9 +222,9 @@ def fit(plan, root):
         difference = saved['difference'].double()
         sums = difference.clone() if sums is None else sums+difference
     emotion = plan['emotion']; count = len(plan['pairs'])
-    state = dict(protocol=PROTOCOL, pair_mean_sums={emotion: sums.float()},
+    state = dict(protocol=plan.get('protocol',PROTOCOL), pair_mean_sums={emotion: sums.float()},
         pair_counts={emotion: torch.full((32,), count, dtype=torch.long)}, groups=GROUPS, styles=[emotion],
-        prompt=plan['prompt'], max_new_tokens=512, seed=42, steps=128, mode='fixed', method='mean',
+        prompt=plan.get('collection_prompt',plan['prompt']), max_new_tokens=plan.get('max_new_tokens',512), seed=42, steps=128, mode='fixed', method='mean',
         extraction_question_ids=plan['collection_ids'], sign=f'{emotion} minus neutral', averaging=plan['averaging'])
     save_tensor(torch, state, vector_file)
     analysis(plan, root)
