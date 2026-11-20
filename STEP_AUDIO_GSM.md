@@ -79,3 +79,25 @@ Evidence archive:
 Local tests cover native windows over long recordings, no gold in model inputs,
 EOS/budget decoding, fixed paired selection, changed-audio rejection, resume
 identity and model loading after GPU wait. No local GPU/weight inference tested.
+
+## Same20 calculation diagnostic
+
+`step_calculations20.py` reuses the first20 IDs in the frozen Step400 bank order,
+without selecting by correctness. It requires intermediate arithmetic/equations
+before the final answer, using the same wording in text and audio. It runs60 new
+generations:20 text questions,20 neutral audio,20 angry audio. The original40
+audio answers are copied separately for prompt comparisons, never overwritten.
+The original pinned model, native audio template, greedy512-token recipe and
+shared GPU wait are preserved. All reported response lengths are retokenized text
+without special tokens; generated suffix IDs and EOS flags are also saved.
+
+```bash
+nohup .venv-diffa/bin/python -u step_calculations20.py \
+  > outputs/step-calculations20.log 2>&1 </dev/null &
+tail -F outputs/step-calculations20.log
+.venv-diffa/bin/python step_calculations20.py --mode summary
+```
+
+This is a small exploratory diagnostic, not a replacement benchmark. No solutions
+or reference answers are passed to the model. Text versus audio is a modality
+comparison; output length alone does not establish an internal reasoning mechanism.

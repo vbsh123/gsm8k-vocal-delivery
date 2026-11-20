@@ -60,8 +60,9 @@ GROUPS = {
 GROUPS['additional-benchmarks'] = ('bbh-tracking250', 'bbh-reasoning200-diffa2', 'azure-bbh-reasoning200',
     'azure-bbh-reasoning250', 'spoken-ifbench-diffa2', 'azure-spoken-ifbench',
     'bbh-seven250-angry-mean', 'azure-bbh-seven250')
-GROUPS['step'] = ('step-gsm400', 'step-gsm718')
+GROUPS['step'] = ('step-gsm400', 'step-gsm718', 'step-calculations20')
 GROUPS['emotions'] = ('available-audio-emotions',)
+GROUPS['emotion-steering'] = ('diffa-gsm8k-happy', 'diffa-gsm8k-sad')
 GROUPS['voice'] = ('multiarith290-guy-delivery', 'azure-multiarith290-guy', 'multiarith580-angry-mean',
                    'multiarith290-guy-four-emotions', 'azure-multiarith290-guy-happy-sad')
 GROUPS['transfer'] = ('winning-transfer', *GROUPS['strengths'][1:])
