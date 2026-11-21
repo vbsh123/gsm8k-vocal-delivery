@@ -35,6 +35,11 @@ The workspace contains an offline tokenizer and report-builder snapshot; no mode
 
 [DIFFA_HAPPY_NIGHTLY.md](DIFFA_HAPPY_NIGHTLY.md) documents the six-task happy delivery,
 matched-pair vector collection and own-vector+1 steering queue. Signed strengths and transfers require explicit opt-in.
+
+[DIFFA_ANGRY_AGREED.md](DIFFA_ANGRY_AGREED.md) documents the separate per-dataset
+emotion2vec audit and classifier-agreed angry collection. Inspect neutral/angry/happy
+agreement first, then collect within the original training halves and test +1 on
+unchanged held-out questions. Strengths and transfer remain explicit later stages.
 It reuses held-out neutral answers, generates only missing happy audio, and waits for the GPU.
 The default run stops after happy delivery and own+1 results across all tasks.
 

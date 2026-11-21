@@ -64,6 +64,8 @@ GROUPS['step'] = ('step-gsm400', 'step-gsm718', 'step-calculations20', 'step-gsm
 GROUPS['step-vectors'] = ('step-gsm400-vectors',)
 GROUPS['emotions'] = ('available-audio-emotions',)
 GROUPS['emotion-steering'] = ('diffa-happy-winners', 'diffa-gsm8k-happy', 'diffa-gsm8k-sad')
+GROUPS['angry-agreed'] = ('diffa-angry-agreed',)
+GROUPS['happy-agreed'] = ('diffa-gsm-happy-agreed',)
 GROUPS['voice'] = ('multiarith290-guy-delivery', 'azure-multiarith290-guy', 'multiarith580-angry-mean',
                    'multiarith290-guy-four-emotions', 'azure-multiarith290-guy-happy-sad')
 GROUPS['transfer'] = ('winning-transfer', *GROUPS['strengths'][1:])
