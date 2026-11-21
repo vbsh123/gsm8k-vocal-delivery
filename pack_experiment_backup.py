@@ -66,6 +66,7 @@ GROUPS['emotions'] = ('available-audio-emotions',)
 GROUPS['emotion-steering'] = ('diffa-happy-winners', 'diffa-gsm8k-happy', 'diffa-gsm8k-sad')
 GROUPS['angry-agreed'] = ('diffa-angry-agreed',)
 GROUPS['happy-agreed'] = ('diffa-gsm-happy-agreed',)
+GROUPS['phi'] += ('phi4-L0audio-minus1-L11answer-minus1',)
 GROUPS['voice'] = ('multiarith290-guy-delivery', 'azure-multiarith290-guy', 'multiarith580-angry-mean',
                    'multiarith290-guy-four-emotions', 'azure-multiarith290-guy-happy-sad')
 GROUPS['transfer'] = ('winning-transfer', *GROUPS['strengths'][1:])

@@ -26,10 +26,11 @@ def prepare(output, audio=AUDIO, answer=ANSWER, dataset='gsm8k', combined_only=F
     a, b = configs
     for key in ('collection', 'recipe', 'prompt'):
         if a[key] != b[key]: raise ValueError('Standalone sources differ: '+key)
-    if a.get('seed',42) != 42 or b.get('seed',42) != 42 or a.get('max_new_tokens',512) != 512 or b.get('max_new_tokens',512) != 512:
-        raise ValueError('Expected seed42 and 512-token budget.')
+    budget=1024 if dataset=='ifeval' else 512
+    if a.get('seed',42) != 42 or b.get('seed',42) != 42 or a.get('max_new_tokens',512) != budget or b.get('max_new_tokens',512) != budget:
+        raise ValueError(f'Expected seed42 and {budget}-token budget.')
     rows = [r for r in a['recordings'] if r['condition']=='neutral']
-    expected={'gsm8k':(400,869),'multiarith':(290,290),'svamp':(500,500),'bbh3':(125,125),'bbh5':(125,125)}[dataset]
+    expected={'gsm8k':(400,869),'multiarith':(290,290),'svamp':(500,500),'bbh3':(125,125),'bbh5':(125,125),'ifeval':(254,254)}[dataset]
     if (len(a['collection']),len(rows))!=expected: raise ValueError(f'Expected frozen{expected[0]}/{expected[1]} split.')
     if {r['question_id'] for r in rows} & {r['question_id'] for r in a['collection']}: raise ValueError('Collection/test overlap.')
     old_rows=b['test'] if 'test' in b else [r for r in b['recordings'] if r['condition']=='neutral']
@@ -49,7 +50,7 @@ def prepare(output, audio=AUDIO, answer=ANSWER, dataset='gsm8k', combined_only=F
         if vector.shape!=(3072,) or not torch.isfinite(vector).all(): raise ValueError('Invalid vector.')
         vectors.append(vector)
         receipts.append(dict(folder=str(source),config_sha256=digest(source/'run_config.json'),vector_sha256=digest(source/'style-vectors.pt')))
-    plan=dict(protocol='phi4-gsm-combined-v1',task='gsm8k',recipe=a['recipe'],prompt=a['prompt'],seed=42,max_new_tokens=512,
+    plan=dict(protocol='phi4-gsm-combined-v1',task='gsm8k',recipe=a['recipe'],prompt=a['prompt'],seed=42,max_new_tokens=budget,
         collection=a['collection'],bank=a['bank'],test=rows,conditions=CONDITIONS,sources=receipts,
         note='Exploratory combination after layer/strength sweeps; same disjoint869 questions, no new TTS/collection.')
     if dataset!='gsm8k':
@@ -80,7 +81,7 @@ def completed(plan,output):
             raise ValueError('Duplicate or incompatible saved result.')
         for field in ('audio_sha256','reference_answer'):
             if row[field]!=original[field]: raise ValueError('Saved input differs.')
-        if (row['prompt']!=plan['prompt'] or row['seed']!=42 or row['max_new_tokens']!=512 or
+        if (row['prompt']!=plan['prompt'] or row['seed']!=42 or row['max_new_tokens']!=plan['max_new_tokens'] or
                 row['model']!=plan['recipe']['model'] or row['revision']!=plan['recipe']['revision']):
             raise ValueError('Saved generation recipe differs.')
         done[key]=row
@@ -89,7 +90,7 @@ def completed(plan,output):
 
 def compatible(row, source_hash, plan, original, interventions):
     return (row['run_config_sha256']==source_hash and row['prompt']==plan['prompt'] and
-        row['seed']==42 and row['max_new_tokens']==512 and row['model']==plan['recipe']['model'] and
+        row['seed']==42 and row['max_new_tokens']==plan.get('max_new_tokens',512) and row['model']==plan['recipe']['model'] and
         row['revision']==plan['recipe']['revision'] and row['interventions']==interventions and
         all(row[k]==original[k] for k in ('audio_sha256','reference_answer')))
 
@@ -125,14 +126,19 @@ def run(plan,output,vectors,native=None):
             changes=plan['conditions'][label]
             intervention=[dict(x,direction=vectors[x['group']]) for x in changes]
             print(f'[{i}/{len(pending)}] {row["question_id"]} {label}',flush=True)
-            trace=hooks.generate(native,row,plan['prompt'],interventions=intervention,max_new_tokens=512)
-            saved=dict(row,**trace,condition=label,interventions=changes,prompt=plan['prompt'],seed=42,max_new_tokens=512,
+            trace=hooks.generate(native,row,plan['prompt'],interventions=intervention,max_new_tokens=plan['max_new_tokens'])
+            saved=dict(row,**trace,condition=label,interventions=changes,prompt=plan['prompt'],seed=42,max_new_tokens=plan['max_new_tokens'],
                 model=plan['recipe']['model'],revision=plan['recipe']['revision'],run_config_sha256=config_hash,
                 vector_sha256=digest(output/'style-vectors.pt'))
             stream.write(json.dumps(saved)+'\n');stream.flush();print(trace['response'],flush=True)
 
 
 def report(plan,output):
+    if plan['task']=='ifeval':
+        from phi4_ifeval import report as official_report
+        rows=list(completed(plan,output).values())
+        adapted=dict(plan,recordings=[dict(r,condition=c) for r in plan['test'] for c in plan['conditions']])
+        official_report(adapted,output,rows);return
     from rescore_audio_steering import HarnessTaskScorer,numeric_equal,paired
     rows=list(completed(plan,output).values())
     if not rows: print('No answers yet.');return

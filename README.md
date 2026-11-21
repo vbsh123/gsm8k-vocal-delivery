@@ -40,6 +40,10 @@ matched-pair vector collection and own-vector+1 steering queue. Signed strengths
 emotion2vec audit and classifier-agreed angry collection. Inspect neutral/angry/happy
 agreement first, then collect within the original training halves and test +1 on
 unchanged held-out questions. Strengths and transfer remain explicit later stages.
+
+[PHI4_L0_L11_PARALLEL.md](PHI4_L0_L11_PARALLEL.md) documents the two-worker
+L0 audio -1 / L11 answer -1 combined-only follow-up across MultiArith, GSM8K,
+IFEval, BBH3 and BBH5, with original task budgets and baseline reuse.
 It reuses held-out neutral answers, generates only missing happy audio, and waits for the GPU.
 The default run stops after happy delivery and own+1 results across all tasks.
 
