@@ -134,40 +134,33 @@ def generate(record,plan,prompt,model,tokenizer,features):
 
 def collect(plan,folder,model,tokenizer,features):
     import torch
-    import src.fast_dllm.diffa_generate as decoder
-    pairs=folder/'pairs';pairs.mkdir(exist_ok=True)
+    import diffa_stream_collection as running
     config_hash=winners.digest(folder/'run_config.json')
-    for i,pair in enumerate(plan['pairs']):
-        path=pairs/f'{i:05d}.pt'
+    state=running.load(plan,folder,config_hash)
+    for i in range(len(state['completed_ids']),len(plan['pairs'])):
+        pair=plan['pairs'][i];path=folder/'pairs'/f'{i:05d}.pt'
         if path.exists():
             saved=torch.load(path,map_location='cpu',weights_only=True)
             if saved['run_config_sha256']!=config_hash or saved['question_id']!=pair['question_id']:raise ValueError('Pair cache differs.')
-            continue
-        print(f'{plan["name"]} collect [{i+1}/{len(plan["pairs"])}] {pair["question_id"]}',flush=True)
-        traces=[]
-        for style in ('neutral','emotion'):
-            record=pair[style]
-            traces.append(emotion.capture(model,lambda:generate(record,plan,plan['collection_prompt'],model,tokenizer,features),decoder,plan['max_new_tokens']))
-        nr,ne,n=traces[0];hr,he,h=traces[1]
-        nm,hm,delta,matched=average_pair(n,h,'matched')
-        save_tensor(torch,dict(protocol=PROTOCOL,run_config_sha256=config_hash,question_id=pair['question_id'],
-            neutral=nm,emotion=hm,difference=delta,neutral_response=nr,emotion_response=hr,
-            neutral_forwards=n.shape[1],emotion_forwards=h.shape[1],matched_forwards=matched,
-            neutral_encoding=ne,emotion_encoding=he),path)
-        del traces,n,h,nm,hm,delta
-    emotion.fit(plan,folder)
-    state=torch.load(folder/'style-vectors.pt',map_location='cpu',weights_only=True)
-    if (state['extraction_question_ids']!=plan['collection_ids'] or state['prompt']!=plan['collection_prompt'] or
-            state['max_new_tokens']!=plan['max_new_tokens'] or int(state['pair_counts']['happy'][31])!=len(plan['pairs'])):
-        raise ValueError('Happy vector differs from frozen collection.')
-    if not (folder/'layer-drift.csv').exists():emotion.analysis(plan,folder)
-    # Raw collection answers stay separate from held-out delivery/evaluation results.
-    with (folder/'collection-results.jsonl').open('w') as stream:
-        for i,pair in enumerate(plan['pairs']):
-            saved=torch.load(pairs/f'{i:05d}.pt',map_location='cpu',weights_only=True)
+        else:
+            import src.fast_dllm.diffa_generate as decoder
+            print(f'{plan["name"]} collect [{i+1}/{len(plan["pairs"])}] {pair["question_id"]}; running aggregate.',flush=True)
+            traces=[]
             for style in ('neutral','emotion'):
-                stream.write(json.dumps(dict(pair[style],response=saved[style+'_response'],prompt=plan['collection_prompt'],
-                    split='collection',seed=42,max_new_tokens=plan['max_new_tokens']))+'\n')
+                record=pair[style]
+                traces.append(emotion.capture(model,lambda:generate(record,plan,plan['collection_prompt'],model,tokenizer,features),decoder,plan['max_new_tokens']))
+            nr,ne,n=traces[0];hr,he,h=traces[1]
+            nm,hm,delta,matched=average_pair(n,h,'matched')
+            saved=dict(protocol=PROTOCOL,run_config_sha256=config_hash,question_id=pair['question_id'],
+                neutral=nm,emotion=hm,difference=delta,neutral_response=nr,emotion_response=hr,
+                neutral_forwards=n.shape[1],emotion_forwards=h.shape[1],matched_forwards=matched,
+                neutral_encoding=ne,emotion_encoding=he)
+            del traces,n,h,nm,hm,delta
+        running.append(state,saved)
+        save_tensor(torch,state,folder/'collection-stream.pt')
+        del saved
+    running.finalize(plan,folder,state)
+    print(f'{plan["name"]}: all-layer vectors, drift and raw collection answers saved; no large new pair caches.',flush=True)
 
 
 def reuse_delivery(plan,folder):
@@ -329,10 +322,12 @@ def main():
             reuse_delivery(plan,delivery)
             winners.score_rows(dict(target=plan['target']),[],delivery)  # Fail on missing evaluator before GPU work.
         if args.mode=='prepare':return
-        pending_bytes=sum(sum(not (root/name/'pairs'/f'{i:05d}.pt').exists() for i in range(len(plan['pairs'])))
-            *32*len(GROUPS)*plan['target']['vector_info']['width']*3*4 for name,plan in plans.items())
-        if shutil.disk_usage(root).free < pending_bytes*1.1+512*2**20:
-            raise RuntimeError(f'Need approximately{(pending_bytes*1.1+512*2**20)/2**30:.1f} GiB free for remaining all-layer pair caches; no files deleted.')
+        # Running sums are constant-size; no reservation for every pair activation tensor.
+        reserve=512*2**20+sum(32*len(GROUPS)*plan['target']['vector_info']['width']*8*4 for plan in plans.values())
+        free=shutil.disk_usage(root).free
+        if free < reserve:
+            raise RuntimeError(f'Need approximately{reserve/2**30:.2f} GiB free for aggregate checkpoints/results; have{free/2**30:.2f}. No files deleted.')
+        print(f'Running-aggregate collection: {free/2**30:.2f} GiB free; {reserve/2**30:.2f} GiB reserve. No full pair-cache requirement.',flush=True)
         winners.freeze(root/'queue_manifest.json',dict(protocol=PROTOCOL,datasets=args.datasets,stages=args.stages,
             strengths=args.strengths,layer=31,group='answer',transfer_strength=1.,
             order='Happy collection, delivery comparison and own x1 steering only.' if args.stages==['primary'] else
@@ -347,7 +342,7 @@ def main():
             from extract_vectors import load_model
             model,tokenizer,features=load_model()
             winners.atomic_text(root/'runtime.json',json.dumps(dict(runner_sha256=winners.digest(__file__),
-                hooks_sha256=winners.digest(emotion.__file__),generation_sha256=winners.digest(Path(__file__).with_name('extract_vectors.py')),
+                hooks_sha256=winners.digest(emotion.__file__),stream_collector_sha256=winners.digest(Path(__file__).with_name('diffa_stream_collection.py')),generation_sha256=winners.digest(Path(__file__).with_name('extract_vectors.py')),
                 model_config=model.config.to_dict()),indent=2,default=str)+'\n')
             descriptors={}
             for name,plan in plans.items():

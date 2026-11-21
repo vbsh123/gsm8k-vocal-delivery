@@ -35,7 +35,8 @@ For every collection pair, record all32 decoder layers and four groups: acoustic
 Under `outputs/diffa-happy-winners`:
 
 - `<task>/run_config.json`: full collection/test IDs, audio hashes, prompts, budgets, original source receipts.
-- `<task>/pairs/*.pt`: passive per-pair means and raw responses; allow several GiB across all tasks. Disk space is checked before model loading.
+- `<task>/collection-stream.pt`: atomic, resumable running sums plus raw responses and per-pair drift scalars. No new full per-question activation cache is written. Existing `pairs/*.pt` files are reused and left untouched.
+- `<task>/collection-storage.json`: explicit storage policy. Full per-question activation tensors cannot be reconstructed from the aggregate checkpoint; final all-layer vectors, drift statistics and raw answers are retained.
 - `<task>/style-vectors.pt`, `layer-drift.csv`, `collection-results.jsonl`: all-layer directions, drift and collection raw text.
 - `<task>/delivery/{results,rescored}.jsonl`, `summary.json`: neutral versus happy, held-out only.
 - `<task>/strength-1/`: neutral versus own happy-vector+1 steering.
@@ -65,4 +66,4 @@ The default command and `--stages primary` are the same run; do not launch both.
   --destination /workspace --samples 3 --sample-mb 100
 ```
 
-Pair mean caches stay on the machine; the standard backup includes root vectors and raw text/configuration plus selected audio samples. CPU tests exercise budgets/position spans, vector sign, exact neutral reuse, missing-baseline failure, frozen splits and transfer leakage. Actual Azure/GPU inference runs on the remote machine, not in local tests.
+The default collector keeps float64 running sums of the original float32 pair differences, preserving exactly the full-cache mean vector and drift calculation without lossy quantization. It atomically checkpoints after every question pair, so interruption repeats at most the uncommitted pair. The disk preflight reserves approximately0.6GiB for checkpoints/results rather than11.6GiB for all pair tensors. Existing generated audio/configurations/results are reused on restart. The standard backup includes aggregate checkpoints, root vectors, raw text/configuration and selected audio samples. CPU tests exercise budgets/position spans, vector sign, exact neutral reuse, missing-baseline failure, frozen splits and transfer leakage. Actual Azure/GPU inference runs on the remote machine, not in local tests.
