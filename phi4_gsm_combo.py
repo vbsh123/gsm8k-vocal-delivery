@@ -124,7 +124,8 @@ def run(plan,output,vectors,native=None):
             runner_sha256=digest(__file__),policy='Caller-provided native Phi model' if provided_native else 'No GPU queue;18 GiB Torch cap'),indent=2)+'\n')
         for i,(row,label) in enumerate(pending,1):
             changes=plan['conditions'][label]
-            intervention=[dict(x,direction=vectors[x['group']]) for x in changes]
+            intervention=[dict(x,direction=vectors[(x['layer'],x['group'])]
+                              if (x['layer'],x['group']) in vectors else vectors[x['group']]) for x in changes]
             print(f'[{i}/{len(pending)}] {row["question_id"]} {label}',flush=True)
             trace=hooks.generate(native,row,plan['prompt'],interventions=intervention,max_new_tokens=plan['max_new_tokens'])
             saved=dict(row,**trace,condition=label,interventions=changes,prompt=plan['prompt'],seed=42,max_new_tokens=plan['max_new_tokens'],

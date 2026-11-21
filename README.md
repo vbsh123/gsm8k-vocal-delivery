@@ -49,6 +49,10 @@ held-out questions.
 [PHI4_L0_L11_PARALLEL.md](PHI4_L0_L11_PARALLEL.md) documents the two-worker
 L0 audio -1 / L11 answer -1 combined-only follow-up across MultiArith, GSM8K,
 IFEval, BBH3 and BBH5, with original task budgets and baseline reuse.
+
+[PHI4_L11_L30_PARALLEL.md](PHI4_L11_L30_PARALLEL.md) documents the immediate
+two-worker double/triple follow-up: L11 answer -1 + L30 answer -2, with or
+without L0 audio -1, across all six tasks.
 It reuses held-out neutral answers, generates only missing happy audio, and waits for the GPU.
 The default run stops after happy delivery and own+1 results across all tasks.
 
