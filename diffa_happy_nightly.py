@@ -229,10 +229,14 @@ def reuse_neutral(delivery,output):
             stream.write(json.dumps(dict(row,condition='neutral',strength=0.,reused_from=str(delivery)))+'\n');done.add(key)
 
 
-def report_delivery(plan,folder,tokenizer=None):
+def report_delivery(plan,folder,tokenizer=None,*,rows=None,cohort='held-out',expected_ids=None):
     from rescore_audio_steering import paired
-    rows=read_rows(folder/'results.jsonl')
-    if not rows:return
+    rows=read_rows(folder/'results.jsonl') if rows is None else rows
+    expected_ids=plan['test_ids'] if expected_ids is None else expected_ids
+    available={c:{(r['question_id'],r['voice']) for r in rows if r['condition']==c} for c in ('neutral','happy')}
+    if not available['neutral'] & available['happy']:
+        print(f'{plan["name"]} happy vs neutral: 0/{len(expected_ids)} matched {cohort} questions; neutral={len(available["neutral"])} happy={len(available["happy"])} saved.',flush=True)
+        return
     scoring=dict(target=plan['target'])
     scored,provenance=winners.score_rows(scoring,rows,folder)
     groups={c:{(r['question_id'],r['voice']):r for r in scored if r['condition']==c} for c in ('neutral','happy')}
@@ -243,7 +247,7 @@ def report_delivery(plan,folder,tokenizer=None):
     for c,g in groups.items():
         counts=[r.get('response_tokens') if r.get('response_tokens') is not None else len(tokenizer.encode(r['response'],add_special_tokens=False)) for r in (g[k] for k in keys)]
         if counts:lengths[c]=dict(n=len(counts),mean_tokens=statistics.mean(counts),median_tokens=statistics.median(counts))
-    print(f'{plan["name"]} happy vs neutral: {len(keys)}/{len(plan["test_ids"])} matched held-out questions.',flush=True)
+    print(f'{plan["name"]} happy vs neutral: {len(keys)}/{len(expected_ids)} matched {cohort} questions.',flush=True)
     for c,info in lengths.items():print(c,'mean/median tokens:',round(info['mean_tokens'],1),info['median_tokens'],flush=True)
     instruction_totals=[]
     if plan['name']=='ifeval':
@@ -257,8 +261,28 @@ def report_delivery(plan,folder,tokenizer=None):
                 correct=sum(g[k]['metrics'][metric] for k in keys);print(f'{metric} / {c}: {correct}/{len(keys)} ({correct/len(keys):.1%})',flush=True)
             result=paired([(groups['neutral'][k]['metrics'][metric],groups['happy'][k]['metrics'][metric]) for k in keys])
             results.append(dict(metric=metric,**result));print(f'{metric}: gain={result["gain_pp"]:+.2f}; p={result["mcnemar_exact_p"]:.4g}; CI={result["ci95_gain_pp"]}',flush=True)
-    winners.atomic_text(folder/'summary.json',json.dumps(dict(paired=results,lengths=lengths,instruction_totals=instruction_totals,scorer=provenance,note='Exploratory unadjusted paired tests; same historical held-out cohort.'),indent=2)+'\n')
+    winners.atomic_text(folder/'summary.json',json.dumps(dict(paired=results,lengths=lengths,instruction_totals=instruction_totals,scorer=provenance,cohort=cohort,expected_questions=len(expected_ids),matched_questions=len(keys),prompt=plan['prompt'],note='Exploratory unadjusted paired tests; '+('collection responses used for vector fitting, not held-out steering evidence.' if cohort=='collection' else 'same historical held-out cohort.')),indent=2)+'\n')
     winners.atomic_text(folder/'rescored.jsonl',''.join(json.dumps(r)+'\n' for r in scored))
+
+
+def report_collection(plan,folder,tokenizer=None):
+    from diffa_collection_report import collection_rows,collection_bank
+    rows=collection_rows(plan,folder)
+    if not rows:
+        print(f'{plan["name"]} happy vs neutral: 0/{len(plan["collection_ids"])} matched collection questions saved yet.',flush=True)
+        return
+    bank=collection_bank(plan)
+    target=dict(plan['target'],bank={q:bank[q] for q in plan['collection_ids']})
+    scoped=dict(plan,target=target,prompt=plan['collection_prompt'])
+    output=folder/'collection-report';output.mkdir(exist_ok=True)
+    winners.atomic_text(output/'results.jsonl',''.join(json.dumps(r)+'\n' for r in rows))
+    winners.atomic_text(output/'scoring-bank.json',json.dumps(dict(task=plan['name'],cohort='collection',
+        prompt=plan['collection_prompt'],bank=target['bank']),indent=2)+'\n')
+    print('Collection comparison: responses used for vector fitting; reported separately from held-out results.',flush=True)
+    if plan['collection_prompt']!=plan['prompt']:print('Collection uses its original collection prompt, which differs from the held-out evaluation prompt.',flush=True)
+    if plan['name'] in ('gsm8k','svamp','multiarith') and '####' not in plan['collection_prompt']:
+        print('Collection prompt does not request ####; upstream strict/format metrics are extraction diagnostics, not compliance with that collection prompt.',flush=True)
+    report_delivery(scoped,output,tokenizer,rows=rows,cohort='collection',expected_ids=plan['collection_ids'])
 
 
 def report_steering(folder,tokenizer=None):
@@ -286,7 +310,8 @@ def summarize(root,names):
     for name in names:
         path=root/name/'run_config.json'
         if not path.exists():print(name,'not prepared.');continue
-        plan=json.loads(path.read_text());report_delivery(plan,root/name/'delivery')
+        plan=json.loads(path.read_text());report_collection(plan,root/name)
+        report_delivery(plan,root/name/'delivery')
         for folder in sorted((root/name).glob('strength-*')):report_steering(folder)
     for folder in sorted((root/'transfer').glob('*')):
         if (folder/'run_config.json').exists():report_steering(folder)
@@ -320,6 +345,8 @@ def main():
             delivery=root/name/'delivery';delivery.mkdir(exist_ok=True)
             winners.freeze(delivery/'run_config.json',dict(protocol=PROTOCOL,target=plan['target'],conditions=['neutral','happy']))
             reuse_delivery(plan,delivery)
+            from diffa_collection_report import collection_bank
+            collection_bank(plan)  # Resolve collection scoring metadata before GPU work.
             winners.score_rows(dict(target=plan['target']),[],delivery)  # Fail on missing evaluator before GPU work.
         if args.mode=='prepare':return
         # Running sums are constant-size; no reservation for every pair activation tensor.
@@ -347,7 +374,8 @@ def main():
             descriptors={}
             for name,plan in plans.items():
                 folder=root/name
-                collect(plan,folder,model,tokenizer,features);descriptors[name]=descriptor(plan,folder)
+                collect(plan,folder,model,tokenizer,features);report_collection(plan,folder,tokenizer)
+                descriptors[name]=descriptor(plan,folder)
                 if 'primary' in args.stages:
                     deliver(plan,folder/'delivery',model,tokenizer,features);report_delivery(plan,folder/'delivery',tokenizer)
                     job=steering_plan(descriptors[name],descriptors[name],[0.,1.]);out=folder/'strength-1';out.mkdir(exist_ok=True)

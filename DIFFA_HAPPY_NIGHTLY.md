@@ -36,6 +36,7 @@ Under `outputs/diffa-happy-winners`:
 
 - `<task>/run_config.json`: full collection/test IDs, audio hashes, prompts, budgets, original source receipts.
 - `<task>/collection-stream.pt`: atomic, resumable running sums plus raw responses and per-pair drift scalars. No new full per-question activation cache is written. Existing `pairs/*.pt` files are reused and left untouched.
+- `<task>/collection-report/`: live/complete saved collection response comparison, scoring references, lengths and paired metrics. Explicitly labelled collection; kept separate from held-out delivery/steering.
 - `<task>/collection-storage.json`: explicit storage policy. Full per-question activation tensors cannot be reconstructed from the aggregate checkpoint; final all-layer vectors, drift statistics and raw answers are retained.
 - `<task>/style-vectors.pt`, `layer-drift.csv`, `collection-results.jsonl`: all-layer directions, drift and collection raw text.
 - `<task>/delivery/{results,rescored}.jsonl`, `summary.json`: neutral versus happy, held-out only.
@@ -48,7 +49,7 @@ Summaries use the same existing upstream saved-answer scorers as the angry exper
 ## Commands
 
 ```bash
-# All currently available happy results; CPU scoring, no GPU queue lock.
+# Saved collection comparisons (including partial checkpoints) and held-out results, separately labelled; CPU only.
 bash run_diffa_happy_nightly.sh --mode summary
 
 # One dataset's results.
@@ -67,3 +68,5 @@ The default command and `--stages primary` are the same run; do not launch both.
 ```
 
 The default collector keeps float64 running sums of the original float32 pair differences, preserving exactly the full-cache mean vector and drift calculation without lossy quantization. It atomically checkpoints after every question pair, so interruption repeats at most the uncommitted pair. The disk preflight reserves approximately0.6GiB for checkpoints/results rather than11.6GiB for all pair tensors. Existing generated audio/configurations/results are reused on restart. The standard backup includes aggregate checkpoints, root vectors, raw text/configuration and selected audio samples. CPU tests exercise budgets/position spans, vector sign, exact neutral reuse, missing-baseline failure, frozen splits and transfer leakage. Actual Azure/GPU inference runs on the remote machine, not in local tests.
+
+The summary reads saved collection responses from the running checkpoint or legacy pair caches, so you do not need to wait for held-out happy generation to see the collection comparison. It performs no inference and does not restart collection. Collection accuracy is descriptive because these questions fit the vector. For GSM, the historical collection prompt may request `Final answer:` while held-out evaluation requests `####`; those prompt cohorts are not pooled, and upstream strict-format extraction on the collection is explicitly flagged as a diagnostic. The report saves the recovered BBH/IFEval reference metadata in `collection-report/scoring-bank.json`.
