@@ -67,6 +67,7 @@ GROUPS['emotion-steering'] = ('diffa-happy-winners', 'diffa-gsm8k-happy', 'diffa
 GROUPS['angry-agreed'] = ('diffa-angry-agreed',)
 GROUPS['happy-agreed'] = ('diffa-gsm-happy-agreed',)
 GROUPS['bbh-angry125'] = ('diffa-bbh-angry-only125', 'diffa-angry-agreed/audit')
+GROUPS['angry-remaining'] = ('diffa-angry-only-remaining', 'imported-phi-svamp-angry-test500')
 GROUPS['phi'] += ('phi4-L0audio-minus1-L11answer-minus1',)
 GROUPS['phi'] += ('phi4-L11-L30-double-triple',)
 GROUPS['voice'] = ('multiarith290-guy-delivery', 'azure-multiarith290-guy', 'multiarith580-angry-mean',

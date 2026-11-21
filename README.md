@@ -46,6 +46,10 @@ follow-up selecting125 angry-recognized collection clips (no neutral-recognition
 requirement), evaluating the remaining125, and comparing vectors on common
 held-out questions.
 
+[DIFFA_ANGRY_REMAINING.md](DIFFA_ANGRY_REMAINING.md) documents the sequential
+SVAMP/MultiArith/IFEval angry-only agreed-half follow-up and reuse of Phi's
+existing SVAMP angry test audio for classification on DIFFA.
+
 [PHI4_L0_L11_PARALLEL.md](PHI4_L0_L11_PARALLEL.md) documents the two-worker
 L0 audio -1 / L11 answer -1 combined-only follow-up across MultiArith, GSM8K,
 IFEval, BBH3 and BBH5, with original task budgets and baseline reuse.

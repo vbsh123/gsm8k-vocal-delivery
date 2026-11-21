@@ -17,9 +17,9 @@ from steer import read_rows
 TASKS=('bbh3','bbh5')
 
 
-def select(data,labels):
+def select(data,labels,half=125):
     pool=data['collection_ids']+data['test_ids']
-    if len(pool)!=250 or len(set(pool))!=250:raise ValueError('Expected original250 unique BBH questions.')
+    if len(pool)!=2*half or len(set(pool))!=2*half:raise ValueError(f'Expected original{2*half} unique questions.')
     pairs={};eligible=set()
     for q in pool:
         entries={s:data['pinned'].get(q+'|'+s) for s in ('neutral','angry')}
@@ -31,17 +31,17 @@ def select(data,labels):
         if label.get('classification_status')!='classified':raise ValueError(f'Complete angry classification for {q}.')
         pairs[q]=dict(question_id=q,neutral=neutral,emotion=angry)
         if label.get('emotion')=='angry':eligible.add(q)
-    if len(eligible)<125:raise ValueError(f'Only{len(eligible)} angry-recognized pairs; need125.')
+    if len(eligible)<half:raise ValueError(f'Only{len(eligible)} angry-recognized pairs; need{half}.')
     # Retain eligible original training IDs first to maximize the common held-out comparison.
     rng=random.Random(42)
     first=sorted(eligible & set(data['collection_ids']));extra=sorted(eligible & set(data['test_ids']))
     rng.shuffle(first);rng.shuffle(extra)
-    train=(first+extra)[:125];test=[q for q in pool if q not in set(train)]
+    train=(first+extra)[:half];test=[q for q in pool if q not in set(train)]
     return pairs,train,test
 
 
-def prepare(name,data,labels,audit_root,folder):
-    pairs,train,test=select(data,labels)
+def prepare(name,data,labels,audit_root,folder,half=125):
+    pairs,train,test=select(data,labels,half)
     original=deepcopy(data['target']);bank=dict(original['bank'])
     for q,pair in pairs.items():
         bank[q]=dict(bank.get(q,{}),question_id=q,question=data['pinned'][q+'|neutral']['question'],answer=pair['neutral']['reference_answer'])
@@ -49,20 +49,21 @@ def prepare(name,data,labels,audit_root,folder):
     bank=collection_bank(metadata)
     target=dict(original,records=[pairs[q]['neutral'] for q in test],bank={q:bank[q] for q in test},
                 extraction_ids=train)
-    plan=dict(protocol='diffa-bbh-angry-only125-v1',name=name,emotion='angry',original_target=original,target=target,
+    protocol='diffa-bbh-angry-only125-v1' if name in TASKS else f'diffa-{name}-angry-only-half-v1'
+    plan=dict(protocol=protocol,name=name,emotion='angry',original_target=original,target=target,
               source_run=original['run'],collection_ids=train,test_ids=test,pairs=[pairs[q] for q in train],bank=bank,
               prompt=target['prompt'],collection_prompt=target['vector_info']['collection_prompt'],seed=42,
-              max_new_tokens=512,steps=128,block_length=32,decoder='fast_dllm',temperature=0.,
+              max_new_tokens=target.get('max_new_tokens',512),steps=128,block_length=32,decoder='fast_dllm',temperature=0.,
               averaging='Matched forwards within each pair; token-position means; equal per-question weight.',
               classifier=agreed.MODEL,classifier_receipts=[dict(question_id=q,angry=labels[pairs[q]['emotion']['audio_sha256']]) for q in train],
               eligible_angry_ids=[q for q,pair in pairs.items() if labels[pair['emotion']['audio_sha256']]['emotion']=='angry'],
               audit_manifest_sha256=agreed.winners.digest(audit_root/'cohorts.json'),
-              selection='Angry label only; neutral recognition ignored. Seed42; prefer eligible original collection IDs, then fill from eligible original test IDs. Remainder125 is new test.',
+              selection=f'Angry label only; neutral recognition ignored. Seed42; prefer eligible original collection IDs, then fill from eligible original test IDs. Remainder{half} is new test.',
               original_collection_ids=data['collection_ids'],original_test_ids=data['test_ids'],
               common_test_ids=[q for q in test if q in set(data['test_ids'])],
               note='Exploratory new split after prior results. Raw old test cases used for collection are excluded from the new test. Compare old/new vectors only on common held-out IDs.')
     folder.mkdir(parents=True,exist_ok=True);agreed.winners.freeze(folder/'run_config.json',plan)
-    print(f'{name}:125 angry-agreed pairs,125 new test; common original held-out={len(plan["common_test_ids"])}.',flush=True)
+    print(f'{name}:{half} angry-agreed pairs,{half} new test; common original held-out={len(plan["common_test_ids"])}.',flush=True)
     return plan
 
 
@@ -74,7 +75,7 @@ def fill_neutral(plan,job,folder,model,tokenizer,features):
         for record in pending:
             response,encoding=collection.generate(record,plan,plan['prompt'],model,tokenizer,features)
             row=dict(record,response=response,condition='neutral',strength=0.,prompt=plan['prompt'],seed=42,
-                     max_new_tokens=512,steps=128,block_length=32,temperature=0.,decoder='fast_dllm',interventions=[],
+                     max_new_tokens=plan.get('max_new_tokens',512),steps=128,block_length=32,temperature=0.,decoder='fast_dllm',interventions=[],
                      audio_encoding=encoding,response_tokens=len(tokenizer.encode(response,add_special_tokens=False)))
             stream.write(json.dumps(row)+'\n');stream.flush()
 
