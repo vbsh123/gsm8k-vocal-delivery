@@ -27,6 +27,22 @@ def fixture():
 
 
 class AngryAgreedTests(unittest.TestCase):
+    def test_happy_gate_requires_complete_labels_and_strictly_more_than_half(self):
+        data, labels = fixture()
+        for q in data['collection_ids']:
+            data['pinned'][q+'|happy'] = deepcopy(data['pinned'][q+'|angry'])
+            data['pinned'][q+'|happy']['record']['audio_sha256'] = q+'happy'
+            labels[q+'happy'] = dict(classification_status='classified', emotion='happy')
+        with patch('builtins.print'):
+            result = run.happy_agreement_gate({'svamp': data}, labels, ['svamp'], 50)
+            self.assertEqual(result['svamp']['percent'], 100.)
+            labels['nohappy']['emotion'] = 'neutral'
+            with self.assertRaisesRegex(ValueError, 'strictly above 50'):
+                run.happy_agreement_gate({'svamp': data}, labels, ['svamp'], 50)
+            labels['nohappy']['emotion'] = 'happy'; labels['nohappy']['classification_status'] = 'error'
+            with self.assertRaisesRegex(ValueError, 'Not ready'):
+                run.happy_agreement_gate({'svamp': data}, labels, ['svamp'], 50)
+
     def test_inventory_and_summary_use_frozen_halves_and_report_pair_eligibility(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d); audio = root/'audio'; audio.mkdir(); rows = []

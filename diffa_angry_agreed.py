@@ -205,6 +205,26 @@ def prepare_plan(name, data, labels, audit_root, folder):
     return plan
 
 
+def happy_agreement_gate(cohorts, labels, names, threshold):
+    results = {}; failures = []
+    for name in names:
+        data = cohorts[name]; total = len(data['collection_ids']); pending = []
+        for qid in data['collection_ids']:
+            for style in ('neutral', 'happy'):
+                item = data['pinned'].get(qid+'|'+style)
+                label = labels.get(item['record']['audio_sha256'], {}) if item else {}
+                if label.get('classification_status') != 'classified': pending.append((qid, style))
+        count = len(agreed_pairs(data, labels, 'happy'))
+        pct = 100*count/total
+        results[name] = dict(agreed_pairs=count, collection_pool=total, percent=pct, pending_or_missing=len(pending))
+        print(f'Happy-agreement gate: {name} {count}/{total} ({pct:.1f}%); pending/missing/error={len(pending)}.', flush=True)
+        if pending or pct <= threshold: failures.append(name)
+    if failures:
+        raise ValueError(f'Happy agreement must be complete and strictly above {threshold:g}% in every selected collection half. '
+                         f'Not ready: {failures}. No vector collection or test generation started.')
+    return results
+
+
 def descriptor(plan, folder):
     result = dict(plan['target'], emotion='angry', vector=str((folder/'style-vectors.pt').absolute()),
                   vector_sha256=winners.digest(folder/'style-vectors.pt'), extraction_ids=plan['collection_ids'])
@@ -238,8 +258,12 @@ def main():
     p.add_argument('--catalog', type=Path, default=Path('winning_diffa_catalog.json'))
     p.add_argument('--output', type=Path, default=Path('outputs/diffa-angry-agreed'))
     p.add_argument('--device', default='cuda:0')
+    p.add_argument('--require-happy-pairs-above', type=float,
+                   help='Before collection, require complete neutral/happy labels and paired agreement strictly above this percentage in every selected collection half.')
     args = p.parse_args()
     if not args.strengths or not all(math.isfinite(x) for x in args.strengths): p.error('Strengths must be finite.')
+    if args.require_happy_pairs_above is not None and not 0 <= args.require_happy_pairs_above < 100:
+        p.error('Happy agreement threshold must be between 0 and 100, excluding 100.')
     root = args.output; audit_root = root/'audit'; root.mkdir(parents=True, exist_ok=True)
     if args.mode == 'summary':
         for name in args.datasets:
@@ -272,6 +296,10 @@ def main():
                 else: subprocess.run(command, check=True)
             summarize_audit(audit_root); return
         cohorts = json.loads((audit_root/'cohorts.json').read_text())['datasets']; labels = predictions(audit_root)
+        for name in args.datasets:
+            if name not in cohorts: raise ValueError(f'Audit {name} first.')
+        gate = (happy_agreement_gate(cohorts, labels, args.datasets, args.require_happy_pairs_above)
+                if args.require_happy_pairs_above is not None else None)
         plans = {}
         for name in args.datasets:
             if name not in cohorts: raise ValueError(f'Audit {name} first.')
@@ -316,7 +344,8 @@ def main():
             model, tokenizer, features = load_model()
             winners.atomic_text(root/'runtime.json', json.dumps(dict(
                 runner_sha256=winners.digest(__file__), collector_sha256=winners.digest(collection.__file__),
-                stage=args.stage, datasets=args.datasets, model_config=model.config.to_dict()), indent=2, default=str)+'\n')
+                stage=args.stage, datasets=args.datasets, happy_agreement_threshold=args.require_happy_pairs_above,
+                happy_agreement_gate=gate, model_config=model.config.to_dict()), indent=2, default=str)+'\n')
             if args.stage == 'primary':
                 for name, plan in plans.items():
                     folder = root/name

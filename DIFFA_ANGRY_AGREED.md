@@ -56,6 +56,26 @@ collection audio must be restored before collection.
 Inspect these percentages and pair counts before launching the next stage.
 There is no automatic definition of a "good enough" agreement percentage.
 
+For the follow-up requiring more than50% paired happy agreement on every dataset,
+include GSM explicitly and request the gate:
+
+```bash
+bash run_diffa_angry_agreed.sh --mode prepare \
+  --datasets gsm8k svamp multiarith bbh3 bbh5 ifeval --require-happy-pairs-above 50
+nohup bash run_diffa_angry_agreed.sh --mode run --stage primary \
+  --datasets gsm8k svamp multiarith bbh3 bbh5 ifeval --require-happy-pairs-above 50 \
+  > outputs/diffa-angry-agreed-all-primary.log 2>&1 </dev/null &
+```
+
+The gate uses the original collection half, requires both neutral and happy to
+agree, and rejects pending/missing/error labels before collecting any dataset.
+It does not silently skip failing datasets. Exactly50% does not pass. This gate
+is independent of angry-pair selection: angry vectors still require neutral/angry
+agreement and test cohorts remain unchanged. Including GSM recollects its already
+agreed direction using the same follow-up runner, rather than overwriting or
+reinterpreting the original saved vector. Strengths and transfer are still separate
+explicit stages after inspecting these primary results.
+
 ## 2. Collect and test angry at +1
 
 ```bash
