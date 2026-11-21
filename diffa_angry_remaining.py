@@ -1,4 +1,4 @@
-"""Sequential angry-only agreed halves on SVAMP, MultiArith and IFEval."""
+"""Sequential angry-only vectors: SVAMP493, MultiArith290 and IFEval254."""
 import argparse
 import fcntl
 import json
@@ -7,7 +7,6 @@ import shutil
 import subprocess
 import sys
 import time
-import zipfile
 
 import diffa_angry_agreed as audit
 import diffa_bbh_angry125 as half
@@ -15,32 +14,41 @@ import diffa_happy_nightly as collection
 from steer import read_rows
 
 DATASETS=('svamp','multiarith','ifeval')
-HALVES={'svamp':500,'multiarith':290,'ifeval':254}
+HALVES={'multiarith':290,'ifeval':254}
 OUTPUT=Path('outputs/diffa-angry-only-remaining')
 
 
-def export_svamp(destination):
-    """Run on Phi: package existing test-half angry audio, never regenerate it."""
-    config=Path('outputs/phi4-next-tasks/svamp/data_config.json')
-    data=json.loads(config.read_text());source=Path(data['source'])
-    plans={r['question_id']:r for r in read_rows(source/'plan.jsonl') if r.get('style')=='angry'}
-    rows=[];receipts=[];files=[]
-    if len(data['test'])!=500:raise ValueError('Expected existing Phi SVAMP test half of500.')
-    for pair in data['test']:
-        q=pair['question_id'];record=pair['angry'];path=Path(record['audio_file']);row=plans[q]
-        if audit.winners.digest(path)!=record['audio_sha256']:raise ValueError('Source angry audio changed.')
-        if row.get('voice')!='en-US-JennyNeural' or row.get('provider')!='azure':raise ValueError('Expected original Jenny Azure source.')
-        relative=f'audio/{q}-angry.wav'
-        rows.append(dict(row,audio_path=relative));files.append((path,relative))
-        receipts.append(dict(question_id=q,audio_path=relative,sha256=record['audio_sha256']))
-    destination.parent.mkdir(parents=True,exist_ok=True)
-    temporary=destination.with_suffix('.zip.tmp')
-    with zipfile.ZipFile(temporary,'w',compression=zipfile.ZIP_DEFLATED) as z:
-        for path,relative in files:z.write(path,relative)
-        z.writestr('plan.jsonl',''.join(json.dumps(r)+'\n' for r in rows))
-        z.writestr('receipts.json',json.dumps(dict(source_config_sha256=audit.winners.digest(config),recordings=receipts),indent=2)+'\n')
-    temporary.replace(destination)
-    print(f'Exported500 existing angry clips: {destination}; no inference or TTS.',flush=True)
+def prepare_svamp(data,labels,audit_root,folder):
+    """Use the493 existing agreed pairs; leave the original500 test questions fixed."""
+    from copy import deepcopy
+    original=deepcopy(data['target']);pairs=[];bank=dict(original['bank'])
+    if len(data['collection_ids'])!=500 or len(data['test_ids'])!=500:raise ValueError('Expected original500/500 SVAMP pools.')
+    if set(data['collection_ids'])&set(data['test_ids']):raise ValueError('SVAMP collection/test overlap.')
+    for q in data['collection_ids']:
+        entries={s:data['pinned'].get(q+'|'+s) for s in ('neutral','angry')}
+        if not all(entries.values()):raise ValueError(f'Missing original SVAMP collection audio: {q}.')
+        neutral,angry=(entries[s]['record'] for s in ('neutral','angry'))
+        label=labels.get(angry['audio_sha256'],{})
+        if label.get('classification_status')!='classified':raise ValueError(f'Complete angry classification for {q}.')
+        if label.get('emotion')!='angry':continue
+        if (entries['neutral']['question']!=entries['angry']['question'] or
+                neutral['reference_answer']!=angry['reference_answer']):raise ValueError('SVAMP paired question/reference differs.')
+        pairs.append(dict(question_id=q,neutral=neutral,emotion=angry))
+        bank[q]=dict(question_id=q,question=entries['neutral']['question'],answer=neutral['reference_answer'])
+    if len(pairs)!=493:raise ValueError(f'Expected the agreed493 SVAMP pairs; found{len(pairs)}. Inspect audit before changing the cohort.')
+    train=[p['question_id'] for p in pairs];target=dict(original,extraction_ids=train)
+    plan=dict(protocol='diffa-svamp-angry-only493-v1',name='svamp',emotion='angry',original_target=original,target=target,
+              source_run=original['run'],collection_ids=train,test_ids=data['test_ids'],pairs=pairs,bank=bank,
+              prompt=target['prompt'],collection_prompt=target['vector_info']['collection_prompt'],seed=42,
+              max_new_tokens=target['max_new_tokens'],steps=128,block_length=32,decoder='fast_dllm',temperature=0.,
+              averaging='Matched forwards within each pair; token-position means; equal per-question weight.',
+              classifier=audit.MODEL,classifier_receipts=[dict(question_id=p['question_id'],angry=labels[p['emotion']['audio_sha256']]) for p in pairs],
+              eligible_angry_ids=train,audit_manifest_sha256=audit.winners.digest(audit_root/'cohorts.json'),
+              selection='493 angry-recognized pairs inside the original500 collection pool; no neutral recognition requirement. Original500 test unchanged; seven rejected collection questions unused.',
+              original_collection_ids=data['collection_ids'],original_test_ids=data['test_ids'],common_test_ids=data['test_ids'])
+    folder.mkdir(parents=True,exist_ok=True);audit.winners.freeze(folder/'run_config.json',plan)
+    print('svamp:493 angry-agreed collection pairs; original500 neutral test questions unchanged.',flush=True)
+    return plan
 
 
 def audit_and_prepare(args):
@@ -51,10 +59,15 @@ def audit_and_prepare(args):
                  '--device',args.device,'--datasets',*args.datasets]
         subprocess.run(command,check=True)
         return None
+    if not (aroot/'cohorts.json').exists():aroot=Path('outputs/diffa-angry-agreed/audit')
     data=json.loads((aroot/'cohorts.json').read_text())['datasets'];labels=audit.predictions(aroot);plans={}
     for name in args.datasets:
         folder=root/name;path=folder/'run_config.json'
-        if path.exists():plan=json.loads(path.read_text())
+        if path.exists():
+            plan=json.loads(path.read_text())
+            if name=='svamp' and plan['protocol']!='diffa-svamp-angry-only493-v1':
+                raise ValueError('This output has the older SVAMP resplit. Use a separate --output; no files overwritten.')
+        elif name=='svamp':plan=prepare_svamp(data[name],labels,aroot,folder)
         else:plan=half.prepare(name,data[name],labels,aroot,folder,half=HALVES[name])
         old=plan['original_target']
         if (audit.winners.digest(old['config_file'])!=old['config_sha256'] or
@@ -66,13 +79,11 @@ def audit_and_prepare(args):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--mode',choices=('audit','prepare','run','summary','export-svamp'),default='run')
+    p.add_argument('--mode',choices=('audit','prepare','run','summary'),default='run')
     p.add_argument('--datasets',nargs='+',choices=DATASETS,default=list(DATASETS))
     p.add_argument('--output',type=Path,default=OUTPUT)
-    p.add_argument('--export',type=Path,default=Path('/workspace/svamp-phi-angry-test500.zip'))
     p.add_argument('--device',default='cuda:0')
     args=p.parse_args()
-    if args.mode=='export-svamp':export_svamp(args.export);return
     args.output.mkdir(parents=True,exist_ok=True)
     if args.mode=='summary':
         for name in args.datasets:

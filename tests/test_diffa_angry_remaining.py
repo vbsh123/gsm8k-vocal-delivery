@@ -4,7 +4,6 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
-import zipfile
 from types import SimpleNamespace
 
 import diffa_angry_remaining as run
@@ -34,25 +33,46 @@ class RemainingTests(unittest.TestCase):
                                       SimpleNamespace(encode=lambda *a,**k:[1]),None)
             self.assertEqual(run.half.read_rows(destination/'results.jsonl')[0]['max_new_tokens'],1024)
 
-    def test_phi_export_packages_exact_existing_500_and_receipts(self):
+    def test_svamp_493_uses_only_original_collection_and_keeps_500_test(self):
+        train=[f'c{i}' for i in range(500)];test=[f't{i}' for i in range(500)]
+        pinned={};labels={}
+        for i,q in enumerate(train):
+            for style in ('neutral','angry'):
+                pinned[q+'|'+style]=dict(question='question '+q,record=dict(question_id=q,
+                    voice='Jenny',audio_sha256=q+style,reference_answer='2'))
+            labels[q+'angry']=dict(classification_status='classified',emotion='angry' if i>=7 else 'neutral')
+        original=dict(run='original',records=[dict(question_id=q,reference_answer='2') for q in test],
+                      bank={q:dict(question='question '+q,answer='2') for q in test},max_new_tokens=512,
+                      prompt='prompt',vector_info=dict(collection_prompt='prompt'))
+        data=dict(target=original,collection_ids=train,test_ids=test,pinned=pinned)
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);(root/'cohorts.json').write_text('{}')
+            plan=run.prepare_svamp(data,labels,root,root/'new')
+            self.assertEqual(len(plan['pairs']),493)
+            self.assertEqual(plan['test_ids'],test)
+            self.assertEqual(plan['target']['records'],original['records'])
+            self.assertEqual(plan['common_test_ids'],test)
+            self.assertEqual(set(plan['collection_ids']),set(train[7:]))
+            self.assertFalse(set(plan['collection_ids'])&set(test))
+            self.assertEqual(len(plan['classifier_receipts']),493)
+            self.assertEqual(original['records'],plan['original_target']['records'])
+
+    def test_existing_audit_can_be_reused_without_new_classification(self):
         with tempfile.TemporaryDirectory() as d:
             previous=Path.cwd()
             try:
-                os.chdir(d);folder=Path('outputs/phi4-next-tasks/svamp');source=folder/'audio';source.mkdir(parents=True)
-                rows=[];pairs=[]
-                for i in range(500):
-                    q=f'svamp_chal-{i}';path=source/f'{q}.wav';path.write_bytes(str(i).encode())
-                    rows.append(dict(question_id=q,question=q,answer='2',style='angry',provider='azure',voice='en-US-JennyNeural',audio_path=path.name))
-                    pairs.append(dict(question_id=q,angry=dict(audio_file=str(path.absolute()),audio_sha256=run.audit.winners.digest(path))))
-                (source/'plan.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rows))
-                (folder/'data_config.json').write_text(json.dumps(dict(source=str(source.absolute()),test=pairs)))
-                archive=Path('export.zip');run.export_svamp(archive)
-                with zipfile.ZipFile(archive) as z:
-                    exported=[json.loads(l) for l in z.read('plan.jsonl').decode().splitlines()]
-                    self.assertEqual(len(exported),500)
-                    self.assertEqual(len(json.loads(z.read('receipts.json'))['recordings']),500)
-                    self.assertTrue(all(r['style']=='angry' for r in exported))
-                    self.assertEqual(z.read(exported[0]['audio_path']),b'0')
+                os.chdir(d);aroot=Path('outputs/diffa-angry-agreed/audit');aroot.mkdir(parents=True)
+                (aroot/'cohorts.json').write_text(json.dumps(dict(datasets={'svamp':{}})))
+                source=Path('source.json');source.write_text('{}');vector=Path('original.pt');vector.write_bytes(b'vector')
+                target=dict(config_file=str(source),config_sha256=run.audit.winners.digest(source),
+                            vector=str(vector),vector_sha256=run.audit.winners.digest(vector))
+                prepared=dict(original_target=target,target=target)
+                args=SimpleNamespace(output=Path('new'),mode='prepare',datasets=['svamp'])
+                with patch.object(run,'prepare_svamp',return_value=prepared) as prepare, \
+                     patch.object(run.audit.winners,'score_rows'),patch.object(run.subprocess,'run') as classify:
+                    self.assertEqual(run.audit_and_prepare(args),{'svamp':prepared})
+                self.assertEqual(prepare.call_args.args[2],aroot)
+                classify.assert_not_called()
             finally:os.chdir(previous)
 
 
