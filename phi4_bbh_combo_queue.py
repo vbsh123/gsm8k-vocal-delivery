@@ -13,9 +13,9 @@ OUTPUT=Path('outputs/phi4-bbh-combined')
 DATASETS=('bbh3','bbh5')
 
 
-def sources(name,data,data_path,output):
+def sources(name,data,data_path,output,settings=((0,'audio',-1.),(30,'answer',-2.))):
     result=[]
-    for layer,group,strength in ((0,'audio',-1.),(30,'answer',-2.)):
+    for layer,group,strength in settings:
         folder=output/name/'sources'/f'L{layer}-{group}';folder.mkdir(parents=True,exist_ok=True)
         plan=task.make_plan(data,data_path,layer,group,strength);freeze(folder/'run_config.json',plan)
         sweep.reuse_baselines(plan,folder,Path('outputs/phi4-sweeps'));task.reuse(plan,folder)

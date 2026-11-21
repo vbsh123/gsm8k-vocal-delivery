@@ -20,7 +20,7 @@ CONDITIONS = {
 }
 
 
-def prepare(output, audio=AUDIO, answer=ANSWER, dataset='gsm8k', combined_only=False, answer_strength=-2., audio_strength=-1.):
+def prepare(output, audio=AUDIO, answer=ANSWER, dataset='gsm8k', combined_only=False, answer_strength=-2., audio_strength=-1., answer_layer=30):
     import torch
     configs = [json.loads((p/'run_config.json').read_text()) for p in (audio, answer)]
     a, b = configs
@@ -38,7 +38,7 @@ def prepare(output, audio=AUDIO, answer=ANSWER, dataset='gsm8k', combined_only=F
         previous=old[(r['question_id'],r['voice'])]
         if any(r[k]!=previous[k] for k in ('audio_sha256','reference_answer')): raise ValueError('Standalone test differs.')
     vectors=[]; receipts=[]
-    for source, config, layer, group in ((audio,a,0,'audio'),(answer,b,30,'answer')):
+    for source, config, layer, group in ((audio,a,0,'audio'),(answer,b,answer_layer,'answer')):
         state=torch.load(source/'style-vectors.pt',map_location='cpu',weights_only=True)
         origin=Path(config['previous_run']) if config.get('previous_run') else source
         if state['run_config_sha256']!=digest(origin/'run_config.json') or state['collection_question_ids']!=[p['question_id'] for p in a['collection']]:
@@ -57,8 +57,9 @@ def prepare(output, audio=AUDIO, answer=ANSWER, dataset='gsm8k', combined_only=F
             note=f'Exploratory combination after layer/strength sweeps; same disjoint{expected[1]} questions, no new TTS/collection.')
     if combined_only:
         plan['conditions']={k:v for k,v in CONDITIONS.items() if k in ('neutral','combined')}
-    if answer_strength!=-2. or audio_strength!=-1.:
-        plan['conditions']={c:[dict(item,strength=answer_strength if item['group']=='answer' else audio_strength) for item in changes]
+    if answer_strength!=-2. or audio_strength!=-1. or answer_layer!=30:
+        plan['conditions']={c:[dict(item,layer=answer_layer if item['group']=='answer' else 0,
+            strength=answer_strength if item['group']=='answer' else audio_strength) for item in changes]
             for c,changes in plan['conditions'].items()}
     output.mkdir(parents=True,exist_ok=True);freeze(output/'run_config.json',plan)
     state=dict(run_config_sha256=digest(output/'run_config.json'),audio=vectors[0],answer=vectors[1])

@@ -67,3 +67,12 @@ bash run_phi4_svamp_combo.sh --audio-strength -2 --answer-strength -2 --mode sum
 ```
 
 `--wait-for-gpu` acquires the shared GPU queue lock and waits for current GPU processes before model startup. Summary never acquires that lock. Older strength combinations retain their existing output names.
+
+## Queued SVAMP L0 audio−1 + L11 answer−1
+
+```bash
+nohup bash run_phi4_svamp_l11_combo.sh > outputs/phi4-svamp-L0-L11-combo.log 2>&1 </dev/null &
+bash run_phi4_svamp_l11_combo.sh --mode summary
+```
+
+Always waits for the shared GPU lock and current GPU work, then reuses existing500-question L0 vectors and cached L11 pair means. Compatible per-question L11 captures from the300-question collection are copied with source hashes and validated against the500-question split; only missing collection pairs are generated. The final direction averages all500 collection pairs. It then generates only500 combined test responses and reuses the neutral baseline. No standalone test evaluations or new TTS are launched. One model is reused for collection and combined generation. Results are separate under `outputs/phi4-svamp-L0audio-minus1-L11answer-minus1/svamp/combined`.

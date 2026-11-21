@@ -76,6 +76,13 @@ class ComboTests(unittest.TestCase):
             old,_=run.prepare(root/'old',*sources,dataset='svamp',combined_only=True)
             self.assertEqual([x['strength'] for x in old['conditions']['combined']],[-1.,-2.])
             self.assertEqual([x['strength'] for x in run.CONDITIONS['combined']],[-1.,-2.])
+            eleven=root/'answer11';eleven.mkdir()
+            (eleven/'run_config.json').write_bytes((sources[1]/'run_config.json').read_bytes())
+            state=torch.load(sources[1]/'style-vectors.pt',weights_only=True);state['layer']=11
+            torch.save(state,eleven/'style-vectors.pt')
+            l11,_=run.prepare(root/'l11',sources[0],eleven,dataset='svamp',combined_only=True,
+                answer_layer=11,answer_strength=-1.,audio_strength=-1.)
+            self.assertEqual([(x['layer'],x['group'],x['strength']) for x in l11['conditions']['combined']],[(0,'audio',-1.),(11,'answer',-1.)])
 
     def test_queued_svamp_waits_before_generation_and_uses_distinct_output(self):
         events=[]
