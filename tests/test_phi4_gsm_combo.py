@@ -1,5 +1,10 @@
 import unittest
-from contextlib import ExitStack
+import json
+import os
+from pathlib import Path
+import sys
+import tempfile
+from contextlib import ExitStack, contextmanager
 from unittest.mock import patch
 from types import SimpleNamespace
 import torch
@@ -53,5 +58,43 @@ class ComboTests(unittest.TestCase):
         self.assertTrue(run.compatible(row,'config',plan,original,[]))
         for update in (dict(prompt='other'),dict(audio_sha256='other'),dict(interventions=[dict(layer=0)]),dict(max_new_tokens=1024)):
             self.assertFalse(run.compatible(dict(row,**update),'config',plan,original,[]))
+
+    def test_svamp_both_minus2_preserves_raw_vectors_and_older_strengths(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);sources=[];recipe=dict(model='phi',revision='rev')
+            collection=[dict(question_id=f'c{i}') for i in range(500)]
+            records=[dict(question_id=f't{i}',voice='Jenny',condition='neutral',audio_sha256=str(i),reference_answer='2') for i in range(500)]
+            for layer,group in ((0,'audio'),(30,'answer')):
+                folder=root/group;folder.mkdir();sources.append(folder)
+                config=dict(collection=collection,recipe=recipe,prompt='prompt',seed=42,max_new_tokens=512,recordings=records,bank={})
+                (folder/'run_config.json').write_text(json.dumps(config))
+                torch.save(dict(run_config_sha256=run.digest(folder/'run_config.json'),collection_question_ids=[r['question_id'] for r in collection],
+                    layer=layer,group=group,**recipe,angry_minus_neutral=torch.ones(3072)),folder/'style-vectors.pt')
+            plan,vectors=run.prepare(root/'new',*sources,dataset='svamp',combined_only=True,audio_strength=-2.,answer_strength=-2.)
+            self.assertEqual([x['strength'] for x in plan['conditions']['combined']],[-2.,-2.])
+            torch.testing.assert_close(vectors['audio'],torch.ones(3072))
+            old,_=run.prepare(root/'old',*sources,dataset='svamp',combined_only=True)
+            self.assertEqual([x['strength'] for x in old['conditions']['combined']],[-1.,-2.])
+            self.assertEqual([x['strength'] for x in run.CONDITIONS['combined']],[-1.,-2.])
+
+    def test_queued_svamp_waits_before_generation_and_uses_distinct_output(self):
+        events=[]
+        @contextmanager
+        def queued():
+            events.append('admitted');yield;events.append('released')
+        def generate(plan,output,vectors):
+            self.assertEqual(events,['admitted'])
+            self.assertEqual(output.name,'phi4-svamp-L0audio-minus2-L30answer-minus2-combined-only')
+            events.append('generated')
+        with tempfile.TemporaryDirectory() as d:
+            previous=Path.cwd();os.chdir(d)
+            try:
+                with patch.object(sys,'argv',['combo','--dataset','svamp','--audio-strength','-2','--answer-strength','-2','--wait-for-gpu']), \
+                    patch.object(run,'prepare',return_value=({},{})) as prepare,patch.object(run,'run',side_effect=generate), \
+                    patch('phi4_queued_workers.gpu_queue',queued):
+                    run.main()
+                self.assertEqual(prepare.call_args.kwargs['audio_strength'],-2.)
+            finally:os.chdir(previous)
+        self.assertEqual(events,['admitted','generated','released'])
 
 if __name__=='__main__':unittest.main()

@@ -67,7 +67,7 @@ GROUPS['emotion-steering'] = ('diffa-happy-winners', 'diffa-gsm8k-happy', 'diffa
 GROUPS['voice'] = ('multiarith290-guy-delivery', 'azure-multiarith290-guy', 'multiarith580-angry-mean',
                    'multiarith290-guy-four-emotions', 'azure-multiarith290-guy-happy-sad')
 GROUPS['transfer'] = ('winning-transfer', *GROUPS['strengths'][1:])
-GROUPS['phi'] += ('phi4-bbh-combined', 'phi4-ifeval-all-layers-minus1', 'phi4-svamp-L0audio-minus1-L30answer-minus1-combined-only', 'phi4-svamp-L0audio-minus1-L30answer-minus2-combined-only', 'phi4-svamp-L0audio-minus1-L30answer-minus2', 'phi4-multiarith-L0audio-minus1-L30answer-minus2', 'phi4-gsm-L0audio-minus1-L30answer-minus2', 'phi4-sweeps', 'phi4-next-tasks', 'phi4-task-steering', 'phi4-gsm400-opposite-all-layers-minus1',
+GROUPS['phi'] += ('phi4-svamp-L0audio-minus2-L30answer-minus2-combined-only', 'phi4-bbh-combined', 'phi4-ifeval-all-layers-minus1', 'phi4-svamp-L0audio-minus1-L30answer-minus1-combined-only', 'phi4-svamp-L0audio-minus1-L30answer-minus2-combined-only', 'phi4-svamp-L0audio-minus1-L30answer-minus2', 'phi4-multiarith-L0audio-minus1-L30answer-minus2', 'phi4-gsm-L0audio-minus1-L30answer-minus2', 'phi4-sweeps', 'phi4-next-tasks', 'phi4-task-steering', 'phi4-gsm400-opposite-all-layers-minus1',
                   'phi4-gsm400-test869-L7-minus1-minus1.5', 'phi4-gsm400-test869-L2-minus1-minus1.5')
 EXTRA_RUNS = {f'Phi {name} L{layer}': f'phi4-{folder}-L{layer}'
               for name, folder in [('GSM400', 'gsm-reverse400-400'), ('GSM869', 'gsm-reverse400-869'),

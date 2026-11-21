@@ -57,3 +57,13 @@ SVAMP L0 audio−1 + L30 answer−1 uses the same vectors/baseline and a separat
 nohup bash run_phi4_svamp_combo.sh --answer-strength -1 > outputs/phi4-svamp-combo-minus1.log 2>&1 </dev/null &
 bash run_phi4_svamp_combo.sh --answer-strength -1 --mode summary
 ```
+
+SVAMP L0 audio−2 + L30 answer−2, queued for GPU, reuses the same500-question vectors and baseline and generates only500 combined answers in a separate output folder:
+
+```bash
+nohup bash run_phi4_svamp_combo.sh --audio-strength -2 --answer-strength -2 --wait-for-gpu \
+  > outputs/phi4-svamp-combo-both-minus2.log 2>&1 </dev/null &
+bash run_phi4_svamp_combo.sh --audio-strength -2 --answer-strength -2 --mode summary
+```
+
+`--wait-for-gpu` acquires the shared GPU queue lock and waits for current GPU processes before model startup. Summary never acquires that lock. Older strength combinations retain their existing output names.
