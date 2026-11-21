@@ -39,6 +39,10 @@ audit-only `other` questions), requested style, expected questions,
 available unique audio, classified clips, agreed clips, match rate, errors and
 pending clips. It also reports eligible neutral/angry *pairs* within each
 collection half. Style-level percentages alone do not give the paired count.
+The final dataset line reports neutral/angry and neutral/happy paired counts and
+percentages within that original collection half, plus the intersection where
+all three labels agree. Pending/error predictions cannot count as agreement;
+inspect classifier coverage before interpreting these paired percentages.
 Multiple surviving variants can make unique available audio exceed question
 count; selection uses the original pinned neutral/angry recordings only.
 

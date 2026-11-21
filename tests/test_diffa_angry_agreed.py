@@ -59,7 +59,13 @@ class AngryAgreedTests(unittest.TestCase):
                 labels.append(dict(clip_id=clip['clip_id'], classification_status='classified', emotion=emotion))
             (out/'results-emotion2vec.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in labels))
             with patch('builtins.print'): summary = run.summarize_audit(out)
-            self.assertEqual(summary['eligibility']['svamp'], dict(collection_pool=2, agreed_pairs=1, test_questions=1))
+            eligibility=summary['eligibility']['svamp']
+            self.assertEqual(eligibility['collection_pool'],2)
+            self.assertEqual(eligibility['agreed_pairs'],1)
+            self.assertEqual(eligibility['test_questions'],1)
+            self.assertEqual(eligibility['happy_agreed_pairs'],2)
+            self.assertEqual(eligibility['happy_agreed_pct'],100.)
+            self.assertEqual(eligibility['shared_angry_happy_pairs'],1)
             self.assertEqual(cohort['datasets']['svamp']['test_ids'], ['test'])
             self.assertTrue((out/'dataset-summary.csv').is_file())
 

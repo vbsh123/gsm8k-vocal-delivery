@@ -116,18 +116,18 @@ def predictions(output):
     return {r['clip_id']: r for r in read_rows(output/'results-emotion2vec.jsonl')}
 
 
-def agreed_pairs(dataset, labels):
+def agreed_pairs(dataset, labels, emotion='angry'):
     selected = []
     for qid in dataset['collection_ids']:
         pair = {}; ok = True
-        for style, key in [('neutral', 'neutral'), ('angry', 'emotion')]:
+        for style, key in [('neutral', 'neutral'), (emotion, 'emotion')]:
             item = dataset['pinned'].get(qid+'|'+style)
             label = labels.get(item['record']['audio_sha256'], {}) if item else {}
             if label.get('classification_status') != 'classified' or label.get('emotion') != style:
                 ok = False; break
             pair[key] = item['record']
         if ok:
-            if dataset['pinned'][qid+'|neutral']['question'] != dataset['pinned'][qid+'|angry']['question']:
+            if dataset['pinned'][qid+'|neutral']['question'] != dataset['pinned'][qid+'|'+emotion]['question']:
                 raise ValueError('Paired transcripts differ.')
             if pair['neutral']['reference_answer'] != pair['emotion']['reference_answer']:
                 raise ValueError('Paired references differ.')
@@ -158,8 +158,15 @@ def summarize_audit(output):
                 pct = f'{row["match_pct"]:.1f}' if n else 'n/a'
                 print(f'{name:13} {split:11} {style:8} {len(ids):8} {len(keys):9} {n:10} {agreed:6} {pct:>6} {errors:6} {row["pending"]:7}', flush=True)
         selected = agreed_pairs(data, labels)
-        eligibility[name] = dict(collection_pool=len(data['collection_ids']), agreed_pairs=len(selected), test_questions=len(data['test_ids']))
-        print(f'  {name}: {len(selected)}/{len(data["collection_ids"])} neutral/angry-agreed collection pairs; {len(data["test_ids"])} unchanged test questions.', flush=True)
+        happy_pairs = agreed_pairs(data, labels, 'happy')
+        common = {p['question_id'] for p in selected} & {p['question_id'] for p in happy_pairs}
+        total = len(data['collection_ids'])
+        eligibility[name] = dict(collection_pool=total, agreed_pairs=len(selected), test_questions=len(data['test_ids']),
+                                 happy_agreed_pairs=len(happy_pairs), happy_agreed_pct=100*len(happy_pairs)/total,
+                                 angry_agreed_pct=100*len(selected)/total, shared_angry_happy_pairs=len(common))
+        print(f'  {name}: collection paired agreement: angry {len(selected)}/{total} ({100*len(selected)/total:.1f}%); '
+              f'happy {len(happy_pairs)}/{total} ({100*len(happy_pairs)/total:.1f}%); '
+              f'all-three shared {len(common)}/{total}; {len(data["test_ids"])} unchanged test questions.', flush=True)
     summary = dict(rows=rows, eligibility=eligibility, issues=cohorts['issues'],
                    note='Emotion2vec is a model-based selection rule, not human ground truth. No test filtering or correctness selection.')
     winners.atomic_text(output/'dataset-summary.json', json.dumps(summary, indent=2)+'\n')
