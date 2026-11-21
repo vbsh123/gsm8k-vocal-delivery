@@ -41,6 +41,11 @@ emotion2vec audit and classifier-agreed angry collection. Inspect neutral/angry/
 agreement first, then collect within the original training halves and test +1 on
 unchanged held-out questions. Strengths and transfer remain explicit later stages.
 
+[DIFFA_BBH_ANGRY125.md](DIFFA_BBH_ANGRY125.md) documents the separate BBH3/BBH5
+follow-up selecting125 angry-recognized collection clips (no neutral-recognition
+requirement), evaluating the remaining125, and comparing vectors on common
+held-out questions.
+
 [PHI4_L0_L11_PARALLEL.md](PHI4_L0_L11_PARALLEL.md) documents the two-worker
 L0 audio -1 / L11 answer -1 combined-only follow-up across MultiArith, GSM8K,
 IFEval, BBH3 and BBH5, with original task budgets and baseline reuse.
