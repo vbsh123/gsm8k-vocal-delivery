@@ -43,6 +43,13 @@ nohup bash run_diffa_happy_nightly.sh > outputs/diffa-happy-nightly.log 2>&1 </d
 bash run_diffa_happy_nightly.sh --mode summary
 ```
 
+## Queued Phi BBH combinations and IFEval all-layer sweep
+
+[PHI4_QUEUED_BBH_IFEVAL.md](PHI4_QUEUED_BBH_IFEVAL.md) documents queued BBH3/BBH5
+L0 audio−1 + L30 answer−2 combined-only testing, followed by a three-worker IFEval
+sweep over all32 audio/answer layers at−1. Both wait for GPU; existing test baselines
+are reused. Start once with `bash run_phi4_bbh_then_ifeval.sh`.
+
 ## Configurable Phi follow-ups
 
 Run selected own-task datasets, decoder layers and signed raw-vector strengths:

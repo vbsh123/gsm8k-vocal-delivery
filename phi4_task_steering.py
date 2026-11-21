@@ -166,15 +166,15 @@ def collection_vector(plan,output,native,root):
         fcntl.flock(lock,fcntl.LOCK_EX)
         common={k:plan[k] for k in ('task','collection','recipe','prompt','seed','max_new_tokens','layer','group','vector_definition')}
         common['protocol']='phi4-sweep-collection-v1';freeze(cache/'run_config.json',common)
-        if plan['task']=='gsm8k' and len(plan['collection'])==400:
-            source=Path('outputs/phi4-gsm400-all-layers-test869-minus1')
+        source=Path('outputs/phi4-gsm400-all-layers-test869-minus1') if plan['task']=='gsm8k' and len(plan['collection'])==400 else root/'all-layers'/plan['task']
+        if (plan['task']=='gsm8k' and len(plan['collection'])==400) or (source/'style-vectors.pt').exists():
             original=json.loads((source/'run_config.json').read_text())
-            for key in ('collection','recipe','prompt'):
-                if original[key]!=plan[key]:raise ValueError('GSM source collection recipe differs: '+key)
+            for key in ('collection','recipe','prompt','seed','max_new_tokens'):
+                if original[key]!=plan[key]:raise ValueError('All-layer source collection recipe differs: '+key)
             saved=torch.load(source/'style-vectors.pt',map_location='cpu',weights_only=True)
             if saved['run_config_sha256']!=digest(source/'run_config.json') or saved['collection_question_ids']!=[p['question_id'] for p in plan['collection']]:
-                raise ValueError('GSM source vector provenance differs.')
-            if saved['groups']!=['answer','audio'] or saved['angry_minus_neutral'].shape!=native_hooks.SHAPE or saved['recipe']!=plan['recipe'] or not torch.isfinite(saved['angry_minus_neutral']).all():raise ValueError('GSM source vector layout differs.')
+                raise ValueError('All-layer source vector provenance differs.')
+            if saved['groups']!=['answer','audio'] or saved['angry_minus_neutral'].shape!=native_hooks.SHAPE or saved['recipe']!=plan['recipe'] or not torch.isfinite(saved['angry_minus_neutral']).all():raise ValueError('All-layer source vector layout differs.')
             vector=saved['angry_minus_neutral'][plan['layer'],saved['groups'].index(plan['group'])]
             provenance=dict(source=str(source/'style-vectors.pt'),sha256=digest(source/'style-vectors.pt'))
         else:

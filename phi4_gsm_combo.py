@@ -1,4 +1,4 @@
-"""Combine L0 audio -1 and L30 answer -2 on frozen GSM8K or MultiArith tests."""
+"""Combine L0 audio -1 and L30 answer steering on frozen math or BBH test questions."""
 import argparse
 import fcntl
 import json
@@ -29,7 +29,7 @@ def prepare(output, audio=AUDIO, answer=ANSWER, dataset='gsm8k', combined_only=F
     if a.get('seed',42) != 42 or b.get('seed',42) != 42 or a.get('max_new_tokens',512) != 512 or b.get('max_new_tokens',512) != 512:
         raise ValueError('Expected seed42 and 512-token budget.')
     rows = [r for r in a['recordings'] if r['condition']=='neutral']
-    expected={'gsm8k':(400,869),'multiarith':(290,290),'svamp':(500,500)}[dataset]
+    expected={'gsm8k':(400,869),'multiarith':(290,290),'svamp':(500,500),'bbh3':(125,125),'bbh5':(125,125)}[dataset]
     if (len(a['collection']),len(rows))!=expected: raise ValueError(f'Expected frozen{expected[0]}/{expected[1]} split.')
     if {r['question_id'] for r in rows} & {r['question_id'] for r in a['collection']}: raise ValueError('Collection/test overlap.')
     old_rows=b['test'] if 'test' in b else [r for r in b['recordings'] if r['condition']=='neutral']
@@ -93,7 +93,7 @@ def compatible(row, source_hash, plan, original, interventions):
         all(row[k]==original[k] for k in ('audio_sha256','reference_answer')))
 
 
-def run(plan,output,vectors):
+def run(plan,output,vectors,native=None):
     done=completed(plan,output); originals={(r['question_id'],r['voice']):r for r in plan['test']}
     config_hash=digest(output/'run_config.json')
     with (output/'results.jsonl').open('a') as stream:
@@ -113,11 +113,13 @@ def run(plan,output,vectors):
         if not pending:return
         if len(plan['conditions'])==2 and any(label!='combined' for _,label in pending):
             raise ValueError('Combined-only run requires existing compatible neutral answers; no baseline generations started.')
-        from evaluate_bbh_candidates import concurrent_budget_now
-        concurrent_budget_now(18.)
-        native=hooks.engine.NativePhi()
+        provided_native=native is not None
+        if native is None:
+            from evaluate_bbh_candidates import concurrent_budget_now
+            concurrent_budget_now(18.)
+            native=hooks.engine.NativePhi()
         (output/'runtime.json').write_text(json.dumps(dict(hooks_sha256=digest(hooks.__file__),
-            runner_sha256=digest(__file__),policy='No GPU queue;18 GiB Torch cap'),indent=2)+'\n')
+            runner_sha256=digest(__file__),policy='Caller-provided native Phi model' if provided_native else 'No GPU queue;18 GiB Torch cap'),indent=2)+'\n')
         for i,(row,label) in enumerate(pending,1):
             changes=plan['conditions'][label]
             intervention=[dict(x,direction=vectors[x['group']]) for x in changes]
@@ -133,12 +135,20 @@ def report(plan,output):
     from rescore_audio_steering import HarnessTaskScorer,numeric_equal,paired
     rows=list(completed(plan,output).values())
     if not rows: print('No answers yet.');return
-    scorer=HarnessTaskScorer('gsm8k',output/'harness/upstream')
-    scores=scorer.score([r['response'] for r in rows],[dict(question=plan['bank'][r['question_id']]['question'],answer=r['reference_answer']) for r in rows])
+    math_task=plan['task'] not in ('bbh3','bbh5')
+    name='gsm8k' if math_task else 'bbh_cot_zeroshot_logical_deduction_'+('three' if plan['task']=='bbh3' else 'five')+'_objects'
+    scorer=HarnessTaskScorer(name,output/'harness/upstream')
+    docs=[dict(question=plan['bank'][r['question_id']]['question'],answer=r['reference_answer']) if math_task else
+        dict(input=plan['bank'][r['question_id']]['original_input'],target=plan['bank'][r['question_id']]['original_target']) for r in rows]
+    scores=scorer.score([r['response'] for r in rows],docs)
+    bits=None
+    if not math_task:
+        from evaluate_bbh_audio_models import strict_format_bits
+        bits=strict_format_bits(scorer,[r['response'] for r in rows],docs,'ABC' if plan['task']=='bbh3' else 'ABCDE')
     for i,row in enumerate(rows):
         row['scores']={m:v[i]['correct'] for m,v in scores.items()}
-        row['scores']['format-compliant']=scores['strict-match'][i]['prediction']!='[invalid]'
-        row['scores']['flexible-numeric']=numeric_equal(scores['flexible-extract'][i]['prediction'],row['reference_answer'])
+        row['scores']['format-compliant']=scores['strict-match'][i]['prediction']!='[invalid]' if math_task else bits[i]
+        if math_task:row['scores']['flexible-numeric']=numeric_equal(scores['flexible-extract'][i]['prediction'],row['reference_answer'])
     groups={c:{(r['question_id'],r['voice']):r for r in rows if r['condition']==c} for c in plan['conditions']}
     keys=sorted(set.intersection(*(set(g) for g in groups.values())))
     print(f'{len(keys)}/{len(plan["test"])} questions complete in all {len(groups)} conditions; exploratory, unadjusted paired tests.')
