@@ -1,6 +1,5 @@
 """Fresh angry L11/-1 Phi collection and full delivery check from the Jenny ZIP, then held-out steering."""
 import argparse
-from copy import deepcopy
 import fcntl
 import json
 from pathlib import Path
@@ -11,7 +10,7 @@ import statistics
 from jenny_bundle_registry import Registry, sha
 
 DATASETS = ('gsm8k', 'multiarith', 'svamp', 'bbh3', 'bbh5', 'ifeval')
-PROTOCOL = 'phi4-jenny-zip-recheck-L11-answer-minus1-v1'
+PROTOCOL = 'phi4-jenny-zip-fresh-L11-answer-minus1-v2'
 SPLITS = {'gsm8k':(400,869), 'multiarith':(290,290), 'svamp':(500,500),
           'bbh3':(125,125), 'bbh5':(125,125), 'ifeval':(254,254)}
 
@@ -26,29 +25,24 @@ def prepare(name, data_path, registry, folder):
         raise ValueError('Expected the original full Phi task split and seed42, not a subset or another task.')
     if set(train) & set(test) or len(set(train+test)) != len(train+test):
         raise ValueError('Original Phi split overlaps or contains duplicates.')
-    extra_hashes = {}
-    extra = Path('outputs/phi4-gsm400-all-layers-test869-minus1/run_config.json')
-    if name == 'gsm8k' and extra.exists():
-        for row in json.loads(extra.read_text()).get('recordings', []):
-            extra_hashes[row['question_id'], row.get('style', row.get('condition'))] = row
     pairs, added = {}, []
     for split, source_pairs in [('collection', old['collection']), ('test', old['test'])]:
         for pair in source_pairs:
             q = pair['question_id']
             entries = {}
             for style in ('neutral', 'angry'):
-                record = pair.get(style) or extra_hashes.get((q, style))
-                if record:
-                    entries[style] = registry.relocate(record)
-                else:
-                    example = old['bank'][q]
-                    question = example.get('question', example.get('prompt'))
-                    answer = None if name == 'ifeval' else str(example['answer']).rsplit('####', 1)[-1].strip()
-                    item = registry.choose(name, q, style, question=question, answer=answer)
-                    if item is None:
-                        raise ValueError(f'ZIP lacks compatible {name}/{q}/{style}; no TTS or substitution requested.')
-                    entries[style] = item['record']
-                    added.append(dict(question_id=q, style=style, reason='Original split did not store this delivery hash.'))
+                example = old['bank'][q]
+                question = example.get('question', example.get('prompt'))
+                answer = None if name == 'ifeval' else str(example['answer']).rsplit('####', 1)[-1].strip()
+                item = registry.choose(name, q, style, question=question, answer=answer)
+                if item is None:
+                    raise ValueError(f'ZIP lacks compatible {name}/{q}/{style}; no TTS or old-audio fallback requested.')
+                entries[style] = item['record']
+                record = pair.get(style)
+                if not record or record.get('audio_sha256') != item['record']['audio_sha256']:
+                    added.append(dict(question_id=q, style=style,
+                                      previous_hash=record.get('audio_sha256') if record else None,
+                                      zip_hash=item['record']['audio_sha256']))
             pairs[q] = dict(question_id=q, voice=entries['neutral']['voice'], **entries)
     recipe = dict(gsm.MODELS['phi4'], dtype='bfloat16', do_sample=False, num_beams=1,
                   use_cache=True, repetition_penalty=1., text_only_output=True)
@@ -61,9 +55,9 @@ def prepare(name, data_path, registry, folder):
                 added_delivery_hashes=added,
                 definition='Fresh per-question angry mean minus neutral mean at L11 answer; all native generation forwards including prefill. '
                            'Raw equal-question float32 mean, no e2v/outcome filtering. No prior vector/response reuse for fresh inference.',
-                verification='Neutral and angry evaluated on collection AND held-out IDs before steering. '
-                             'Compare saved raw baselines and old L11 vector where available; report coverage explicitly.',
-                note='Replication/consistency check on previously inspected cases and selected L11, not an independent new confirmatory benchmark.')
+                audio_policy='Use ZIP recordings matching question text/reference; historical hashes are not required.',
+                verification='Fresh neutral and angry evaluated on collection AND held-out IDs before steering; no historical comparisons.',
+                note='Fresh ZIP experiment using previously inspected question splits and selected L11; exploratory, not an independent confirmatory benchmark.')
     freeze(folder/'run_config.json', plan)
     print(f'{name}: original {len(train)}/{len(test)} split; {2*(len(train)+len(test))} fresh delivery answers, then {len(test)} L11/-1 steered answers.', flush=True)
     return plan
@@ -101,44 +95,7 @@ def save_response(path, plan, record, trace, condition, split):
     return row
 
 
-def old_baselines(plan):
-    from steer import read_rows
-    name = plan['task']
-    roots = [Path(f'outputs/phi4-sweeps/{name}/L11-answer-a-1')]
-    if name == 'ifeval':
-        roots.append(Path('outputs/phi4-ifeval-all-layers-minus1/ifeval/L11-answer-a-1'))
-    paths = [(root/'results.jsonl', root/'run_config.json') for root in roots]
-    if name == 'gsm8k':
-        root = Path('outputs/phi4-gsm400-all-layers-test869-minus1')
-        paths += [(p, root/'run_config.json') for p in sorted(root.glob('references*.jsonl'))]
-    expected = {(r['question_id'], r['condition']): r for r in plan['deliveries']}
-    found = {}
-    for path, config in paths:
-        if not path.exists() or not config.exists():
-            continue
-        source = json.loads(config.read_text())
-        source_hash = sha(config)
-        for row in read_rows(path):
-            style = row.get('condition', row.get('style'))
-            key = row['question_id'], style
-            record = expected.get(key)
-            if record is None or key in found or row.get('interventions') or row.get('strength', 0) != 0:
-                continue
-            if row.get('run_config_sha256', source_hash) != source_hash:
-                continue
-            if (row.get('audio_sha256') != record['audio_sha256'] or row.get('prompt', source.get('prompt')) != plan['prompt']
-                    or row.get('model') != plan['recipe']['model'] or row.get('revision') != plan['recipe']['revision']
-                    or row.get('seed', source.get('seed')) != 42
-                    or row.get('max_new_tokens', source.get('max_new_tokens')) != plan['max_new_tokens']):
-                continue
-            if name != 'ifeval' and row.get('reference_answer') != record.get('reference_answer'):
-                continue
-            found[key] = dict(row, baseline_source=str(path))
-    return found
-
-
 def report(plan, folder):
-    from steer import read_rows
     import winning_diffa_sweeps as winners
     from rescore_audio_steering import paired
     name = plan['task']
@@ -172,59 +129,15 @@ def report(plan, folder):
                 print(f'{split:10} {condition:8} {metric:18} N={len(common)}; '
                       f'{value["baseline_correct"]}/{len(common)} -> {value["steered_correct"]}/{len(common)}; '
                       f'gain={value["gain_pp"]:+.2f}; p={value["mcnemar_exact_p"]:.4g}; CI={value["ci95_gain_pp"]}', flush=True)
-    old = old_baselines(plan)
-    latest = {(r['question_id'], r['condition']): r for r in deliveries}
-    matched = sorted(set(old) & set(latest))
-    differences = [dict(question_id=q, condition=c, old=old[q,c]['response'], new=latest[q,c]['response'])
-                   for q,c in matched if old[q,c]['response'] != latest[q,c]['response']]
-    print(f'Historical raw response check: {len(matched)-len(differences)}/{len(matched)} identical; '
-          f'{len(differences)} changed; coverage {len(matched)}/{len(plan["deliveries"])} fresh deliveries.', flush=True)
-    verification = dict(matched=len(matched), expected=len(plan['deliveries']), differences=differences,
-                        added_delivery_hashes=plan['added_delivery_hashes'])
-    old_scored, _ = score([old[key] for key in matched])
-    old_metrics = {key: row['metrics'] for key, row in zip(matched, old_scored)}
-    verification['paired_metrics'] = []
-    for condition in ('neutral', 'angry'):
-        ids = [q for q,c in matched if c == condition]
-        if not ids:
-            continue
-        for metric in old_metrics[ids[0],condition]:
-            result = paired([(old_metrics[q,condition][metric], groups[condition][q]['metrics'][metric]) for q in ids])
-            verification['paired_metrics'].append(dict(condition=condition, metric=metric, **result))
-            print(f'ZIP vs historical / {condition} / {metric}: N={len(ids)}; '
-                  f'{result["baseline_correct"]}/{len(ids)} -> {result["steered_correct"]}/{len(ids)}; '
-                  f'gain={result["gain_pp"]:+.2f}; p={result["mcnemar_exact_p"]:.4g}', flush=True)
+    verification = dict(matched=0, expected=len(plan['deliveries']), differences=[],
+                        historical_comparison=False, added_delivery_hashes=plan['added_delivery_hashes'])
+    print('Fresh ZIP audio only: no historical responses or vectors loaded.', flush=True)
     lengths = {}
     for condition, values in groups.items():
         counts = [r['response_tokens'] for r in values.values()]
         if counts:
             lengths[condition] = dict(n=len(counts), mean=statistics.mean(counts), median=statistics.median(counts))
             print(condition, 'mean/median tokens:', round(lengths[condition]['mean'],1), lengths[condition]['median'], flush=True)
-    path = folder/'style-vectors.pt'
-    if path.exists():
-        import torch
-        new = torch.load(path, map_location='cpu', weights_only=True)['angry_minus_neutral']
-        old_path = Path(f'outputs/phi4-sweeps/{name}/L11-answer-a-1/style-vectors.pt')
-        if name == 'ifeval' and not old_path.exists():
-            old_path = Path('outputs/phi4-ifeval-all-layers-minus1/ifeval/L11-answer-a-1/style-vectors.pt')
-        if old_path.exists():
-            previous = torch.load(old_path, map_location='cpu', weights_only=True)
-            old_config_path = old_path.parent/'run_config.json'
-            old_config = json.loads(old_config_path.read_text())
-            same_audio = [{s:p[s]['audio_sha256'] for s in ('neutral','angry')} for p in old_config['collection']] == [
-                {s:p[s]['audio_sha256'] for s in ('neutral','angry')} for p in plan['collection']]
-            if (previous['collection_question_ids'] == [p['question_id'] for p in plan['collection']]
-                    and previous['run_config_sha256'] == sha(old_config_path) and same_audio
-                    and old_config['prompt'] == plan['prompt'] and old_config['recipe'] == plan['recipe']
-                    and old_config['max_new_tokens'] == plan['max_new_tokens']):
-                vector = previous['angry_minus_neutral'].float()
-                relative = float((new-vector).norm()/vector.norm().clamp_min(1e-30))
-                cosine = float(torch.nn.functional.cosine_similarity(new.reshape(1,-1), vector.reshape(1,-1)))
-                verification['vector'] = dict(old_path=str(old_path), identical=bool(torch.equal(new, vector)),
-                                              cosine=cosine, relative_l2_change=relative)
-                print('Old/new vector:', verification['vector'], flush=True)
-            else:
-                print('Old/new vector comparison skipped: original collection/recipe/provenance differs.', flush=True)
     result = dict(task=name, protocol=PROTOCOL, primary_metric='strict_prompt' if name == 'ifeval' else
                   'flexible-extract' if name.startswith('bbh') else 'flexible-numeric', paired=comparisons,
                   verification=verification, lengths=lengths, scorer=provenance)
@@ -233,7 +146,7 @@ def report(plan, folder):
     return verification
 
 
-def run_task(plan, folder, native, allow_differences, phase='all'):
+def run_task(plan, folder, native, phase='all'):
     import torch
     import phi4_all_layer_diagnostic as hooks
     from kimi_bbh_layer_diagnostic import atomic_save
@@ -284,16 +197,13 @@ def run_task(plan, folder, native, allow_differences, phase='all'):
         print(f'{plan["task"]} fresh delivery [{len(done)+1}/{len(plan["deliveries"])}] {key}', flush=True)
         trace = hooks.generate(native, record, plan['prompt'], max_new_tokens=plan['max_new_tokens'])
         done[key] = save_response(path, plan, record, trace, record['condition'], record['split'])
-    # Score and compare the full fresh delivery run BEFORE performing any steering.
+    # Score the full fresh delivery run BEFORE performing any steering.
     command = [str(Path('.venv-diffa/bin/python').absolute()), '-u', __file__, '--mode', 'summary',
                '--datasets', plan['task'], '--output', str(folder.parent)]
     subprocess.run(command, check=True)
     verification = json.loads((folder/'summary.json').read_text())['verification']
     if phase == 'check':
         return verification
-    if verification['differences'] and not allow_differences:
-        raise RuntimeError('Fresh baseline responses differ from saved Phi responses. Report saved; steering not started. '
-                           'Inspect differences before explicitly allowing --allow-response-differences.')
     steered = saved_rows(folder/'steering.jsonl', plan, repair=True)
     for index, pair in enumerate(plan['test'], 1):
         q = pair['question_id']
@@ -312,8 +222,7 @@ def main():
     parser.add_argument('--datasets', nargs='+', choices=DATASETS, default=list(DATASETS))
     parser.add_argument('--audio-root', type=Path, default=Path('outputs/jenny-zip-audio'))
     parser.add_argument('--data-root', type=Path, default=Path('outputs/phi4-next-tasks'))
-    parser.add_argument('--output', type=Path, default=Path('outputs/phi4-jenny-zip-L11-minus1'))
-    parser.add_argument('--allow-response-differences', action='store_true')
+    parser.add_argument('--output', type=Path, default=Path('outputs/phi4-jenny-zip-fresh-L11-minus1'))
     args = parser.parse_args()
     if args.mode == 'summary':
         for name in args.datasets:
@@ -352,17 +261,11 @@ def main():
                 time.sleep(30)
             from steer_phi4_gsm_reverse import NativePhi
             native = NativePhi(11)
-            changed = []
             for plan, folder in plans:
-                verification = run_task(plan, folder, native, args.allow_response_differences, phase='check')
-                if verification['differences']:
-                    changed.append(plan['task'])
-            if changed and not args.allow_response_differences:
-                raise RuntimeError(f'All fresh delivery reports saved. Historical responses changed for {changed}; '
-                                   'no steering started. Inspect before explicitly allowing --allow-response-differences.')
+                run_task(plan, folder, native, phase='check')
             print('All selected datasets have completed fresh collection and full delivery checks. Starting held-out L11/-1 steering.', flush=True)
             for plan, folder in plans:
-                run_task(plan, folder, native, args.allow_response_differences)
+                run_task(plan, folder, native)
 
 
 if __name__ == '__main__':

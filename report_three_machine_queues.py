@@ -18,7 +18,7 @@ def collect(root):
         paths = [('DIFFA original happy', root/'diffa-happy-winners'/task/'strength-1/summary.json')]
         base = root/'diffa-gsm-shared-three-zeroshot-hashes' if task == 'gsm8k' else root/'diffa-shared-three-tasks'/task
         paths += [(f'DIFFA shared {e}', base/e/'primary/summary.json') for e in ('angry', 'happy')]
-        paths += [('Phi ZIP L11 -1', root/'phi4-jenny-zip-L11-minus1'/task/'summary.json')]
+        paths += [('Phi ZIP L11 -1', root/'phi4-jenny-zip-fresh-L11-minus1'/task/'summary.json')]
         for workflow, path in paths:
             if not path.exists():
                 result.append(dict(workflow=workflow, dataset=task, status='No saved summary'))
@@ -41,7 +41,7 @@ def collect(root):
                                 label+'_ci': value['ci95_gain_pp'], 'pairs': value['pairs']})
             if 'primary_gain_pp' not in row:
                 row['status'] = 'No matched steering results yet'
-            if 'verification' in summary:
+            if 'verification' in summary and summary['verification'].get('historical_comparison', True):
                 verification = summary['verification']
                 row.update(baseline_checked=verification['matched'], baseline_changed=len(verification['differences']))
             result.append(row)

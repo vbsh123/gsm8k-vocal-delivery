@@ -16,6 +16,26 @@ from pack_three_machine_handoff import select_handoff, worker_matches
 
 
 class ThreeMachineQueues(unittest.TestCase):
+    def test_phi_uses_new_zip_hashes_for_same_questions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pairs = [dict(question_id=q, **{s:dict(question_id=q, audio_sha256='old-'+q+s)
+                                          for s in ('neutral','angry')}) for q in ('train','test')]
+            old = dict(task='svamp', seed=42, collection=pairs[:1], test=pairs[1:],
+                       bank={q:dict(question='Question '+q, answer='2') for q in ('train','test')}, prompt='#### prompt')
+            data = root/'data.json'
+            data.write_text(json.dumps(old))
+            def choose(name,q,style,**kwargs):
+                self.assertEqual(kwargs,dict(question='Question '+q,answer='2'))
+                return dict(record=dict(question_id=q,voice='Jenny',audio_sha256='new-'+q+style))
+            registry = SimpleNamespace(choose=choose)
+            with patch.dict(phi.SPLITS,svamp=(1,1)):
+                plan=phi.prepare('svamp',data,registry,root)
+            self.assertEqual(plan['collection'][0]['neutral']['audio_sha256'],'new-trainneutral')
+            self.assertEqual(plan['test'][0]['angry']['audio_sha256'],'new-testangry')
+            self.assertEqual(len(plan['added_delivery_hashes']),4)
+            self.assertIn('no historical comparisons',plan['verification'])
+
     def test_handoff_excludes_original_vectors_and_partial_aggregates(self):
         root=Path('/workspace/gsm8k-vocal-delivery')
         old=root/'outputs/original/style-vectors.pt'
@@ -90,13 +110,13 @@ class ThreeMachineQueues(unittest.TestCase):
                 (root/'summary.json').write_text(json.dumps(dict(verification=dict(differences=[]))))
                 return SimpleNamespace(returncode=0)
             with patch('phi4_all_layer_diagnostic.generate', side_effect=generate), patch.object(phi.subprocess,'run',side_effect=score):
-                phi.run_task(plan,root,None,False,phase='check')
+                phi.run_task(plan,root,None,phase='check')
                 self.assertEqual(events,['delivery','delivery','delivery','delivery','report'])
                 events.clear()
-                phi.run_task(plan,root,None,False)
+                phi.run_task(plan,root,None)
                 self.assertEqual(events, ['report','steer','report'])
                 events.clear()
-                phi.run_task(plan,root,None,False)
+                phi.run_task(plan,root,None)
                 self.assertEqual(events,['report','report'])
             rows = [json.loads(s) for s in (root/'deliveries.jsonl').read_text().splitlines()]
             self.assertEqual(len(rows),4)

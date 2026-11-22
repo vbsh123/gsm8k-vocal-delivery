@@ -59,38 +59,31 @@ python3 report_three_machine_queues.py
 
 ## Phi machine
 
-Fresh consistency check only: angry-minus-neutral, L11 answer, strength -1.
-The original Phi task splits and prompts/budgets are preserved: GSM400/869,
+Fresh ZIP experiment: angry-minus-neutral, L11 answer, strength -1.
+Keep the original question splits and prompts/budgets: GSM400/869,
 MultiArith290/290, SVAMP500/500, BBH125/125 each, IFEval254/254 with1024 tokens.
-There is no e2v filter or happy/sad run here.
+Use the ZIP's recordings matched by question text/reference. Old Phi audio
+hashes are not required. No old vectors, answers or historical comparisons are
+loaded, and there is no e2v filter or happy/sad run here.
 
-Wait for the COMPLETE Jenny ZIP to arrive in `/workspace`. Stage it separately
-so old Phi audio and configs are not overwritten:
+Wait for the COMPLETE Jenny ZIP to arrive in `/workspace`, then stage it:
 
 ```bash
 git pull --ff-only
-python3 stage_jenny_audio.py
+python3 stage_jenny_audio.py /workspace/jenny
 bash run_phi4_zip_recheck.sh --mode prepare
 nohup bash run_phi4_zip_recheck.sh > outputs/phi4-zip-recheck.log 2>&1 </dev/null &
 ```
 
-The preparation verifies original audio hashes against the ZIP. Where an
-original split lacked an angry test delivery, it uses the same question/text
-and reference from the bundle and records that no original hash was stored.
-No mismatched existing neutral/collection hash is silently substituted.
+Use the actual ZIP filename if different. Every selected dataset first completes
+fresh collection plus unsteered neutral and angry responses on BOTH collection
+and test IDs. Collection responses are scored too, without repeating generation.
+Only after all selected datasets finish these fresh delivery checks does held-out
+steering start. Reports include paired accuracy/compliance metrics and token lengths.
 
-Every selected dataset first completes fresh collection plus unsteered neutral
-and angry responses on BOTH collection and test IDs. Collection responses are
-scored too, rather than generated again. Full delivery scores, paired metrics,
-token lengths, historical raw-response comparisons (with coverage), and old/new
-vector cosine/relative change are saved. Only after all selected datasets finish
-these checks does held-out steering start. If matched historical responses
-change, the queue saves all delivery reports and stops BEFORE steering. Inspect
-the differences before deliberately using `--allow-response-differences`.
-
-Fresh results are stored in `outputs/phi4-jenny-zip-L11-minus1`; original
-vectors/results remain unchanged. This is a consistency check on previously
-inspected data and selected L11, not new confirmatory evidence.
+Fresh results are stored in `outputs/phi4-jenny-zip-fresh-L11-minus1`, separately
+from the earlier attempted hash-replication run and all original experiments.
+This remains exploratory work using previously inspected question splits and L11.
 
 ```bash
 bash run_phi4_zip_recheck.sh --mode summary
