@@ -1,4 +1,4 @@
-"""Fill missing Jenny sad/happy audio; default is a read-only preview."""
+"""Fill missing Jenny emotion/neutral audio; default is a read-only preview."""
 import argparse
 import json
 import os
@@ -7,25 +7,32 @@ import subprocess
 import sys
 import socket
 
-from check_sad_audio import PREFIXES, rows
+from check_sad_audio import PREFIXES as OTHER_PREFIXES, rows
 
 VOICE = 'en-US-JennyNeural'
+PREFIXES = {'gsm8k': 'gsm8k_test_', **OTHER_PREFIXES}
 
 
 def inventory(root):
     bank = {name: {} for name in PREFIXES}
     available = set()
+    neutral_texts = {}
 
     def add(q, text, answer, style, voice, paths):
-        if voice != VOICE or not isinstance(q, str) or not isinstance(text, str):
+        if (voice != VOICE or not isinstance(q, str) or not isinstance(text, str)
+                or style not in ('neutral', 'angry', 'happy', 'sad')):
             return
         name = next((n for n, prefix in PREFIXES.items() if q.startswith(prefix)), None)
         if name is None:
             return
         if style == 'neutral':
-            old = bank[name].get(q)
-            if old and old['question'] != text:
+            old_text = neutral_texts.get(q)
+            if old_text is not None and old_text != text:
                 raise ValueError(f'Differing neutral question texts for {q}; resolve before synthesis.')
+            neutral_texts[q] = text
+        # Emotion plans also supply references when a neutral recording never existed.
+        # Metadata-only aliases without answers must not erase the original reference.
+        if answer is not None and (q not in bank[name] or style == 'neutral'):
             bank[name][q] = dict(question_id=q, question=text, answer=answer)
         if any(p.is_file() and p.stat().st_size > 44 for p in paths):
             available.add((q, style, text))
@@ -52,8 +59,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', type=Path, default=Path('outputs'))
     parser.add_argument('--output', type=Path, default=Path('outputs/missing-emotion-audio'))
-    parser.add_argument('--datasets', nargs='+', choices=list(PREFIXES), default=list(PREFIXES))
-    parser.add_argument('--styles', nargs='+', choices=['sad', 'happy'], default=['sad', 'happy'])
+    parser.add_argument('--datasets', nargs='+', choices=list(PREFIXES), default=list(OTHER_PREFIXES))
+    parser.add_argument('--styles', nargs='+', choices=['neutral', 'angry', 'sad', 'happy'], default=['sad', 'happy'])
     parser.add_argument('--run', action='store_true', help='Make billable Azure synthesis requests.')
     parser.add_argument('--diagnose', action='store_true', help='Show actual batch files and matching details; never synthesize.')
     args = parser.parse_args()
@@ -79,7 +86,7 @@ def main():
     total_chars = 0
     for name in dict.fromkeys(args.datasets):
         if not bank[name]:
-            raise ValueError(f'{name}: no neutral question bank found; nothing generated.')
+            raise ValueError(f'{name}: no question bank with references found; nothing generated.')
         for style in dict.fromkeys(args.styles):
             missing = [row for q, row in sorted(bank[name].items())
                        if (q, style, row['question']) not in available]
