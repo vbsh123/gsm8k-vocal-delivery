@@ -18,26 +18,34 @@ def extract(output, metric='flexible-extract'):
             f'p={steered.group(3)} | CI={steered.group(4)}')
 
 
-def main():
+def main(default_strengths=None, default_datasets=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--datasets', nargs='+', default=['gsm8k', 'multiarith', 'svamp', 'bbh3', 'bbh5'])
+    parser.add_argument('--datasets', nargs='+', default=default_datasets or ['gsm8k', 'multiarith', 'svamp', 'bbh3', 'bbh5'])
+    parser.add_argument('--strengths', type=float, nargs='+', default=default_strengths or [-1])
     args = parser.parse_args()
     root = Path(__file__).resolve().parent
     log = root / 'outputs/phi4-l11-summary.stderr.log'
     log.parent.mkdir(parents=True, exist_ok=True)
     failed = False
     with log.open('w') as errors:
-        for dataset in args.datasets:
-            print(f'\n{dataset} — L11 answer x-1', flush=True)
+        for dataset, strength in ((d, s) for d in args.datasets for s in args.strengths):
+            print(f'\n{dataset} — L11 answer x{strength:g}', flush=True)
             result = subprocess.run(['bash', 'run_phi4_sweep.sh', '--mode', 'summary',
                                      '--datasets', dataset, '--layers', '11', '--group', 'answer',
-                                     '--strengths', '-1'], cwd=root, text=True,
+                                     '--strengths', f'{strength:g}'], cwd=root, text=True,
                                     stdout=subprocess.PIPE, stderr=errors)
             if result.returncode:
                 failed = True
                 print(f'Summary failed (exit {result.returncode}); see {log}.')
                 print('\n'.join(result.stdout.splitlines()[-4:]))
             else:
+                if dataset == 'ifeval':
+                    for line in result.stdout.splitlines():
+                        if (line.startswith(('Official IFEval checks:', 'Condition', 'neutral '))
+                                or re.match(r'^neutral-ifeval-.*(?: /(?:strict|loose)_prompt:|\s+\d+)', line)
+                                or 'not run/prepared' in line):
+                            print(line)
+                    continue
                 for metric in ('flexible-extract', 'strict-match'):
                     print(f'  {metric}')
                     print(extract(result.stdout, metric))
