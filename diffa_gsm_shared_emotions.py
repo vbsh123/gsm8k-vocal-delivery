@@ -10,6 +10,7 @@ import subprocess
 import time
 
 PROTOCOL = 'diffa-gsm-shared-three-zeroshot-hashes-v1'
+EMOTIONS = ('angry', 'happy')
 
 
 def validate_protocol(split, plans, prompt):
@@ -18,7 +19,7 @@ def validate_protocol(split, plans, prompt):
     train, test = set(split['collection_ids']), set(split['test_ids'])
     if train & test or len(train) > len(split['neutral_pool_ids'])//2:
         raise ValueError('Collection overlaps test or exceeds the half-pool cap.')
-    for emotion in ('happy', 'angry'):
+    for emotion in EMOTIONS:
         plan = plans[emotion]
         if (plan.get('protocol') != PROTOCOL or plan['collection_ids'] != split['collection_ids']
                 or plan['test_ids'] != split['test_ids'] or plan['prompt'] != prompt
@@ -110,7 +111,7 @@ def prepare(args):
                  note='Exploratory new split; do not pool with original 425/718 evidence.')
     task.winners.freeze(args.output / 'split.json', split)
     plans = {}
-    for emotion in ('happy', 'angry'):
+    for emotion in EMOTIONS:
         plan = deepcopy(source)
         plan.update(protocol=split['protocol'], emotion=emotion, target=deepcopy(target), bank=bank,
                     prompt=HASH_PROMPT, collection_prompt=HASH_PROMPT, num_fewshot=0,
@@ -131,7 +132,7 @@ def prepare(args):
 
 def report(output, tokenizer=None):
     import diffa_happy_nightly as task
-    for emotion in ('happy', 'angry'):
+    for emotion in EMOTIONS:
         folder = output / emotion / 'primary'
         print(f'\nGSM shared collection — {emotion} vector', flush=True)
         if (folder / 'run_config.json').exists():
@@ -160,7 +161,7 @@ def main():
             split = json.loads((args.output / 'split.json').read_text())
             if split['source_config_sha256'] != task.winners.digest(args.source / 'run_config.json'):
                 raise ValueError('Original source changed.')
-            plans = {e: json.loads((args.output / e / 'run_config.json').read_text()) for e in ('happy', 'angry')}
+            plans = {e: json.loads((args.output / e / 'run_config.json').read_text()) for e in EMOTIONS}
             validate_protocol(split, plans, HASH_PROMPT)
             print(f'Resuming frozen split: {len(split["collection_ids"])} collection / {len(split["test_ids"])} test.', flush=True)
         else:
