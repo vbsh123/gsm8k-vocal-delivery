@@ -9,6 +9,22 @@ import shutil
 import subprocess
 import time
 
+PROTOCOL = 'diffa-gsm-shared-three-zeroshot-hashes-v1'
+
+
+def validate_protocol(split, plans, prompt):
+    if split.get('protocol') != PROTOCOL:
+        raise ValueError('Output uses another prompt protocol; use a separate output folder.')
+    train, test = set(split['collection_ids']), set(split['test_ids'])
+    if train & test or len(train) > len(split['neutral_pool_ids'])//2:
+        raise ValueError('Collection overlaps test or exceeds the half-pool cap.')
+    for emotion in ('happy', 'angry'):
+        plan = plans[emotion]
+        if (plan.get('protocol') != PROTOCOL or plan['collection_ids'] != split['collection_ids']
+                or plan['test_ids'] != split['test_ids'] or plan['prompt'] != prompt
+                or plan['collection_prompt'] != prompt or plan['target']['prompt'] != prompt):
+            raise ValueError('Both emotions must use the same frozen split and zero-shot #### prompt at both stages.')
+
 
 def split_ids(neutral_ids, shared_ids):
     pool = set(neutral_ids)
@@ -28,6 +44,7 @@ def prepare(args):
     import diffa_happy_nightly as task
     from check_sad_audio import rows
     from shared_emotion_counts import MODEL
+    from run_svamp500 import HASH_PROMPT
 
     root = Path('outputs')
     source = json.loads((args.source / 'run_config.json').read_text())
@@ -80,10 +97,12 @@ def prepare(args):
             receipts[q] = {e: labels[r['audio_sha256']] for e, r in recognized.items()}
     train, test = split_ids(neutral, triples)
     target = deepcopy(source['target'])
-    target.update(records=[neutral[q] for q in test], bank={q: bank[q] for q in test}, extraction_ids=train)
+    target.update(records=[neutral[q] for q in test], bank={q: bank[q] for q in test}, extraction_ids=train,
+                  prompt=HASH_PROMPT)
     target['reuse_runs'] = list(dict.fromkeys([str(args.source / 'delivery'), *target.get('reuse_runs', [])]))
-    split = dict(protocol='diffa-gsm-shared-three-emotions-v1', neutral_pool_ids=sorted(neutral),
+    split = dict(protocol=PROTOCOL, neutral_pool_ids=sorted(neutral),
                  eligible_shared_ids=sorted(triples), collection_ids=train, test_ids=test, seed=42,
+                 prompt=HASH_PROMPT, collection_prompt=HASH_PROMPT, num_fewshot=0,
                  rule='All three emotions must be recognized on the same text/reference. Neutral recognition ignored. '
                       'Collection=min(shared_count,floor(available_neutral_count/2)); remainder is test.',
                  source_config_sha256=task.winners.digest(args.source / 'run_config.json'),
@@ -94,6 +113,7 @@ def prepare(args):
     for emotion in ('happy', 'angry'):
         plan = deepcopy(source)
         plan.update(protocol=split['protocol'], emotion=emotion, target=deepcopy(target), bank=bank,
+                    prompt=HASH_PROMPT, collection_prompt=HASH_PROMPT, num_fewshot=0,
                     collection_ids=train, test_ids=test,
                     pairs=[dict(question_id=q, neutral=neutral[q], emotion=triples[q][emotion]) for q in train],
                     classifier_receipts=[dict(question_id=q, labels=receipts[q]) for q in train],
@@ -102,8 +122,10 @@ def prepare(args):
         folder.mkdir(parents=True, exist_ok=True)
         task.winners.freeze(folder / 'run_config.json', plan)
         plans[emotion] = plan
+    validate_protocol(split, plans, HASH_PROMPT)
     print(f'GSM neutral pool={len(neutral)}, shared eligible={len(triples)}, half cap={len(neutral)//2}.', flush=True)
     print(f'Both vectors: SAME {len(train)} collection IDs; SAME {len(test)} held-out neutral IDs. L31 answer x+1.', flush=True)
+    print(f'Zero-shot collection AND evaluation prompt: {HASH_PROMPT}', flush=True)
     return plans
 
 
@@ -122,7 +144,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mode', choices=['prepare', 'run', 'summary'], default='run')
     parser.add_argument('--source', type=Path, default=Path('outputs/diffa-happy-winners/gsm8k'))
-    parser.add_argument('--output', type=Path, default=Path('outputs/diffa-gsm-shared-three'))
+    parser.add_argument('--output', type=Path, default=Path('outputs/diffa-gsm-shared-three-zeroshot-hashes'))
     args = parser.parse_args()
     if args.mode == 'summary':
         report(args.output)
@@ -130,6 +152,7 @@ def main():
     import diffa_happy_nightly as task
     import diffa_angry_agreed as angry
     from diffa_bbh_angry125 import fill_neutral
+    from run_svamp500 import HASH_PROMPT
     args.output.mkdir(parents=True, exist_ok=True)
     with (args.output / 'queue.lock').open('a') as own:
         fcntl.flock(own, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -138,6 +161,7 @@ def main():
             if split['source_config_sha256'] != task.winners.digest(args.source / 'run_config.json'):
                 raise ValueError('Original source changed.')
             plans = {e: json.loads((args.output / e / 'run_config.json').read_text()) for e in ('happy', 'angry')}
+            validate_protocol(split, plans, HASH_PROMPT)
             print(f'Resuming frozen split: {len(split["collection_ids"])} collection / {len(split["test_ids"])} test.', flush=True)
         else:
             plans = prepare(args)
