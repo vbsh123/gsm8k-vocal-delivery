@@ -3,10 +3,12 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
 import zipfile
+from diffa_model_receipts import cached_model_revisions
 
 ROOTS = (
     'diffa-gsm-shared-three-zeroshot-hashes', 'diffa-gsm-shared-three',
@@ -100,7 +102,11 @@ def files_for(repo):
 def environment():
     command = [sys.executable, '-c',
                'import importlib.metadata as m,json,sys; print(json.dumps(dict(python=sys.version,packages={d.metadata["Name"]:d.version for d in m.distributions() if d.metadata.get("Name")})))']
-    return json.loads(subprocess.check_output(command, text=True))
+    result = json.loads(subprocess.check_output(command, text=True))
+    hub = Path(os.environ.get('HF_HUB_CACHE', str(Path(os.environ.get('HF_HOME', '/workspace/.hf_home'))/'hub')))
+    revisions = cached_model_revisions(hub)
+    result.update(hf_model_revisions=revisions, hf_cache=str(hub))
+    return result
 
 
 def main():

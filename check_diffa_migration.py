@@ -16,6 +16,7 @@ def main():
         previous = json.loads(manifest.read_text())['source_environment']
         packages = {name.lower(): value for name, value in previous['packages'].items()}
         print('Source Python:', previous['python'].splitlines()[0])
+        print('Pinned source-model revisions:', previous.get('hf_model_revisions', {}))
         for name in ('torch', 'torchaudio', 'transformers', 'numpy', 'peft', 'accelerate', 'lm_eval', 'soundfile'):
             try:
                 current = importlib.metadata.version(name)

@@ -5,6 +5,8 @@ from pathlib import Path
 
 import librosa
 import torch
+from diffa_model_receipts import model_revisions
+
 
 def load_model():
     from huggingface_hub import hf_hub_download
@@ -17,17 +19,18 @@ def load_model():
     llm_id = "GSAI-ML/LLaDA-8B-Instruct"
     whisper_id = "openai/whisper-large-v3"
     diffa_id = "zhoujiaming777/DIFFA-2"
+    revisions = model_revisions()
 
-    tokenizer = AutoTokenizer.from_pretrained(llm_id)
-    feature_extractor = WhisperFeatureExtractor.from_pretrained(whisper_id)
-    config_path = hf_hub_download(diffa_id, "config.json")
+    tokenizer = AutoTokenizer.from_pretrained(llm_id, revision=revisions.get(llm_id))
+    feature_extractor = WhisperFeatureExtractor.from_pretrained(whisper_id, revision=revisions.get(whisper_id))
+    config_path = hf_hub_download(diffa_id, "config.json", revision=revisions.get(diffa_id))
     raw_config = json.loads(Path(config_path).read_text())
     config = DIFFAConfig(**raw_config)
     config.whisper_model_id = whisper_id
     config.prompt_size = raw_config.get("prompt_size", 64)
 
     model = DIFFAModel(config, tokenizer=tokenizer, stage=2)
-    weights_path = hf_hub_download(diffa_id, 'pytorch_model.bin')
+    weights_path = hf_hub_download(diffa_id, 'pytorch_model.bin', revision=revisions.get(diffa_id))
     state = torch.load(
         weights_path, map_location="cpu", weights_only=True, mmap=True
     )
@@ -35,11 +38,11 @@ def load_model():
         key: value for key, value in state.items() if not key.startswith("llm_model.")
     }
     model.load_state_dict(audio_weights, strict=False)
-    whisper = WhisperModel.from_pretrained(whisper_id, torch_dtype= torch.float32)
+    whisper = WhisperModel.from_pretrained(whisper_id, torch_dtype= torch.float32, revision=revisions.get(whisper_id))
     model.whisper_model.load_state_dict(whisper.encoder.state_dict())
 
     del whisper, audio_weights
-    llm = LLaDAModelLM.from_pretrained(llm_id, torch_dtype=torch.bfloat16)
+    llm = LLaDAModelLM.from_pretrained(llm_id, torch_dtype=torch.bfloat16, revision=revisions.get(llm_id))
     llm_weights = {
         key.removeprefix("llm_model."): value
         for key, value in state.items()

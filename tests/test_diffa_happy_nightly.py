@@ -91,6 +91,15 @@ class HappyNightlyTests(unittest.TestCase):
             self.assertEqual(plan['pairs'][0]['emotion']['style'],'happy')
             self.assertEqual(plan['recordings'][0]['audio_sha256'],target['records'][0]['audio_sha256'])
 
+    def test_existing_audio_only_queue_never_calls_tts(self):
+        with tempfile.TemporaryDirectory() as d:
+            out,old,inventory,target=self.fixture(Path(d))
+            inventory.pop(('train','happy'))
+            with patch.object(run.winners,'load_dataset',return_value=target),patch('run_reasoning_transfer.generate_audio') as generate:
+                with self.assertRaisesRegex(FileNotFoundError,'makes no TTS requests'):
+                    run.task_plan('ifeval',dict(run=str(old)),out,inventory,require_existing_audio=True)
+                generate.assert_not_called()
+
     def test_happy_vector_key_and_positive_sign(self):
         with tempfile.TemporaryDirectory() as d:
             path=Path(d)/'vectors.pt';sums=torch.zeros(32,4,3);sums[31,3]=6

@@ -56,7 +56,7 @@ def historical_collection_ids(target):
     return actual
 
 
-def task_plan(name,entry,root,inventory):
+def task_plan(name,entry,root,inventory,require_existing_audio=False):
     folder=root/name;folder.mkdir(parents=True,exist_ok=True)
     frozen=folder/'run_config.json'
     if frozen.exists():
@@ -96,6 +96,8 @@ def task_plan(name,entry,root,inventory):
     destination=folder/'audio-happy'
     missing=[bank[qid] for qid in all_ids if qid not in happy]
     if missing:
+        if require_existing_audio:
+            raise FileNotFoundError(f'{name}: {len(missing)} happy clips missing; existing-audio-only queue makes no TTS requests.')
         questions=read_rows(destination/'questions.jsonl') or missing
         print(f'{name}: generating {len(missing)} missing happy clips only.',flush=True)
         from run_reasoning_transfer import generate_audio
@@ -325,6 +327,7 @@ def arguments(argv=None):
     p.add_argument('--strengths',type=float,nargs='+',default=[1.])
     p.add_argument('--catalog',type=Path,default=Path('winning_diffa_catalog.json'))
     p.add_argument('--output',type=Path,default=Path('outputs/diffa-happy-winners'))
+    p.add_argument('--require-existing-audio',action='store_true',help='Fail rather than generating any missing TTS audio.')
     args=p.parse_args(argv)
     if not args.strengths or not all(math.isfinite(x) for x in args.strengths):p.error('Strengths must be finite.')
     return args
@@ -341,7 +344,7 @@ def main():
         for name in args.datasets:winners.load_dataset(name,entries[name])
         inventory=audio_inventory(Path('outputs'));plans={}
         for name in args.datasets:
-            plan=task_plan(name,entries[name],root,inventory);plans[name]=plan
+            plan=task_plan(name,entries[name],root,inventory,require_existing_audio=args.require_existing_audio);plans[name]=plan
             delivery=root/name/'delivery';delivery.mkdir(exist_ok=True)
             winners.freeze(delivery/'run_config.json',dict(protocol=PROTOCOL,target=plan['target'],conditions=['neutral','happy']))
             reuse_delivery(plan,delivery)
