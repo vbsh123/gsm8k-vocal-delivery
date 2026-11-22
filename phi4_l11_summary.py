@@ -1,17 +1,18 @@
-"""Compact CPU-only flexible-extract summary for Phi L11 answer x-1."""
+"""Compact CPU-only flexible and strict summary for Phi L11 answer x-1."""
 import argparse
 from pathlib import Path
 import re
 import subprocess
 
 
-def extract(output):
-    neutral = re.search(r'^flexible-extract / neutral: (.+)$', output, re.M)
-    steered = re.search(r'^flexible-extract / neutral-[^\n]+: (.+)\n\s*gain=([^;\n]+); p=([^;\n]+); CI=([^\n]+)', output, re.M)
+def extract(output, metric='flexible-extract'):
+    prefix = re.escape(metric)
+    neutral = re.search(r'^' + prefix + r' / neutral: (.+)$', output, re.M)
+    steered = re.search(r'^' + prefix + r' / neutral-[^\n]+: (.+)\n\s*gain=([^;\n]+); p=([^;\n]+); CI=([^\n]+)', output, re.M)
     if not steered:
         status = next((line for line in output.splitlines() if 'not run/prepared' in line), None)
         completed = re.findall(r'^\d+ questions completed.*$', output, re.M)
-        return status or (completed[-1] if completed else 'No flexible result saved yet.')
+        return status or (completed[-1] if completed else f'No {metric} result saved yet.')
     return (f'neutral: {neutral.group(1) if neutral else "unknown"}\n'
             f'  L11: {steered.group(1)} | gain={steered.group(2)} pp | '
             f'p={steered.group(3)} | CI={steered.group(4)}')
@@ -27,7 +28,7 @@ def main():
     failed = False
     with log.open('w') as errors:
         for dataset in args.datasets:
-            print(f'\n{dataset} — L11 answer x-1, flexible-extract', flush=True)
+            print(f'\n{dataset} — L11 answer x-1', flush=True)
             result = subprocess.run(['bash', 'run_phi4_sweep.sh', '--mode', 'summary',
                                      '--datasets', dataset, '--layers', '11', '--group', 'answer',
                                      '--strengths', '-1'], cwd=root, text=True,
@@ -37,7 +38,9 @@ def main():
                 print(f'Summary failed (exit {result.returncode}); see {log}.')
                 print('\n'.join(result.stdout.splitlines()[-4:]))
             else:
-                print(extract(result.stdout))
+                for metric in ('flexible-extract', 'strict-match'):
+                    print(f'  {metric}')
+                    print(extract(result.stdout, metric))
     if failed:
         raise SystemExit(1)
 
