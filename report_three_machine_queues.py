@@ -15,7 +15,8 @@ def primary(task):
 def collect(root):
     result = []
     for task in TASKS:
-        paths = [('DIFFA original happy', root/'diffa-happy-winners'/task/'strength-1/summary.json')]
+        paths = [(f'DIFFA original {emotion}', root/f'diffa-{emotion}-winners'/task/'strength-1/summary.json')
+                 for emotion in ('happy','sad')]
         base = root/'diffa-gsm-shared-three-zeroshot-hashes' if task == 'gsm8k' else root/'diffa-shared-three-tasks'/task
         paths += [(f'DIFFA shared {e}', base/e/'primary/summary.json') for e in ('angry', 'happy')]
         paths += [(f'Phi ZIP {target} -1', root/'phi4-diffa-cohorts-three-directions'/task/f'summary-{target}.json')

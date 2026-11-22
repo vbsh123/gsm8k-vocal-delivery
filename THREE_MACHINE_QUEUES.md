@@ -57,6 +57,34 @@ bash run_diffa_happy_nightly.sh --mode summary
 python3 report_three_machine_queues.py
 ```
 
+## Original DIFFA sad (queued after happy)
+
+Sad uses the SAME ordered original happy/angry collection and held-out IDs,
+neutral audio hashes, collection/evaluation prompts and budgets. It requires the
+existing Jenny sad audio and never classifies, filters by e2v, substitutes a
+question or requests new TTS. It collects sad-minus-neutral across layers,
+reports collection and held-out sad versus neutral separately, then steers
+held-out neutrals at L31 answer +1. Compatible neutral answers are reused.
+
+Queue it on the ORIGINAL DIFFA machine while happy is still running:
+
+```bash
+git pull --ff-only
+nohup bash run_diffa_original_sad_queue.sh > outputs/diffa-original-sad.log 2>&1 </dev/null &
+```
+
+CPU preparation validates all six cohorts/audio/reference metadata first. The
+process then blocks on the SAME `outputs/jenny-task-vectors.lock` held by happy,
+and waits for active GPU processes before loading weights. It makes no competing
+model allocation while waiting. Completed work resumes in
+`outputs/diffa-sad-winners`. No strengths grid or transfers are started.
+
+```bash
+tail -n 30 outputs/diffa-original-sad.log
+bash run_diffa_original_sad_queue.sh --mode summary
+python3 report_three_machine_queues.py
+```
+
 ## Phi machine
 
 Fresh ZIP experiment: angry-minus-neutral at L0 audio, L11 answer and L30 answer; each steered separately at strength -1.

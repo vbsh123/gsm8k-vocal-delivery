@@ -21,14 +21,14 @@ STAGES=('primary','strengths','transfer')
 PROTOCOL='diffa-happy-winners-v1'
 
 
-def audio_inventory(root):
+def audio_inventory(root,styles=('neutral','happy')):
     """Only Jenny/Azure; never mix Ryan, model predictions or classifier labels."""
     found={}
     for path in sorted(root.rglob('plan.jsonl')):
         for row in read_rows(path):
             if not isinstance(row,dict):continue
             if not all(isinstance(row.get(k),str) and row[k] for k in ('question_id','question','audio_path')):continue
-            if row.get('provider')!='azure' or row.get('voice')!=VOICE or row.get('style') not in ('neutral','happy'):continue
+            if row.get('provider')!='azure' or row.get('voice')!=VOICE or row.get('style') not in styles:continue
             if 'question' not in row or not (path.parent/row['audio_path']).is_file():continue
             found.setdefault((row['question_id'],row['style']),[]).append((row,path.parent))
     return found
@@ -153,7 +153,7 @@ def collect(plan,folder,model,tokenizer,features):
                 traces.append(emotion.capture(model,lambda:generate(record,plan,plan['collection_prompt'],model,tokenizer,features),decoder,plan['max_new_tokens']))
             nr,ne,n=traces[0];hr,he,h=traces[1]
             nm,hm,delta,matched=average_pair(n,h,'matched')
-            saved=dict(protocol=PROTOCOL,run_config_sha256=config_hash,question_id=pair['question_id'],
+            saved=dict(protocol=plan.get('protocol',PROTOCOL),run_config_sha256=config_hash,question_id=pair['question_id'],
                 neutral=nm,emotion=hm,difference=delta,neutral_response=nr,emotion_response=hr,
                 neutral_forwards=n.shape[1],emotion_forwards=h.shape[1],matched_forwards=matched,
                 neutral_encoding=ne,emotion_encoding=he)
@@ -198,11 +198,12 @@ def reuse_delivery(plan,folder):
 
 
 def deliver(plan,folder,model,tokenizer,features):
+    label=plan['emotion']
     done={(r['question_id'],r['voice'],r['condition']) for r in read_rows(folder/'results.jsonl',repair=True)}
-    pending=[r for r in plan['recordings'] if r['condition']=='happy' and (r['question_id'],r['voice'],'happy') not in done]
+    pending=[r for r in plan['recordings'] if r['condition']==label and (r['question_id'],r['voice'],label) not in done]
     with (folder/'results.jsonl').open('a') as stream:
         for i,record in enumerate(pending,1):
-            print(f'{plan["name"]} happy [{i}/{len(pending)}] {record["question_id"]}',flush=True)
+            print(f'{plan["name"]} {label} [{i}/{len(pending)}] {record["question_id"]}',flush=True)
             response,encoding=generate(record,plan,plan['prompt'],model,tokenizer,features)
             stream.write(json.dumps(dict(record,response=response,strength=0.,prompt=plan['prompt'],seed=42,
                 max_new_tokens=plan['max_new_tokens'],steps=128,block_length=32,temperature=0.,decoder='fast_dllm',
@@ -210,9 +211,9 @@ def deliver(plan,folder,model,tokenizer,features):
 
 
 def descriptor(plan,folder):
-    target=dict(plan['target'],emotion='happy',vector=str((folder/'style-vectors.pt').absolute()),
+    target=dict(plan['target'],emotion=plan['emotion'],vector=str((folder/'style-vectors.pt').absolute()),
         vector_sha256=winners.digest(folder/'style-vectors.pt'),extraction_ids=plan['collection_ids'])
-    _,target['vector_info']=winners.read_vector(target['vector'],'happy')
+    _,target['vector_info']=winners.read_vector(target['vector'],plan['emotion'])
     return target
 
 
@@ -233,23 +234,24 @@ def reuse_neutral(delivery,output):
 
 def report_delivery(plan,folder,tokenizer=None,*,rows=None,cohort='held-out',expected_ids=None):
     from rescore_audio_steering import paired
+    label=plan['emotion']
     rows=read_rows(folder/'results.jsonl') if rows is None else rows
     expected_ids=plan['test_ids'] if expected_ids is None else expected_ids
-    available={c:{(r['question_id'],r['voice']) for r in rows if r['condition']==c} for c in ('neutral','happy')}
-    if not available['neutral'] & available['happy']:
-        print(f'{plan["name"]} happy vs neutral: 0/{len(expected_ids)} matched {cohort} questions; neutral={len(available["neutral"])} happy={len(available["happy"])} saved.',flush=True)
+    available={c:{(r['question_id'],r['voice']) for r in rows if r['condition']==c} for c in ('neutral',label)}
+    if not available['neutral'] & available[label]:
+        print(f'{plan["name"]} {plan["emotion"]} vs neutral: 0/{len(expected_ids)} matched {cohort} questions; neutral={len(available["neutral"])} {label}={len(available[label])} saved.',flush=True)
         return
     scoring=dict(target=plan['target'])
     scored,provenance=winners.score_rows(scoring,rows,folder)
-    groups={c:{(r['question_id'],r['voice']):r for r in scored if r['condition']==c} for c in ('neutral','happy')}
-    keys=sorted(groups['neutral'].keys()&groups['happy'].keys());results=[];lengths={}
+    groups={c:{(r['question_id'],r['voice']):r for r in scored if r['condition']==c} for c in ('neutral',label)}
+    keys=sorted(groups['neutral'].keys()&groups[label].keys());results=[];lengths={}
     if tokenizer is None:
         from transformers import AutoTokenizer
         tokenizer=AutoTokenizer.from_pretrained('GSAI-ML/LLaDA-8B-Instruct',local_files_only=True)
     for c,g in groups.items():
         counts=[r.get('response_tokens') if r.get('response_tokens') is not None else len(tokenizer.encode(r['response'],add_special_tokens=False)) for r in (g[k] for k in keys)]
         if counts:lengths[c]=dict(n=len(counts),mean_tokens=statistics.mean(counts),median_tokens=statistics.median(counts))
-    print(f'{plan["name"]} happy vs neutral: {len(keys)}/{len(expected_ids)} matched {cohort} questions.',flush=True)
+    print(f'{plan["name"]} {plan["emotion"]} vs neutral: {len(keys)}/{len(expected_ids)} matched {cohort} questions.',flush=True)
     for c,info in lengths.items():print(c,'mean/median tokens:',round(info['mean_tokens'],1),info['median_tokens'],flush=True)
     instruction_totals=[]
     if plan['name']=='ifeval':
@@ -261,7 +263,7 @@ def report_delivery(plan,folder,tokenizer=None,*,rows=None,cohort='held-out',exp
         for metric in groups['neutral'][keys[0]]['metrics']:
             for c,g in groups.items():
                 correct=sum(g[k]['metrics'][metric] for k in keys);print(f'{metric} / {c}: {correct}/{len(keys)} ({correct/len(keys):.1%})',flush=True)
-            result=paired([(groups['neutral'][k]['metrics'][metric],groups['happy'][k]['metrics'][metric]) for k in keys])
+            result=paired([(groups['neutral'][k]['metrics'][metric],groups[label][k]['metrics'][metric]) for k in keys])
             results.append(dict(metric=metric,**result));print(f'{metric}: gain={result["gain_pp"]:+.2f}; p={result["mcnemar_exact_p"]:.4g}; CI={result["ci95_gain_pp"]}',flush=True)
     winners.atomic_text(folder/'summary.json',json.dumps(dict(paired=results,lengths=lengths,instruction_totals=instruction_totals,scorer=provenance,cohort=cohort,expected_questions=len(expected_ids),matched_questions=len(keys),prompt=plan['prompt'],note='Exploratory unadjusted paired tests; '+('collection responses used for vector fitting, not held-out steering evidence.' if cohort=='collection' else 'same historical held-out cohort.')),indent=2)+'\n')
     winners.atomic_text(folder/'rescored.jsonl',''.join(json.dumps(r)+'\n' for r in scored))
@@ -271,7 +273,7 @@ def report_collection(plan,folder,tokenizer=None):
     from diffa_collection_report import collection_rows,collection_bank
     rows=collection_rows(plan,folder)
     if not rows:
-        print(f'{plan["name"]} happy vs neutral: 0/{len(plan["collection_ids"])} matched collection questions saved yet.',flush=True)
+        print(f'{plan["name"]} {plan["emotion"]} vs neutral: 0/{len(plan["collection_ids"])} matched collection questions saved yet.',flush=True)
         return
     bank=collection_bank(plan)
     target=dict(plan['target'],bank={q:bank[q] for q in plan['collection_ids']})
