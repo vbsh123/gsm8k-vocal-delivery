@@ -60,30 +60,40 @@ python3 report_three_machine_queues.py
 ## Phi machine
 
 Fresh ZIP experiment: angry-minus-neutral, L11 answer, strength -1.
-Keep the original question splits and prompts/budgets: GSM400/869,
-MultiArith290/290, SVAMP500/500, BBH125/125 each, IFEval254/254 with1024 tokens.
-Use the ZIP's recordings matched by question text/reference. Old Phi audio
-hashes are not required. No old vectors, answers or historical comparisons are
-loaded, and there is no e2v filter or happy/sad run here.
+Phi must use the EXACT original DIFFA collection AND evaluation IDs across all
+six datasets, including GSM425/718. Do not use the old Phi400/869 cohort.
+DIFFA's frozen configs supply the ordered IDs, exact neutral audio hashes,
+question/reference metadata, collection/evaluation prompts and token budgets.
+This is the original-protocol DIFFA cohort, not the separate shared-three study.
 
-Wait for the COMPLETE Jenny ZIP to arrive in `/workspace`, then stage it:
+On ORIGINAL DIFFA, export the small cross-model cohort file (no inference):
 
 ```bash
 git pull --ff-only
-python3 stage_jenny_audio.py /workspace/jenny
+.venv-diffa/bin/python export_diffa_cohorts.py
+```
+
+Copy `/workspace/diffa-original-cohorts.json` to `/workspace` on Phi. The existing
+audio ZIP already supplies the recordings; no audio re-upload is needed.
+
+On PHI, after staging the Jenny ZIP:
+
+```bash
+git pull --ff-only
 bash run_phi4_zip_recheck.sh --mode prepare
 nohup bash run_phi4_zip_recheck.sh > outputs/phi4-zip-recheck.log 2>&1 </dev/null &
 ```
 
-Use the actual ZIP filename if different. Every selected dataset first completes
-fresh collection plus unsteered neutral and angry responses on BOTH collection
-and test IDs. Collection responses are scored too, without repeating generation.
-Only after all selected datasets finish these fresh delivery checks does held-out
-steering start. Reports include paired accuracy/compliance metrics and token lengths.
+Preparation prints the exact DIFFA collection/evaluation counts and refuses a
+missing or incompatible cohort file. No old Phi split, audio, vectors or answers
+are reused. First collect fresh neutral/angry vectors and evaluate deliveries
+on both collection and evaluation IDs across all datasets. Then steer the exact
+held-out IDs with L11 answer -1. Collection and evaluation each preserve DIFFA's
+respective prompts and budgets. Reports include paired scores and token lengths.
 
-Fresh results are stored in `outputs/phi4-jenny-zip-fresh-L11-minus1`, separately
-from the earlier attempted hash-replication run and all original experiments.
-This remains exploratory work using previously inspected question splits and L11.
+Results: `outputs/phi4-diffa-cohorts-L11-minus1`. The earlier attempted runs stay
+separate and are not treated as matching-cohort comparisons. This remains
+exploratory work on previously inspected questions and selected L11.
 
 ```bash
 bash run_phi4_zip_recheck.sh --mode summary

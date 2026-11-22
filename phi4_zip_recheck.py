@@ -10,56 +10,58 @@ import statistics
 from jenny_bundle_registry import Registry, sha
 
 DATASETS = ('gsm8k', 'multiarith', 'svamp', 'bbh3', 'bbh5', 'ifeval')
-PROTOCOL = 'phi4-jenny-zip-fresh-L11-answer-minus1-v2'
-SPLITS = {'gsm8k':(400,869), 'multiarith':(290,290), 'svamp':(500,500),
-          'bbh3':(125,125), 'bbh5':(125,125), 'ifeval':(254,254)}
+PROTOCOL = 'phi4-diffa-exact-cohorts-L11-answer-minus1-v3'
 
 
 def prepare(name, data_path, registry, folder):
     import evaluate_gsm_candidates as gsm
     from winning_diffa_sweeps import freeze
-    old = json.loads(data_path.read_text())
-    train = [p['question_id'] for p in old['collection']]
-    test = [p['question_id'] for p in old['test']]
-    if old['task'] != name or old.get('seed',42) != 42 or (len(train),len(test)) != SPLITS[name]:
-        raise ValueError('Expected the original full Phi task split and seed42, not a subset or another task.')
-    if set(train) & set(test) or len(set(train+test)) != len(train+test):
-        raise ValueError('Original Phi split overlaps or contains duplicates.')
-    pairs, added = {}, []
-    for split, source_pairs in [('collection', old['collection']), ('test', old['test'])]:
-        for pair in source_pairs:
-            q = pair['question_id']
-            entries = {}
-            for style in ('neutral', 'angry'):
-                example = old['bank'][q]
-                question = example.get('question', example.get('prompt'))
-                answer = None if name == 'ifeval' else str(example['answer']).rsplit('####', 1)[-1].strip()
-                item = registry.choose(name, q, style, question=question, answer=answer)
-                if item is None:
-                    raise ValueError(f'ZIP lacks compatible {name}/{q}/{style}; no TTS or old-audio fallback requested.')
-                entries[style] = item['record']
-                record = pair.get(style)
-                if not record or record.get('audio_sha256') != item['record']['audio_sha256']:
-                    added.append(dict(question_id=q, style=style,
-                                      previous_hash=record.get('audio_sha256') if record else None,
-                                      zip_hash=item['record']['audio_sha256']))
-            pairs[q] = dict(question_id=q, voice=entries['neutral']['voice'], **entries)
+    from export_diffa_cohorts import PROTOCOL as COHORT_PROTOCOL
+    manifest = json.loads(data_path.read_text())
+    if manifest.get('protocol') != COHORT_PROTOCOL:
+        raise ValueError('Need the exported original DIFFA cohort file, not old Phi splits.')
+    cohort = manifest['datasets'][name]
+    train, test = cohort['collection_ids'], cohort['test_ids']
+    if (cohort['task'] != name or cohort['seed'] != 42 or not train or not test
+            or len(set(train+test)) != len(train+test)):
+        raise ValueError('Invalid or overlapping original DIFFA cohorts.')
+    pairs = {}
+    for q in train+test:
+        example = cohort['bank'][q]
+        question = example.get('question', example.get('prompt'))
+        answer = None if name == 'ifeval' else str(example['answer']).rsplit('####', 1)[-1].strip()
+        entries = {}
+        for style in ('neutral', 'angry'):
+            expected = cohort['neutral'][q]['audio_sha256'] if style == 'neutral' else None
+            item = registry.choose(name, q, style, question=question, answer=answer, expected=expected)
+            if item is None:
+                raise ValueError(f'ZIP lacks exact DIFFA-compatible {name}/{q}/{style}; no new cohort or old-Phi audio substituted.')
+            options = registry.options.get((name,q,style), [])
+            compatible = {x['record']['audio_sha256'] for x in options
+                          if x['question'] == question and (answer is None or x['answer'] == answer)}
+            if style == 'angry' and len(compatible) > 1:
+                raise ValueError(f'Multiple angry recordings for {name}/{q}; pin the DIFFA recording before running.')
+            entries[style] = item['record']
+        pairs[q] = dict(question_id=q, voice=entries['neutral']['voice'], **entries)
     recipe = dict(gsm.MODELS['phi4'], dtype='bfloat16', do_sample=False, num_beams=1,
                   use_cache=True, repetition_penalty=1., text_only_output=True)
     plan = dict(protocol=PROTOCOL, task=name, name=name, recipe=recipe, layer=11, group='answer', strength=-1.,
                 source_config=str(data_path.absolute()), source_config_sha256=sha(data_path),
-                collection=[pairs[q] for q in train], test=[pairs[q] for q in test], bank=old['bank'],
-                prompt=old['prompt'], seed=42, max_new_tokens=old.get('max_new_tokens', 512),
+                collection=[pairs[q] for q in train], test=[pairs[q] for q in test], bank=cohort['bank'],
+                prompt=cohort['prompt'], collection_prompt=cohort['collection_prompt'], seed=42,
+                max_new_tokens=cohort['max_new_tokens'], collection_max_new_tokens=cohort['collection_max_new_tokens'],
                 deliveries=[dict(pairs[q][style], condition=style, split=split)
                             for split, ids in [('collection', train), ('test', test)] for q in ids for style in ('neutral', 'angry')],
-                added_delivery_hashes=added,
+                added_delivery_hashes=[], collection_ids=train, test_ids=test,
+                cohort_source_plan_sha256=cohort['source_plan_sha256'],
+                cohort_match='Exact ordered collection AND evaluation IDs from original DIFFA; exact neutral audio hashes from ZIP.',
                 definition='Fresh per-question angry mean minus neutral mean at L11 answer; all native generation forwards including prefill. '
                            'Raw equal-question float32 mean, no e2v/outcome filtering. No prior vector/response reuse for fresh inference.',
-                audio_policy='Use ZIP recordings matching question text/reference; historical hashes are not required.',
+                audio_policy='Same ZIP recordings and original DIFFA neutral hashes; no old Phi audio/results used.',
                 verification='Fresh neutral and angry evaluated on collection AND held-out IDs before steering; no historical comparisons.',
                 note='Fresh ZIP experiment using previously inspected question splits and selected L11; exploratory, not an independent confirmatory benchmark.')
     freeze(folder/'run_config.json', plan)
-    print(f'{name}: original {len(train)}/{len(test)} split; {2*(len(train)+len(test))} fresh delivery answers, then {len(test)} L11/-1 steered answers.', flush=True)
+    print(f'{name}: EXACT DIFFA {len(train)}/{len(test)} split; {2*(len(train)+len(test))} fresh delivery answers, then {len(test)} L11/-1 steered answers.', flush=True)
     return plan
 
 
@@ -72,10 +74,13 @@ def saved_rows(path, plan, repair=False):
         key = row['question_id'], row['condition']
         if key not in expected or key in result or row.get('run_config_sha256') != sha(path.parent/'run_config.json'):
             raise ValueError(f'Duplicate or incompatible row in {path}')
-        if row['prompt'] != plan['prompt'] or row['model'] != plan['recipe']['model'] or row['revision'] != plan['recipe']['revision']:
+        collection = expected[key].get('split') == 'collection'
+        prompt = plan.get('collection_prompt', plan['prompt']) if collection else plan['prompt']
+        budget = plan.get('collection_max_new_tokens', plan['max_new_tokens']) if collection else plan['max_new_tokens']
+        if row['prompt'] != prompt or row['model'] != plan['recipe']['model'] or row['revision'] != plan['recipe']['revision']:
             raise ValueError('Saved fresh-check model or prompt changed.')
         if (row['audio_sha256'] != expected[key]['audio_sha256'] or row['seed'] != 42
-                or row['max_new_tokens'] != plan['max_new_tokens']
+                or row['max_new_tokens'] != budget
                 or row['strength'] != (-1. if key[1] == 'steered' else 0.)):
             raise ValueError('Saved fresh-check audio or generation recipe changed.')
         result[key] = row
@@ -85,7 +90,8 @@ def saved_rows(path, plan, repair=False):
 def save_response(path, plan, record, trace, condition, split):
     row = dict(record, response=trace['response'], response_tokens=trace['response_tokens'],
                generation_seconds=trace.get('generation_seconds'), condition=condition, split=split,
-               prompt=plan['prompt'], seed=42, max_new_tokens=plan['max_new_tokens'],
+               prompt=plan.get('collection_prompt', plan['prompt']) if split == 'collection' else plan['prompt'],
+               seed=42, max_new_tokens=plan.get('collection_max_new_tokens', plan['max_new_tokens']) if split == 'collection' else plan['max_new_tokens'],
                model=plan['recipe']['model'], revision=plan['recipe']['revision'],
                run_config_sha256=sha(path.parent/'run_config.json'), strength=-1. if condition == 'steered' else 0.,
                interventions=[dict(layer=11, group='answer', strength=-1.)] if condition == 'steered' else [])
@@ -164,8 +170,8 @@ def run_task(plan, folder, native, phase='all'):
             print(f'{plan["task"]} fresh collect [{index+1}/{len(plan["collection"])}] {pair["question_id"]}', flush=True)
             traces = {}
             for style in ('neutral', 'angry'):
-                trace = hooks.generate(native, pair[style], plan['prompt'], collect=True,
-                                       capture_layers=[11], max_new_tokens=plan['max_new_tokens'])
+                trace = hooks.generate(native, pair[style], plan.get('collection_prompt',plan['prompt']), collect=True,
+                                       capture_layers=[11], max_new_tokens=plan.get('collection_max_new_tokens',plan['max_new_tokens']))
                 trace['mean'] = trace.pop('means')[0,0]
                 traces[style] = trace
             saved = dict(run_config_sha256=sha(folder/'run_config.json'), question_id=pair['question_id'], traces=traces,
@@ -221,8 +227,8 @@ def main():
     parser.add_argument('--mode', choices=['prepare', 'run', 'summary'], default='run')
     parser.add_argument('--datasets', nargs='+', choices=DATASETS, default=list(DATASETS))
     parser.add_argument('--audio-root', type=Path, default=Path('outputs/jenny-zip-audio'))
-    parser.add_argument('--data-root', type=Path, default=Path('outputs/phi4-next-tasks'))
-    parser.add_argument('--output', type=Path, default=Path('outputs/phi4-jenny-zip-fresh-L11-minus1'))
+    parser.add_argument('--cohorts', type=Path, default=Path('/workspace/diffa-original-cohorts.json'))
+    parser.add_argument('--output', type=Path, default=Path('outputs/phi4-diffa-cohorts-L11-minus1'))
     args = parser.parse_args()
     if args.mode == 'summary':
         for name in args.datasets:
@@ -232,6 +238,8 @@ def main():
             else:
                 print(name, 'not prepared.')
         return
+    if not args.cohorts.is_file():
+        raise FileNotFoundError('Copy /workspace/diffa-original-cohorts.json from original DIFFA first; run export_diffa_cohorts.py there.')
     args.output.mkdir(parents=True, exist_ok=True)
     with (args.output/'queue.lock').open('a') as own:
         fcntl.flock(own, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -250,7 +258,7 @@ def main():
                         raise ValueError(f'Frozen ZIP audio changed: {record["question_id"]}/{record["condition"]}')
             else:
                 registry = registry or Registry(args.audio_root)
-                plan = prepare(name, args.data_root/name/'data_config.json', registry, folder)
+                plan = prepare(name, args.cohorts, registry, folder)
             plans.append((plan, folder))
         if args.mode == 'prepare':
             return

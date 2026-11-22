@@ -18,7 +18,7 @@ def collect(root):
         paths = [('DIFFA original happy', root/'diffa-happy-winners'/task/'strength-1/summary.json')]
         base = root/'diffa-gsm-shared-three-zeroshot-hashes' if task == 'gsm8k' else root/'diffa-shared-three-tasks'/task
         paths += [(f'DIFFA shared {e}', base/e/'primary/summary.json') for e in ('angry', 'happy')]
-        paths += [('Phi ZIP L11 -1', root/'phi4-jenny-zip-fresh-L11-minus1'/task/'summary.json')]
+        paths += [('Phi ZIP L11 -1', root/'phi4-diffa-cohorts-L11-minus1'/task/'summary.json')]
         for workflow, path in paths:
             if not path.exists():
                 result.append(dict(workflow=workflow, dataset=task, status='No saved summary'))

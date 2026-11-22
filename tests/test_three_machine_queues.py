@@ -16,25 +16,38 @@ from pack_three_machine_handoff import select_handoff, worker_matches
 
 
 class ThreeMachineQueues(unittest.TestCase):
-    def test_phi_uses_new_zip_hashes_for_same_questions(self):
+    def test_phi_uses_exact_exported_diffa_ids_and_settings(self):
+        from export_diffa_cohorts import PROTOCOL as COHORT_PROTOCOL, make_cohort
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            pairs = [dict(question_id=q, **{s:dict(question_id=q, audio_sha256='old-'+q+s)
-                                          for s in ('neutral','angry')}) for q in ('train','test')]
-            old = dict(task='svamp', seed=42, collection=pairs[:1], test=pairs[1:],
-                       bank={q:dict(question='Question '+q, answer='2') for q in ('train','test')}, prompt='#### prompt')
-            data = root/'data.json'
-            data.write_text(json.dumps(old))
+            ids = ['diffa-train-b','diffa-train-a','diffa-test']
+            def neutral(q):
+                return dict(question_id=q,audio_sha256='zip-'+q+'neutral')
+            plan = dict(name='svamp',seed=42,collection_ids=ids[:2],test_ids=ids[2:],
+                        pairs=[dict(question_id=q,neutral=neutral(q)) for q in ids[:2]],
+                        target=dict(records=[neutral(ids[2])],prompt='eval ####',max_new_tokens=512),
+                        collection_prompt='collection Final answer',max_new_tokens=1024)
+            bank = {q:dict(question='Question '+q,answer='2') for q in ids}
+            cohort = dict(make_cohort(plan,bank),source_plan_sha256='receipt')
+            data = root/'cohorts.json'
+            data.write_text(json.dumps(dict(protocol=COHORT_PROTOCOL,datasets=dict(svamp=cohort))))
             def choose(name,q,style,**kwargs):
-                self.assertEqual(kwargs,dict(question='Question '+q,answer='2'))
-                return dict(record=dict(question_id=q,voice='Jenny',audio_sha256='new-'+q+style))
-            registry = SimpleNamespace(choose=choose)
-            with patch.dict(phi.SPLITS,svamp=(1,1)):
-                plan=phi.prepare('svamp',data,registry,root)
-            self.assertEqual(plan['collection'][0]['neutral']['audio_sha256'],'new-trainneutral')
-            self.assertEqual(plan['test'][0]['angry']['audio_sha256'],'new-testangry')
-            self.assertEqual(len(plan['added_delivery_hashes']),4)
-            self.assertIn('no historical comparisons',plan['verification'])
+                self.assertEqual(kwargs,dict(question='Question '+q,answer='2',
+                                            expected='zip-'+q+'neutral' if style=='neutral' else None))
+                return dict(record=dict(question_id=q,voice='Jenny',audio_sha256='zip-'+q+style))
+            registry = SimpleNamespace(choose=choose,options={})
+            prepared=phi.prepare('svamp',data,registry,root)
+            self.assertEqual(prepared['collection_ids'],ids[:2])
+            self.assertEqual(prepared['test_ids'],ids[2:])
+            self.assertEqual(prepared['prompt'],'eval ####')
+            self.assertEqual(prepared['collection_prompt'],'collection Final answer')
+            self.assertEqual(prepared['max_new_tokens'],512)
+            self.assertEqual(prepared['collection_max_new_tokens'],1024)
+            with self.assertRaises(ValueError):
+                make_cohort(dict(plan,test_ids=ids[:1]),bank)
+            data.write_text(json.dumps(dict(task='svamp',collection=[],test=[])))
+            with self.assertRaisesRegex(ValueError,'exported original DIFFA'):
+                phi.prepare('svamp',data,registry,root)
 
     def test_handoff_excludes_original_vectors_and_partial_aggregates(self):
         root=Path('/workspace/gsm8k-vocal-delivery')
@@ -90,7 +103,8 @@ class ThreeMachineQueues(unittest.TestCase):
             def record(q, style):
                 return dict(question_id=q, style=style, voice='Jenny', audio_sha256=q+style, reference_answer='2')
             pairs = [dict(question_id=q, neutral=record(q,'neutral'), angry=record(q,'angry')) for q in ('train','test')]
-            plan = dict(task='svamp', prompt='prompt', seed=42, recipe=dict(model='phi',revision='pinned'),
+            plan = dict(task='svamp', prompt='eval prompt', collection_prompt='collection prompt',
+                        collection_max_new_tokens=512, seed=42, recipe=dict(model='phi',revision='pinned'),
                         collection=pairs[:1], test=pairs[1:], max_new_tokens=1024,
                         deliveries=[dict(p[style], condition=style, split='collection' if p['question_id']=='train' else 'test')
                                     for p in pairs for style in ('neutral','angry')])
@@ -103,7 +117,8 @@ class ThreeMachineQueues(unittest.TestCase):
                     means = torch.zeros(1,2,3072)
                     means[0,0] = 1. if row['style']=='angry' else 0.
                     trace.update(means=means, hook_forwards=3)
-                self.assertEqual(kwargs['max_new_tokens'],1024)
+                self.assertEqual(kwargs['max_new_tokens'],512 if kwargs.get('collect') else 1024)
+                self.assertEqual(prompt,'collection prompt' if kwargs.get('collect') else 'eval prompt')
                 return trace
             def score(*args, **kwargs):
                 events.append('report')
