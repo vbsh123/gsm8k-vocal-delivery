@@ -59,7 +59,7 @@ python3 report_three_machine_queues.py
 
 ## Phi machine
 
-Fresh ZIP experiment: angry-minus-neutral, L11 answer, strength -1.
+Fresh ZIP experiment: angry-minus-neutral at L0 audio, L11 answer and L30 answer; each steered separately at strength -1.
 Phi must use the EXACT original DIFFA collection AND evaluation IDs across all
 six datasets, including GSM425/718. Do not use the old Phi400/869 cohort.
 DIFFA's frozen configs supply the ordered IDs, exact neutral audio hashes,
@@ -87,13 +87,20 @@ nohup bash run_phi4_zip_recheck.sh > outputs/phi4-zip-recheck.log 2>&1 </dev/nul
 Preparation prints the exact DIFFA collection/evaluation counts and refuses a
 missing or incompatible cohort file. No old Phi split, audio, vectors or answers
 are reused. First collect fresh neutral/angry vectors and evaluate deliveries
-on both collection and evaluation IDs across all datasets. Then steer the exact
-held-out IDs with L11 answer -1. Collection and evaluation each preserve DIFFA's
+on both collection and evaluation IDs across all datasets. All three directions
+are captured during the SAME neutral/angry generation forwards. Once all six
+datasets finish collection and delivery evaluation, release the collection model
+and launch THREE concurrent steering workers. One worker runs L0 audio -1 across
+all datasets, one L11 answer -1, and one L30 answer -1. Each uses the exact held-out IDs. Collection and evaluation each preserve DIFFA's
 respective prompts and budgets. Reports include paired scores and token lengths.
 
-Results: `outputs/phi4-diffa-cohorts-L11-minus1`. The earlier attempted runs stay
+Results: `outputs/phi4-diffa-cohorts-three-directions`. Per-direction progress
+is in `steering-L0-audio.log`, `steering-L11-answer.log`, and
+`steering-L30-answer.log` inside that directory. Per-task summaries are
+`summary-L0-audio.json`, `summary-L11-answer.json`, `summary-L30-answer.json`;
+unsteered delivery summaries are `delivery-summary.json`. The earlier attempted runs stay
 separate and are not treated as matching-cohort comparisons. This remains
-exploratory work on previously inspected questions and selected L11.
+exploratory work on previously inspected questions and selected layers.
 
 ```bash
 bash run_phi4_zip_recheck.sh --mode summary

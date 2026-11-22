@@ -114,9 +114,16 @@ class ThreeMachineQueues(unittest.TestCase):
                 events.append('steer' if kwargs.get('target') is not None else 'delivery')
                 trace = dict(response='#### 2', response_tokens=3)
                 if kwargs.get('collect'):
-                    means = torch.zeros(1,2,3072)
-                    means[0,0] = 1. if row['style']=='angry' else 0.
+                    self.assertEqual(kwargs['capture_layers'],[0,11,30])
+                    means = torch.zeros(3,2,3072)
+                    if row['style']=='angry':
+                        means[0,1],means[1,0],means[2,0] = 2.,3.,5.
+                        means[0,0] = 99.  # Catch accidentally collecting L0 answer instead of audio.
                     trace.update(means=means, hook_forwards=3)
+                if kwargs.get('target') is not None:
+                    expected = {(0,'audio'):2.,(11,'answer'):3.,(30,'answer'):5.}[kwargs['target'],kwargs['group']]
+                    torch.testing.assert_close(kwargs['direction'],torch.full((3072,),expected))
+                    self.assertEqual(kwargs['strength'],-1.)
                 self.assertEqual(kwargs['max_new_tokens'],512 if kwargs.get('collect') else 1024)
                 self.assertEqual(prompt,'collection prompt' if kwargs.get('collect') else 'eval prompt')
                 return trace
@@ -133,11 +140,32 @@ class ThreeMachineQueues(unittest.TestCase):
                 events.clear()
                 phi.run_task(plan,root,None)
                 self.assertEqual(events,['report','report'])
+                for target in ('L0-audio','L30-answer'):
+                    phi.steer_task(plan,root,None,target)
+                    phi.steer_task(plan,root,None,target)
+                    self.assertEqual(len(phi.saved_rows(root/f'steering-{target}.jsonl',plan)),1)
             rows = [json.loads(s) for s in (root/'deliveries.jsonl').read_text().splitlines()]
             self.assertEqual(len(rows),4)
             self.assertEqual({r['question_id'] for r in rows},{'train','test'})
-            vector = torch.load(root/'style-vectors.pt',map_location='cpu',weights_only=True)['angry_minus_neutral']
-            torch.testing.assert_close(vector,torch.ones(3072))
+            state = torch.load(root/'style-vectors.pt',map_location='cpu',weights_only=True)
+            for key,value in zip(phi.TARGETS,(2.,3.,5.)):
+                torch.testing.assert_close(state['directions'][key],torch.full((3072,),value))
+
+    def test_three_workers_start_before_wait_and_cover_all_datasets(self):
+        with tempfile.TemporaryDirectory() as directory:
+            args=SimpleNamespace(output=Path(directory),datasets=['gsm8k','svamp'])
+            events=[]
+            def start(command,**kwargs):
+                target=command[command.index('--worker-target')+1]
+                self.assertEqual(command[command.index('--datasets')+1:],args.datasets)
+                events.append(('start',target))
+                def wait():
+                    events.append(('wait',target))
+                    return 0
+                return SimpleNamespace(wait=wait)
+            with patch.object(phi.subprocess,'Popen',side_effect=start):
+                phi.launch_workers(args)
+            self.assertEqual(events, [('start',k) for k in phi.TARGETS]+[('wait',k) for k in phi.TARGETS])
 
     def test_report_uses_numeric_primary_not_flexible_for_math(self):
         with tempfile.TemporaryDirectory() as directory:
