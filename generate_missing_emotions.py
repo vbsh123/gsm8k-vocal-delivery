@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import socket
 
 from check_sad_audio import PREFIXES, rows
 
@@ -54,7 +55,25 @@ def main():
     parser.add_argument('--datasets', nargs='+', choices=list(PREFIXES), default=list(PREFIXES))
     parser.add_argument('--styles', nargs='+', choices=['sad', 'happy'], default=['sad', 'happy'])
     parser.add_argument('--run', action='store_true', help='Make billable Azure synthesis requests.')
+    parser.add_argument('--diagnose', action='store_true', help='Show actual batch files and matching details; never synthesize.')
     args = parser.parse_args()
+    if args.diagnose:
+        print(f'Machine: {socket.gethostname()}\nWorking directory: {Path.cwd()}\nScan root: {args.root.resolve()}\nGenerated batches: {args.output.resolve()}', flush=True)
+        for name in args.datasets:
+            for style in args.styles:
+                folder = args.output / name / style
+                plan = folder / 'plan.jsonl'
+                if not plan.exists():
+                    print(f'{folder}: no plan.jsonl; WAV files={len(list(folder.glob("*.wav")))}', flush=True)
+                    continue
+                records = list(rows(plan))
+                present = [r for r in records if r.get('audio_path') and (folder / r['audio_path']).is_file()]
+                valid = [r for r in present if (folder / r['audio_path']).stat().st_size > 44]
+                print(f'{folder}: planned={len(records)}, files={len(present)}, files>44bytes={len(valid)}', flush=True)
+                if records:
+                    row = records[0]
+                    path = folder / row.get('audio_path', 'MISSING_AUDIO_PATH')
+                    print(f'  Sample: id={row.get("question_id")!r}, provider={row.get("provider")!r}, voice={row.get("voice")!r}, style={row.get("style")!r}\n  File: {path.resolve()} exists={path.is_file()}', flush=True)
     bank, available = inventory(args.root)
     jobs = []
     total_chars = 0
@@ -65,6 +84,11 @@ def main():
             missing = [row for q, row in sorted(bank[name].items())
                        if (q, style, row['question']) not in available]
             print(f'{name:12} {style:6}: {len(missing)}/{len(bank[name])} missing', flush=True)
+            if args.diagnose and missing:
+                first = missing[0]
+                variants = [(s, text == first['question']) for q, s, text in available
+                            if q == first['question_id']]
+                print(f'  First missing: {first["question_id"]}; available (style, same text): {variants}', flush=True)
             folder = args.output / name / style
             frozen = folder / 'questions.jsonl'
             questions = list(rows(frozen)) if frozen.exists() else missing
@@ -79,7 +103,7 @@ def main():
             total_chars += sum(len(r['question']) for r in missing)
             jobs.append((folder, questions, style))
     print(f'Missing question text: {total_chars:,} characters. No model inference or classification.', flush=True)
-    if not args.run:
+    if not args.run or args.diagnose:
         print('Preview only. Add --run to generate missing audio using Azure credentials.')
         return
     if jobs and any(not os.environ.get(k) for k in ('AZURE_SPEECH_KEY', 'AZURE_SPEECH_REGION')):
