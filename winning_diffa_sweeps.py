@@ -59,18 +59,20 @@ def vector_path(folder, config, override=None):
     return Path(override or config.get('vector') or folder/'style-vectors.pt').absolute()
 
 
-def read_vector(path, emotion='angry'):
+def read_vector(path, emotion='angry', layer=31, group='answer'):
     import torch
     state = torch.load(path, map_location='cpu', weights_only=True)
     if state.get('mode', 'fixed') != 'fixed' or state.get('method', 'mean') != 'mean':
         raise ValueError(f'Expected the original fixed DIFFA mean vector: {path}')
     try:
-        count = int(state['pair_counts'][emotion][31])
-        vector = state['pair_mean_sums'][emotion][31, state['groups'].index('answer')].float()/count
+        if layer < 0:
+            raise IndexError('Negative layer index.')
+        count = int(state['pair_counts'][emotion][layer])
+        vector = state['pair_mean_sums'][emotion][layer, state['groups'].index(group)].float()/count
     except (KeyError, IndexError, ValueError, ZeroDivisionError) as error:
-        raise ValueError(f'Missing DIFFA L31 answer mean: {path}') from error
+        raise ValueError(f'Missing DIFFA L{layer} {group} mean: {path}') from error
     if count <= 0 or vector.ndim != 1 or not torch.isfinite(vector).all():
-        raise ValueError(f'Invalid L31 answer vector: {path}')
+        raise ValueError(f'Invalid L{layer} {group} vector: {path}')
     return vector, dict(extraction_ids=list(state.get('extraction_question_ids', [])),
         collection_prompt=state.get('prompt'), collection_tokens=state.get('max_new_tokens'),
         pairs=count, width=vector.numel())
@@ -151,8 +153,8 @@ def load_dataset(name, entry):
         reuse_runs=[str(Path(p).absolute()) for p in entry.get('reuse_runs', [])])
 
 
-def condition(strength):
-    return 'neutral' if strength == 0 else f'L31-answer-a{strength:g}'
+def condition(strength, layer=31, group='answer'):
+    return 'neutral' if strength == 0 else f'L{layer}-{group}-a{strength:g}'
 
 
 def jobs_for(datasets, kind):
@@ -291,9 +293,10 @@ def generate_job(plan, folder, model, tokenizer, features):
     import torch
     from extract_vectors import gen_chunked
     target, source = plan['target'], plan['source']
+    layer, group = plan.get('layer',31), plan.get('group','answer')
     if digest(source['vector']) != source['vector_sha256']:
         raise ValueError('Source vector changed after queue preparation.')
-    vector, _ = read_vector(source['vector'], source.get('emotion','angry'))
+    vector, _ = read_vector(source['vector'], source.get('emotion','angry'), layer=layer, group=group)
     if vector.numel() != model.llm_model.get_input_embeddings().weight.shape[1]:
         raise ValueError('Source direction does not match the DIFFA hidden dimension.')
     vector = vector.to(device='cuda', dtype=torch.bfloat16)
@@ -301,20 +304,20 @@ def generate_job(plan, folder, model, tokenizer, features):
     path = folder/'results.jsonl'
     done = {(r['question_id'], r['voice'], r['condition']) for r in read_rows(path, repair=True)}
     pending = [(r, a) for a in plan['strengths'] for r in target['records']
-               if (r['question_id'], r['voice'], condition(a)) not in done]
+               if (r['question_id'], r['voice'], condition(a,layer,group)) not in done]
     with path.open('a') as stream:
         for i, (record, a) in enumerate(pending, 1):
             if digest(record['audio_file']) != record['audio_sha256']:
                 raise ValueError('Target audio changed during the queue.')
             audio, sr = sf.read(record['audio_file'], dtype='float32')
             seed()
-            interventions = [dict(layer=31, group='answer', strength=a)] if a else []
+            interventions = [dict(layer=layer, group=group, strength=a)] if a else []
             print(f'[{i}/{len(pending)}] {source["name"]} -> {target["name"]}, x{a:g}, {record["question_id"]}', flush=True)
             started = time.monotonic()
-            with install_interventions(layers, {(31, 'answer'): vector}, interventions, {}, target['max_new_tokens']) as states:
+            with install_interventions(layers, {(layer, group): vector}, interventions, {}, target['max_new_tokens']) as states:
                 response, encoding = gen_chunked(audio, sr, model, tokenizer, features,
                     target['prompt'], target['max_new_tokens'], 30)
-            saved = dict(record, response=response, condition=condition(a), strength=a,
+            saved = dict(record, response=response, condition=condition(a,layer,group), strength=a,
                 prompt=target['prompt'], seed=42, max_new_tokens=target['max_new_tokens'],
                 decoder='fast_dllm', steps=128, block_length=32, temperature=0.,
                 source_dataset=source['name'], target_dataset=target['name'],
