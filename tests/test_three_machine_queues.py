@@ -167,6 +167,25 @@ class ThreeMachineQueues(unittest.TestCase):
                 phi.launch_workers(args)
             self.assertEqual(events, [('start',k) for k in phi.TARGETS]+[('wait',k) for k in phi.TARGETS])
 
+    def test_phi_report_keeps_direction_names_separate_from_scoring_bank(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            plan=dict(task='gsm8k',bank={'test':dict(question='Question',answer='2')},
+                      collection=[],test=[dict(question_id='test')],deliveries=[{},{}],added_delivery_hashes=[])
+            def saved(path,unused):
+                conditions=('neutral','angry') if path.name=='deliveries.jsonl' else ('steered',)
+                return {(c,'test'):dict(question_id='test',condition=c,response='#### 2',response_tokens=3) for c in conditions}
+            def score(job,rows,folder):
+                self.assertEqual(job['target']['bank'],plan['bank'])
+                return [dict(r,metrics={'flexible-numeric':True}) for r in rows],{}
+            with patch.object(phi,'saved_rows',side_effect=saved),patch.object(happy.winners,'score_rows',side_effect=score):
+                for target in (None,*phi.TARGETS):
+                    phi.report(plan,root,target)
+                    filename=f'summary-{target}.json' if target else 'delivery-summary.json'
+                    summary=json.loads((root/filename).read_text())
+                    self.assertEqual(summary['steering_target'],target)
+                    self.assertTrue((root/(f'rescored-{target}.jsonl' if target else 'delivery-rescored.jsonl')).exists())
+
     def test_report_uses_numeric_primary_not_flexible_for_math(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

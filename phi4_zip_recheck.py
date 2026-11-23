@@ -116,9 +116,9 @@ def report(plan, folder, target=None):
     name = plan['task']
     deliveries = list(saved_rows(folder/'deliveries.jsonl', plan).values())
     steering = list(saved_rows(folder/f'steering-{target}.jsonl', plan).values()) if target else []
-    target = dict(task=name, name=name, bank=plan['bank'])
+    scoring_target = dict(task=name, name=name, bank=plan['bank'])
     def score(records):
-        scored, provenance = winners.score_rows(dict(target=target), records, folder)
+        scored, provenance = winners.score_rows(dict(target=scoring_target), records, folder)
         if name.startswith('bbh') and records:
             from score_bbh_harness import HarnessScorer
             from evaluate_bbh_audio_models import strict_format_bits
