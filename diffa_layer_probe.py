@@ -29,10 +29,23 @@ def sha(data):
     return hashlib.sha256(data).hexdigest()
 
 
-def package(source, destination, repo, layer=28, strength=1.):
+def original_job(source):
+    path = source/'strength-1-unfitted/run_config.json'
+    if path.exists():
+        return json.loads(path.read_text()), vanilla.task.winners.digest(path)
+    # Both vectors are finalized before L31 steering starts; agreed need not wait for random.
+    collection = json.loads((source/'run_config.json').read_text())
+    root = source.parent.parent
+    plans = {e: {r: json.loads((root/e/r/'run_config.json').read_text()) for r in vanilla.REGIMES} for e in vanilla.EMOTIONS}
+    scoped = vanilla.delivery_scope(plans, root)
+    job = vanilla.steering_job(collection, source, scoped[collection['emotion']][collection['regime']])
+    return job, sha(encoded(job))
+
+
+def package(source, destination, repo, layer=28, strength=1., layers=None, questions=None):
     """Use the SAME target questions, raw vector and baseline answers as L31."""
     winners = vanilla.task.winners
-    original = json.loads((source/'strength-1-unfitted/run_config.json').read_text())
+    original, parent_hash = original_job(source)
     if original['target']['prompt'] != vanilla.PROMPT:
         raise ValueError('Expected the current vanilla GSM run, with no reasoning instruction.')
     emotion = original['emotion']
@@ -40,13 +53,24 @@ def package(source, destination, repo, layer=28, strength=1.):
     vector_bytes = vector_path.read_bytes()
     if sha(vector_bytes) != original['source']['vector_sha256']:
         raise ValueError('Vector differs from the running L31 experiment.')
-    _, info = winners.read_vector(vector_path, emotion, layer=layer, group='answer')
+    for selected_layer in layers or [layer]:
+        _, info = winners.read_vector(vector_path, emotion, layer=selected_layer, group='answer')
     if set(info['extraction_ids']) & {r['question_id'] for r in original['target']['records']}:
         raise ValueError('Source fitting IDs overlap target questions.')
     relative = destination.relative_to(repo)
     job = deepcopy(original)
     job.update(protocol='diffa-vanilla-existing-vector-layer-probe-v1', layer=layer, group='answer', strengths=[0., strength],
-               parent_l31_config_sha256=winners.digest(source/'strength-1-unfitted/run_config.json'))
+               parent_l31_config_sha256=parent_hash)
+    if questions is not None:
+        population = sorted(job['target']['records'], key=lambda r: (r['question_id'], r['voice']))
+        if not 1 <= questions <= len(population):
+            raise ValueError(f'Need1..{len(population)} test questions.')
+        sample = random.Random(42).sample(population, questions)
+        keep = {(r['question_id'], r['voice']) for r in sample}
+        job['target']['records'] = [r for r in job['target']['records'] if (r['question_id'], r['voice']) in keep]
+        job['target']['bank'] = {r['question_id']: job['target']['bank'][r['question_id']] for r in job['target']['records']}
+        job['subset'] = dict(seed=42, population=len(population), questions=questions,
+                             rule='Uniform sample without replacement, independent of correctness; identical across layers.')
     for key in ('source', 'target'):
         job[key]['vector'] = str(destination/'style-vectors.pt')
         job[key]['vector_sha256'] = sha(vector_bytes)
@@ -72,6 +96,8 @@ def package(source, destination, repo, layer=28, strength=1.):
     manifest = dict(repo=str(repo), folder=str(relative), models=revisions,
                     packages={p: version(p) for p in PACKAGES}, files={n: sha(data) for n, data in files.items()},
                     note='Existing DIFFA vector and exact L31 target/baseline cohort. No Phi weights or vectors; no recollection; no audio included.')
+    if layers is not None:
+        manifest['layers'] = list(layers)
     destination.parent.mkdir(parents=True, exist_ok=True)
     archive = Path(str(destination)+'.zip')
     if archive.exists():
@@ -90,7 +116,8 @@ def package(source, destination, repo, layer=28, strength=1.):
         temporary.unlink(missing_ok=True)
     archive.with_suffix('.zip.sha256').write_text(f'{sha(archive.read_bytes())}  {archive.name}\n')
     print(f'DOWNLOAD THIS SMALL FILE: {archive}\nSIZE: {archive.stat().st_size/2**20:.2f} MiB\n'
-          f'{emotion}/{original["regime"]}, L{layer} answer x{strength:g}, {len(expected)} identical held-out questions. No audio/model weights.', flush=True)
+          f'{emotion}/{original["regime"]}, layers={layers or [layer]} answer x{strength:g}, '
+          f'{len(expected)} identical held-out questions per layer. No audio/model weights.', flush=True)
     return archive
 
 
@@ -160,11 +187,32 @@ def validate(job, folder, check_audio=False):
     return done
 
 
+def probe_jobs(folder, job, receipt):
+    layers = receipt.get('layers')
+    if layers is None:
+        return [(folder, job)]
+    baseline = ''.join(json.dumps(row)+'\n' for row in read_rows(folder/'results.jsonl') if row['strength'] == 0.)
+    result = []
+    for layer in layers:
+        selected = dict(job, layer=layer)
+        child = folder/f'L{layer}'
+        child.mkdir(exist_ok=True)
+        vanilla.task.winners.freeze(child/'run_config.json', selected)
+        path = child/'results.jsonl'
+        if not path.exists():
+            vanilla.task.winners.atomic_text(path, baseline)
+        validate(selected, child)
+        result.append((child, selected))
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mode', choices=('pack', 'run', 'summary'), default='run')
     parser.add_argument('--source', type=Path, default=Path('outputs/diffa-gsm-vanilla/angry/random'))
     parser.add_argument('--layer', type=int, default=28)
+    parser.add_argument('--layers', type=int, nargs='+', help='Pack a sequential sweep using one shared vector file and question subset.')
+    parser.add_argument('--questions', type=int, help='Seed42 random subset of the existing unfitted test questions.')
     parser.add_argument('--strength', type=float, default=1.)
     parser.add_argument('--bundle', type=Path)
     parser.add_argument('--output', type=Path)
@@ -172,34 +220,51 @@ def main():
     args = parser.parse_args()
     if args.layer not in range(32) or args.strength == 0. or args.replay_count < 0:
         parser.error('Layer must be0..31, strength nonzero, replay count nonnegative.')
+    if args.layers:
+        args.layers = sorted(set(args.layers))
+        if any(layer not in range(32) for layer in args.layers):
+            parser.error('Layers must be0..31.')
+    if args.questions is not None and args.questions < 1:
+        parser.error('--questions must be positive.')
+    if (args.layers or args.questions is not None) and args.mode != 'pack':
+        parser.error('--layers and --questions belong to --mode pack. Run/summary use the settings inside the bundle.')
     repo = Path(__file__).resolve().parent
-    name = f'gsm8k-{args.source.parent.name}-{args.source.name}-L{args.layer}-answer-a{args.strength:g}'
+    layer_name = f'L{args.layer}' if not args.layers else f'L{min(args.layers)}-{max(args.layers)}'
+    name = f'gsm8k-{args.source.parent.name}-{args.source.name}-{layer_name}-answer-a{args.strength:g}'
+    if args.questions is not None:
+        name += f'-n{args.questions}'
     folder = (args.output or Path('outputs/diffa-layer-probes')/name).resolve()
     if args.mode == 'pack':
-        package(args.source.resolve(), folder, repo, args.layer, args.strength)
+        package(args.source.resolve(), folder, repo, args.layers[0] if args.layers else args.layer, args.strength,
+                layers=args.layers, questions=args.questions)
         return
     if args.bundle:
         folder = unpack(args.bundle, repo)
     job = json.loads((folder/'run_config.json').read_text())
+    receipt = json.loads((folder/'bundle-receipt.json').read_text())
+    cases = probe_jobs(folder, job, receipt)
     if args.mode == 'summary':
-        validate(job, folder)
-        print(f'DIFFA {job["emotion"]}/{job["regime"]}: L{job["layer"]} {job["group"]}', flush=True)
-        vanilla.task.report_steering(folder)
+        for child, selected in cases:
+            validate(selected, child)
+            print(f'DIFFA {selected["emotion"]}/{selected["regime"]}: L{selected["layer"]} {selected["group"]}', flush=True)
+            vanilla.task.report_steering(child)
         return
     with (folder/'run.lock').open('a') as own, Path('outputs/jenny-task-vectors.lock').open('a') as gpu:
         fcntl.flock(own, fcntl.LOCK_EX | fcntl.LOCK_NB)
         done = validate(job, folder, check_audio=True)
-        pending = len(job['target']['records'])*len(job['strengths'])-len(done)
+        pending = sum(len(selected['target']['records'])*len(selected['strengths'])-len(validate(selected, child))
+                      for child, selected in cases)
         if not pending:
-            vanilla.task.report_steering(folder)
+            for child, selected in cases:
+                vanilla.task.report_steering(child)
             return
-        receipt = json.loads((folder/'bundle-receipt.json').read_text())
         for package_name in PACKAGES:
             if version(package_name) != receipt['packages'][package_name]:
                 raise ValueError(f'{package_name} differs from source: {version(package_name)} vs {receipt["packages"][package_name]}. Use the source DIFFA environment.')
         if model_revisions() != receipt['models']:
             raise ValueError('Model revision receipts differ from source.')
-        print(f'DIFFA model (hosted on this machine): L{job["layer"]} answer; {pending} generations pending. No recollection.', flush=True)
+        print(f'DIFFA {job["emotion"]}/{job["regime"]}: layers={[selected["layer"] for _,selected in cases]}; '
+              f'{len(job["target"]["records"])} questions each; {pending} generations pending. One model load; no recollection.', flush=True)
         fcntl.flock(gpu, fcntl.LOCK_EX)
         while subprocess.check_output(['nvidia-smi', '--query-compute-apps=pid', '--format=csv,noheader'], text=True).strip():
             time.sleep(30)
@@ -222,9 +287,12 @@ def main():
         checks = json.loads(replay.read_text())
         if any(not row['identical'] for row in checks):
             raise ValueError('Neutral replay differs on this machine. Inspect baseline-replay.json before comparing layers; no steering started.')
-        vanilla.task.winners.generate_job(job, folder, model, tokenizer, features)
-        validate(job, folder)
-        vanilla.task.report_steering(folder, tokenizer)
+        for child, selected in cases:
+            print(f'STAGE: {selected["emotion"]}/{selected["regime"]} L{selected["layer"]} answer; '
+                  f'{len(selected["target"]["records"])} identical target questions.', flush=True)
+            vanilla.task.winners.generate_job(selected, child, model, tokenizer, features)
+            validate(selected, child)
+            vanilla.task.report_steering(child, tokenizer)
 
 
 if __name__ == '__main__':

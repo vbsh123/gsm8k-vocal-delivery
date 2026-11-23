@@ -1,5 +1,40 @@
 # DIFFA L28 probe on the machine hosting Phi
 
+The current requested sweep is **angry/agreed only, layers25–30, x+1, the same
+200 questions at every layer**. The six tests run sequentially with one model
+load (1200 steered answers total). Questions are sampled with seed42 from the
+894 questions outside the agreed vector's fitting IDs, without using accuracy.
+
+On the original DIFFA machine:
+
+```bash
+git pull --ff-only
+bash run_diffa_layer_probe.sh --mode pack --source outputs/diffa-gsm-vanilla/angry/agreed --layers 25 26 27 28 29 30 --questions 200
+```
+
+Transfer the printed small ZIP to `/workspace/` on the Phi machine:
+`gsm8k-angry-agreed-L25-30-answer-a1-n200.zip`.
+
+```bash
+git pull --ff-only
+nohup bash run_diffa_layer_probe.sh --bundle /workspace/gsm8k-angry-agreed-L25-30-answer-a1-n200.zip >> outputs/diffa-angry-agreed-L25-30-n200.log 2>&1 </dev/null &
+```
+
+Check all six layers:
+
+```bash
+bash run_diffa_layer_probe.sh --mode summary --bundle /workspace/gsm8k-angry-agreed-L25-30-answer-a1-n200.zip
+```
+
+The agreed bundle can be packed as soon as its vector is collected, even if the
+source machine has not yet started L31 agreed steering. Every layer uses a saved
+direction from that same vector file. No activation recollection is performed.
+Layer-specific answers are kept in `L25` through `L30` subfolders; restarting
+preserves completed answers. Use the new200-question sweep bundle, since runtime
+settings come from the bundle rather than command-line overrides.
+
+## Single-layer option
+
 This runs DIFFA, with the already collected vanilla angry/random direction.
 It does not apply DIFFA vectors to Phi. It reuses exactly the same894 neutral
 test questions, source baselines, prompt,512-token budget and x+1 strength as
