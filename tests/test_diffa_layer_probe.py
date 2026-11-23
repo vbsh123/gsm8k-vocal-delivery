@@ -226,6 +226,35 @@ class LayerProbeTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'exact baseline'):
                 probe.report_natural_benefit(job, baselines, run, output)
 
+    def test_fork_layers_preserves_exact_questions_vector_and_baseline_and_is_idempotent(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            reference, _ = self.fixture(root, regime='agreed')
+            original_bytes = reference.read_bytes()
+            forked = []
+            with redirect_stdout(io.StringIO()):
+                for layers in (list(range(15, 26)), list(range(5, 16))):
+                    archive = probe.fork_layers(reference, root, layers)
+                    self.assertEqual(archive, probe.fork_layers(reference, root, layers))
+                    folder = probe.unpack(archive, root)
+                    job = json.loads((folder/'run_config.json').read_text())
+                    receipt = json.loads((folder/'bundle-receipt.json').read_text())
+                    cases = probe.probe_jobs(folder, job, receipt)
+                    self.assertEqual([j['layer'] for _, j in cases], layers)
+                    self.assertEqual(job['emotion'], 'angry')
+                    self.assertEqual(job['regime'], 'agreed')
+                    self.assertEqual(job['strengths'], [0., 1.])
+                    self.assertEqual(len(cases), 11)
+                    self.assertTrue(all(len(j['target']['records']) == 2 for _, j in cases))
+                    self.assertTrue(all(len(probe.validate(j, child)) == 2 for child, j in cases))
+                    self.assertEqual(probe.fork_layers(archive, root, layers), archive)
+                    forked.append((folder, job))
+            left, right = forked
+            self.assertEqual(left[1]['target']['records'], right[1]['target']['records'])
+            self.assertEqual(left[1]['source']['vector_sha256'], right[1]['source']['vector_sha256'])
+            self.assertEqual((left[0]/'results.jsonl').read_bytes(), (right[0]/'results.jsonl').read_bytes())
+            self.assertEqual(reference.read_bytes(), original_bytes)
+
 
 if __name__ == '__main__':
     unittest.main()

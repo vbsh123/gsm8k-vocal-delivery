@@ -30,8 +30,35 @@ The agreed bundle can be packed as soon as its vector is collected, even if the
 source machine has not yet started L31 agreed steering. Every layer uses a saved
 direction from that same vector file. No activation recollection is performed.
 Layer-specific answers are kept in `L25` through `L30` subfolders; restarting
-preserves completed answers. Use the new200-question sweep bundle, since runtime
-settings come from the bundle rather than command-line overrides.
+preserves completed answers. Runtime follows the bundle by default. Explicit
+`--layers` creates a separate layer plan while preserving its exact questions,
+vector and baselines. It never resamples or modifies the original sweep.
+
+## Continue the same200 questions on other layers and machines
+
+Original DIFFA machine, angry/agreed x+1 on layers15–25 inclusive:
+
+```bash
+git pull --ff-only
+nohup bash run_diffa_layer_probe.sh --bundle outputs/diffa-layer-probes/gsm8k-angry-agreed-L25-30-answer-a1-n200.zip --layers 15 16 17 18 19 20 21 22 23 24 25 >> outputs/diffa-angry-agreed-L15-25-n200.log 2>&1 </dev/null &
+```
+
+Copy that SAME existing25–30 ZIP to `/workspace/` on the new DIFFA machine.
+Then run layers5–15 inclusive there:
+
+```bash
+git pull --ff-only
+nohup bash run_diffa_layer_probe.sh --bundle /workspace/gsm8k-angry-agreed-L25-30-answer-a1-n200.zip --layers 5 6 7 8 9 10 11 12 13 14 15 >> outputs/diffa-angry-agreed-L5-15-n200.log 2>&1 </dev/null &
+```
+
+Each machine runs11 layers sequentially with one model load, waiting behind
+existing GPU work. The existing original425-question agreed vector is used on
+both; the new machine's other vectors are not substituted. The repeated L15
+can be compared across machines, and L25 overlaps the Phi-hosted sweep.
+
+For scores, use the same bundle/layer arguments with `--mode summary` and without
+nohup or log redirection. Derived sweep bundles and result folders include
+`L15-25` or `L5-15`; repeated launches reuse them and resume saved answers.
 
 To check how much **natural angry audio** helps on those exact200 questions,
 run this on the original DIFFA machine (where the saved angry answers live):

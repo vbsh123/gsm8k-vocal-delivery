@@ -4,6 +4,7 @@ from copy import deepcopy
 import fcntl
 import hashlib
 from importlib.metadata import version
+import io
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -156,6 +157,75 @@ def unpack(archive, repo):
     return folder
 
 
+def fork_layers(archive, repo, layers, destination=None):
+    """Change only the layers, preserving the exact bundle cohort/vector/baselines."""
+    winners = vanilla.task.winners
+    with zipfile.ZipFile(archive) as stream:
+        reference = json.loads(stream.read(MARKER))
+        if reference['repo'] != str(repo):
+            raise ValueError('Reference bundle repository path differs from this machine.')
+        prefix = reference['folder']
+        source = {}
+        for filename in ('run_config.json', 'style-vectors.pt', 'results.jsonl'):
+            member = prefix+'/'+filename
+            data = stream.read(member)
+            if sha(data) != reference['files'][member]:
+                raise ValueError(f'Corrupt reference bundle file: {member}')
+            source[filename] = data
+    job = json.loads(source['run_config.json'])
+    if job['emotion'] not in vanilla.EMOTIONS or job['regime'] not in vanilla.REGIMES:
+        raise ValueError('Unknown source emotion/regime.')
+    if not layers or any(not isinstance(layer, int) or layer not in range(32) for layer in layers):
+        raise ValueError('Need one or more layers0..31.')
+    layers = sorted(set(layers))
+    if destination is None and reference.get('layers') == layers:
+        print(f'Reusing existing bundle with layers={layers}: {archive}', flush=True)
+        return Path(archive)
+    for layer in layers:
+        _, info = winners.read_vector(io.BytesIO(source['style-vectors.pt']), job['emotion'], layer=layer, group=job['group'])
+    if set(info['extraction_ids']) & {r['question_id'] for r in job['target']['records']}:
+        raise ValueError('Reference includes fitting questions.')
+    count = len(job['target']['records'])
+    strengths = [a for a in job['strengths'] if a != 0.]
+    if len(strengths) != 1:
+        raise ValueError('Reference must contain one steering strength.')
+    name = f'gsm8k-{job["emotion"]}-{job["regime"]}-L{min(layers)}-{max(layers)}-{job["group"]}-a{strengths[0]:g}-n{count}'
+    destination = destination or repo/'outputs/diffa-layer-probes'/name
+    relative = destination.relative_to(repo)
+    job = deepcopy(job)
+    job.update(layer=layers[0], reference_bundle_sha256=sha(Path(archive).read_bytes()))
+    for key in ('source', 'target'):
+        job[key]['vector'] = str(destination/'style-vectors.pt')
+    files = {str(relative/'run_config.json'): encoded(job), str(relative/'style-vectors.pt'): source['style-vectors.pt'],
+             str(relative/'results.jsonl'): source['results.jsonl'],
+             'outputs/diffa-model-revisions.json': encoded(dict(models=reference['models']))}
+    manifest = dict(reference, folder=str(relative), layers=layers, files={n: sha(data) for n, data in files.items()},
+                    reference_bundle_sha256=sha(Path(archive).read_bytes()),
+                    note='Exact existing vector, question IDs and baseline responses preserved; only the tested layers change. No resampling.')
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    output = Path(str(destination)+'.zip')
+    if output.exists():
+        with zipfile.ZipFile(output) as stream:
+            if json.loads(stream.read(MARKER)) != manifest or any(sha(stream.read(n)) != sha(data) for n, data in files.items()):
+                raise ValueError(f'Existing layer-sweep bundle differs: {output}')
+    else:
+        temporary = output.with_suffix('.zip.tmp')
+        try:
+            with zipfile.ZipFile(temporary, 'x', compression=zipfile.ZIP_DEFLATED, compresslevel=1) as stream:
+                for member, data in files.items():
+                    stream.writestr(member, data)
+                stream.writestr(MARKER, encoded(manifest))
+            with zipfile.ZipFile(temporary) as stream:
+                if stream.testzip():
+                    raise ValueError('Layer bundle ZIP verification failed.')
+            temporary.rename(output)
+        finally:
+            temporary.unlink(missing_ok=True)
+    print(f'Layer sweep: {job["emotion"]}/{job["regime"]}, layers={layers}, x{strengths[0]:g}, '
+          f'EXACT SAME {count} questions. Bundle: {output}', flush=True)
+    return output
+
+
 def validate(job, folder, check_audio=False):
     winners = vanilla.task.winners
     if winners.digest(job['source']['vector']) != job['source']['vector_sha256']:
@@ -287,7 +357,7 @@ def main():
     parser.add_argument('--mode', choices=('pack', 'run', 'summary', 'deliveries'), default='run')
     parser.add_argument('--source', type=Path, default=Path('outputs/diffa-gsm-vanilla/angry/random'))
     parser.add_argument('--layer', type=int, default=28)
-    parser.add_argument('--layers', type=int, nargs='+', help='Pack a sequential sweep using one shared vector file and question subset.')
+    parser.add_argument('--layers', type=int, nargs='+', help='Pack a sweep, or select new layers with --bundle while preserving its exact questions.')
     parser.add_argument('--questions', type=int, help='Seed42 random subset of the existing unfitted test questions.')
     parser.add_argument('--strength', type=float, default=1.)
     parser.add_argument('--bundle', type=Path)
@@ -306,8 +376,10 @@ def main():
             parser.error('Layers must be0..31.')
     if args.questions is not None and args.questions < 1:
         parser.error('--questions must be positive.')
-    if (args.layers or args.questions is not None) and args.mode != 'pack':
-        parser.error('--layers and --questions belong to --mode pack. Run/summary use the settings inside the bundle.')
+    if args.questions is not None and args.mode != 'pack':
+        parser.error('--questions belongs to --mode pack. Run/summary preserve the existing bundle questions.')
+    if args.layers and args.mode != 'pack' and (not args.bundle or args.mode not in ('run', 'summary')):
+        parser.error('Use --layers with --mode pack, or with --bundle in run/summary to reuse exactly its questions.')
     repo = Path(__file__).resolve().parent
     layer_name = f'L{args.layer}' if not args.layers else f'L{min(args.layers)}-{max(args.layers)}'
     name = f'gsm8k-{args.source.parent.name}-{args.source.name}-{layer_name}-answer-a{args.strength:g}'
@@ -334,6 +406,9 @@ def main():
             repo/'outputs/diffa-layer-natural-benefit'/Path(prefix).name)
         return
     if args.bundle:
+        print(f'Reading probe bundle: {args.bundle}', flush=True)
+        if args.layers:
+            args.bundle = fork_layers(args.bundle, repo, args.layers, destination=args.output.resolve() if args.output else None)
         folder = unpack(args.bundle, repo)
     job = json.loads((folder/'run_config.json').read_text())
     receipt = json.loads((folder/'bundle-receipt.json').read_text())
@@ -345,7 +420,10 @@ def main():
             vanilla.task.report_steering(child)
         return
     with (folder/'run.lock').open('a') as own, Path('outputs/jenny-task-vectors.lock').open('a') as gpu:
-        fcntl.flock(own, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        try:
+            fcntl.flock(own, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise SystemExit(f'Another copy of this probe is already running: {folder}. This duplicate launch is exiting.') from None
         roots = [*(args.audio_root or [repo/'outputs/jenny-zip-audio']), repo]
         paths, mappings = resolve_audio(job, roots)
         vanilla.task.winners.atomic_text(folder/'audio-relocations.json', json.dumps(dict(
@@ -368,9 +446,21 @@ def main():
             raise ValueError('Model revision receipts differ from source.')
         print(f'DIFFA {job["emotion"]}/{job["regime"]}: layers={[selected["layer"] for _,selected in cases]}; '
               f'{len(job["target"]["records"])} questions each; {pending} generations pending. One model load; no recollection.', flush=True)
-        fcntl.flock(gpu, fcntl.LOCK_EX)
-        while subprocess.check_output(['nvidia-smi', '--query-compute-apps=pid', '--format=csv,noheader'], text=True).strip():
+        while True:
+            try:
+                fcntl.flock(gpu, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                print('Waiting for the existing DIFFA/Phi GPU queue to finish; retry in30 seconds.', flush=True)
+                time.sleep(30)
+        while True:
+            processes = subprocess.check_output(['nvidia-smi', '--query-compute-apps=pid', '--format=csv,noheader'], text=True)
+            active = [pid.strip() for pid in processes.splitlines() if pid.strip() and pid.strip() != str(os.getpid())]
+            if not active:
+                break
+            print(f'GPU still active: PIDs={active}; waiting30 seconds before model load.', flush=True)
             time.sleep(30)
+        print('Loading DIFFA and pinned model weights; missing files will download.', flush=True)
         from extract_vectors import load_model
         model, tokenizer, features = load_model()
         vanilla.task.winners.atomic_text(folder/'runtime.json', json.dumps(dict(
