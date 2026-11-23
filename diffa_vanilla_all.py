@@ -153,7 +153,10 @@ def summarize(args):
             continue
         plans = {e: {r: json.loads((folder/e/r/'run_config.json').read_text()) for r in engine.REGIMES} for e in engine.EMOTIONS}
         print(f'\n{name}', flush=True)
-        engine.report(plans, folder, args.emotions, detailed=args.detailed)
+        if args.agreed_only:
+            engine.report_agreed_accuracy(plans, folder, args.emotions, agreement_emotions=args.agreement_emotions)
+        else:
+            engine.report(plans, folder, args.emotions, detailed=args.detailed)
 
 
 def main():
@@ -165,9 +168,15 @@ def main():
     parser.add_argument('--output', type=Path, default=Path('outputs/diffa-vanilla'))
     parser.add_argument('--gsm-output', type=Path, default=Path('outputs/diffa-gsm-vanilla'))
     parser.add_argument('--detailed', action='store_true')
+    parser.add_argument('--agreed-only', action='store_true', help='Summary only: accuracy on common e2v-recognized questions.')
+    parser.add_argument('--agreement-emotions', nargs='+', choices=engine.EMOTIONS)
     args = parser.parse_args()
     args.datasets = list(dict.fromkeys(args.datasets))
     args.emotions = list(dict.fromkeys(args.emotions))
+    if (args.agreed_only or args.agreement_emotions) and args.mode != 'summary':
+        parser.error('Agreement filtering is a CPU-only summary option; use --mode summary.')
+    if args.agreement_emotions and not args.agreed_only:
+        parser.error('--agreement-emotions requires --agreed-only.')
     if args.mode == 'summary':
         summarize(args)
         return

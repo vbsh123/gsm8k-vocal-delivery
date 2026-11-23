@@ -435,6 +435,66 @@ def report_agreement(plans, output, emotions, rows):
     return result
 
 
+def agreed_cohort(manifest, rows, emotions, agreement_emotions=None):
+    required = agreement_emotions or emotions
+    if not set(emotions) <= set(required):
+        raise ValueError('Agreement requirements must include every requested emotion.')
+    eligible = sorted(q for q in manifest['bank']
+                      if all(manifest['emotion2vec_predictions'].get(q, {}).get(e) == e for e in required))
+    available = [{r['question_id'] for r in rows if r['condition'] == s} for s in ('neutral', *emotions)]
+    completed = sorted(set(eligible).intersection(*available))
+    return eligible, completed
+
+
+def report_agreed_accuracy(plans, output, emotions, tokenizer=None, agreement_emotions=None):
+    """CPU-only accuracy on the same recognized questions for all requested conditions."""
+    from rescore_audio_steering import paired
+    manifest = json.loads((output/'split.json').read_text())
+    if fingerprint(manifest) != plans['angry']['random']['split_sha256']:
+        raise ValueError('Agreement labels differ from the frozen vanilla inputs.')
+    scoped = delivery_scope(plans, output)
+    raw = list(delivery_rows(scoped, output/'delivery').values())
+    required = [e for e in EMOTIONS if e in (agreement_emotions or emotions)]
+    eligible, completed = agreed_cohort(manifest, raw, emotions, required)
+    root = output/'agreed-accuracy'/('-'.join(required))
+    root.mkdir(parents=True, exist_ok=True)
+    selection = dict(split_sha256=fingerprint(manifest), requested_emotions=emotions, required_agreement=required,
+                     eligible_question_ids=eligible, completed_question_ids=completed,
+                     note='Same completed question IDs for neutral and every requested emotion. '
+                          'Only requested emotion labels are filtered; neutral recognition and response correctness are not filtered. '
+                          'Saved natural responses only; no generation, collection or steering changes.')
+    task.winners.atomic_text(root/'selection.json', json.dumps(selection, indent=2)+'\n')
+    print(f'E2V-AGREED ACCURACY: recognized as {", ".join(required)}; '
+          f'{len(completed)}/{len(eligible)} common questions completed. Neutral recognition NOT required.', flush=True)
+    selected = set(completed)
+    groups = {}
+    for e in emotions:
+        plan = dict(scoped[e]['random'], test_ids=eligible)
+        folder = root/e
+        folder.mkdir(exist_ok=True)
+        rows = [r for r in raw if r['question_id'] in selected and r['condition'] in ('neutral', e)]
+        task.report_delivery(plan, folder, tokenizer, rows=rows, cohort='e2v-agreed common questions')
+        if completed:
+            summary_path = folder/'summary.json'
+            summary = json.loads(summary_path.read_text())
+            summary.update(split_sha256=fingerprint(manifest), required_agreement=required,
+                           note='Saved natural delivery accuracy on common completed questions recognized as every required emotion. '
+                                'Neutral recognition is not filtered. No outcome filtering. Exploratory unadjusted paired tests.')
+            task.winners.atomic_text(summary_path, json.dumps(summary, indent=2)+'\n')
+            groups[e] = {r['question_id']: r for r in read_rows(folder/'rescored.jsonl') if r['condition'] == e}
+    comparisons = []
+    for i, a in enumerate(emotions):
+        for b in emotions[i+1:]:
+            if not completed:
+                continue
+            for metric in groups[a][completed[0]]['metrics']:
+                result = paired([(groups[a][q]['metrics'][metric], groups[b][q]['metrics'][metric]) for q in completed])
+                comparisons.append(dict(reference=a, test=b, metric=metric, **result))
+                print(f'{b} vs {a} / {metric}: SAME N={len(completed)}; '
+                      f'gain={result["gain_pp"]:+.2f} pp; p={result["mcnemar_exact_p"]:.4g}', flush=True)
+    task.winners.atomic_text(root/'emotion-comparisons.json', json.dumps(comparisons, indent=2)+'\n')
+
+
 def report(plans, output, emotions, tokenizer=None, detailed=False):
     from rescore_audio_steering import paired
     scoped = delivery_scope(plans, output)
@@ -496,13 +556,23 @@ def main():
     parser.add_argument('--audio-root', type=Path, default=Path('.'))
     parser.add_argument('--output', type=Path, default=Path('outputs/diffa-gsm-vanilla'))
     parser.add_argument('--detailed', action='store_true', help='Also print fitting-set accuracy diagnostics.')
+    parser.add_argument('--agreed-only', action='store_true', help='Summary only: accuracy on common e2v-recognized questions.')
+    parser.add_argument('--agreement-emotions', nargs='+', choices=EMOTIONS,
+                        help='Require these labels even if their responses are on another machine; default: --emotions.')
     args = parser.parse_args()
     args.emotions = list(dict.fromkeys(args.emotions))
+    if (args.agreed_only or args.agreement_emotions) and args.mode != 'summary':
+        parser.error('Agreement filtering is a CPU-only summary option; use --mode summary.')
+    if args.agreement_emotions and not args.agreed_only:
+        parser.error('--agreement-emotions requires --agreed-only.')
     if args.mode == 'summary':
         plans = {e: {r: json.loads((args.output/e/r/'run_config.json').read_text()) for r in REGIMES} for e in EMOTIONS}
         manifest = json.loads((args.output/'split.json').read_text())
         print('Vanilla split SHA256:', fingerprint(manifest), flush=True)
-        report(plans, args.output, args.emotions, detailed=args.detailed)
+        if args.agreed_only:
+            report_agreed_accuracy(plans, args.output, args.emotions, agreement_emotions=args.agreement_emotions)
+        else:
+            report(plans, args.output, args.emotions, detailed=args.detailed)
         return
     args.output.mkdir(parents=True, exist_ok=True)
     with (args.output/'runner.lock').open('a') as own:

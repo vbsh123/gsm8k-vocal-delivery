@@ -80,6 +80,27 @@ from the frozen exact-audio label snapshot, with no new classification. These
 percentages do not filter accuracy. `emotion2vec-agreement.json` additionally
 records agreement within each vector's fitting selection.
 
+For **accuracy restricted to recognized emotional recordings**, use:
+
+```bash
+bash run_diffa_gsm_vanilla.sh --mode summary --emotions happy sad --agreed-only
+```
+
+This requires recognized happy AND sad on the same questions, plus completed
+neutral/happy/sad responses. It prints paired accuracy and direct happy/sad tests
+on that one common cohort, not just classifier agreement percentages. Neutral
+recognition is not required. For one emotion, request just `--emotions angry`
+or `--emotions happy` to use that emotion's recognized subset.
+
+To compare angry on the original machine against happy/sad on the new one with
+the same classifier selection, add `--agreement-emotions angry happy sad` to
+both commands. All three labels are available in the frozen metadata even when
+responses are split across machines. Partial completion can still produce
+different matched Ns until both runs finish.
+
+Filtered results are saved separately under `agreed-accuracy/<required-emotions>`.
+The options are CPU-only summaries and never change generation or vector fitting.
+
 Artifacts live in `outputs/diffa-gsm-vanilla`: `split.json`, `delivery/results.jsonl`,
 and `<emotion>/{random,agreed}/style-vectors.pt`. `<emotion>/delivery-report`
 compares all1319 natural deliveries; partial reports show the matched count.

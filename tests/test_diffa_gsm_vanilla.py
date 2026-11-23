@@ -65,6 +65,48 @@ class VanillaTests(unittest.TestCase):
             self.assertIsNone(stats['sad']['matched_accuracy_pairs']['agreement_pct'])
             self.assertEqual(vanilla.agreement_counts({}, ['q00'], 'sad')['missing'], 1)
 
+    def test_agreed_accuracy_uses_common_recognized_questions_and_only_completed_responses(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manifest, _ = self.prepare(Path(directory))
+            rows = [dict(question_id=q, condition=s, response='wrong', metrics=dict(correct=False)) for q, s in
+                    [('q00', 'neutral'), ('q00', 'happy'), ('q00', 'sad'), ('q03', 'neutral'), ('q03', 'happy')]]
+            eligible, complete = vanilla.agreed_cohort(manifest, rows, ['happy', 'sad'])
+            self.assertIn('q00', eligible)  # angry is misclassified, but isn't required here
+            self.assertNotIn('q01', eligible)  # happy is misclassified
+            self.assertNotIn('q02', eligible)  # sad is misclassified
+            self.assertEqual(complete, ['q00'])  # q03 has no sad response yet
+            _, all_three = vanilla.agreed_cohort(manifest, rows, ['happy', 'sad'], ['angry', 'happy', 'sad'])
+            self.assertEqual(all_three, [])
+            with self.assertRaises(ValueError):
+                vanilla.agreed_cohort(manifest, rows, ['happy', 'sad'], ['angry'])
+
+    def test_filtered_scoring_keeps_same_baseline_and_preserves_unfiltered_report(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest, plans = self.prepare(root)
+            scoped = vanilla.prepare_deliveries(self.registry(), manifest, plans, root)
+            tokenizer = SimpleNamespace(encode=lambda *a, **kw: [1, 2])
+            def generate(record, *args):
+                return ('#### 3' if record['style'] == 'sad' else '#### 2'), {}
+            with patch.object(vanilla.task, 'generate', side_effect=generate):
+                vanilla.deliver(scoped, ['happy', 'sad'], root/'delivery', None, tokenizer, None)
+            untouched = root/'happy/delivery-report'
+            untouched.mkdir(exist_ok=True)
+            (untouched/'summary.json').write_text('original unfiltered report')
+            def score(plan, rows, folder):
+                return [dict(r, metrics={'flexible-numeric': r['response'] == '#### 2'}) for r in rows], {}
+            with patch.object(vanilla.task.winners, 'score_rows', side_effect=score):
+                vanilla.report_agreed_accuracy(plans, root, ['happy', 'sad'], tokenizer)
+            reports = root/'agreed-accuracy/happy-sad'
+            for e in ('happy', 'sad'):
+                summary = json.loads((reports/e/'summary.json').read_text())
+                self.assertEqual(summary['matched_questions'], 14)
+                self.assertEqual(summary['paired'][0]['baseline_correct'], 14)
+                self.assertEqual(summary['paired'][0]['steered_correct'], 14 if e == 'happy' else 0)
+            compared = json.loads((reports/'emotion-comparisons.json').read_text())
+            self.assertEqual(compared[0]['pairs'], 14)
+            self.assertEqual((untouched/'summary.json').read_text(), 'original unfiltered report')
+
     def test_manifest_hash_is_portable_and_plans_use_same_prompt_and_test(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
