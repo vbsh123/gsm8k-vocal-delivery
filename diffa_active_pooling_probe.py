@@ -4,6 +4,7 @@ from copy import deepcopy
 import fcntl
 from importlib.metadata import version
 import json
+import io
 from pathlib import Path
 import random
 import subprocess
@@ -95,6 +96,86 @@ def load_bundle(path):
     return json.loads(data)
 
 
+def from_existing_probe(bundle,registry,questions=200):
+    """Resolve fitting records from the already-extracted Jenny metadata, not another upload."""
+    job,payload=pooling.bundle_data(bundle)
+    if (job['emotion']!='angry' or job['regime']!='agreed' or job['target']['prompt']!=vanilla.PROMPT
+            or probe.sha(payload['style-vectors.pt'])!=job['source']['vector_sha256']):
+        raise ValueError('Expected the original vanilla angry/agreed layer-probe bundle.')
+    _,info=winners.read_vector(io.BytesIO(payload['style-vectors.pt']),'angry',31,'answer')
+    if info['collection_prompt']!=job['target']['prompt'] or info['collection_tokens']!=job['target']['max_new_tokens']:
+        raise ValueError('Original vector collection prompt or budget differs.')
+    original_ids=info['extraction_ids']
+    if len(set(original_ids))!=len(original_ids) or not 1<=questions<=len(original_ids):
+        raise ValueError('Original fitting IDs incomplete or requested count too large.')
+    keep=set(random.Random(42).sample(sorted(original_ids),questions))
+    ids=[q for q in original_ids if q in keep]
+    if set(ids).intersection(r['question_id'] for r in job['target']['records']):
+        raise ValueError('Fitting questions overlap evaluation.')
+    pairs=[]
+    labels={}
+    bank=deepcopy(job['target']['bank'])
+    for q in ids:
+        neutral=registry.choose('gsm8k',q,'neutral')
+        if neutral is None:
+            raise ValueError(f'Jenny metadata lacks neutral fitting question {q}.')
+        angry=registry.choose('gsm8k',q,'angry',question=neutral['question'],answer=neutral['answer'],agreed=True)
+        if angry is None:
+            raise ValueError(f'Jenny metadata lacks the e2v-agreed angry fitting recording for {q}.')
+        for style,item in [('neutral',neutral),('angry',angry)]:
+            variants={r['record']['audio_sha256'] for r in registry.options['gsm8k',q,style]
+                      if r['question']==neutral['question'] and r['answer']==neutral['answer']}
+            if len(variants)!=1:
+                raise ValueError(f'Ambiguous Jenny recordings: {q}/{style}.')
+        pairs.append(dict(question_id=q,neutral=neutral['record'],emotion=angry['record']))
+        labels[q]=dict(emotion='angry',audio_sha256=angry['record']['audio_sha256'])
+        bank[q]=dict(question_id=q,question=neutral['question'],answer=neutral['answer'])
+    baseline=pooling.read_rows_from_bytes(payload['results.jsonl'])
+    fit=dict(protocol='diffa-active-pooling-portable-fit200-v1',name='gsm8k',emotion='angry',regime='agreed',
+        prompt=job['target']['prompt'],collection_prompt=job['target']['prompt'],
+        **{k:job['target'][k] for k in vanilla.RECIPE},
+        bank=bank,target=deepcopy(job['target']),collection_ids=ids,pairs=pairs,
+        test_ids=[r['question_id'] for r in job['target']['records']],
+        selection='Seed42 uniform sample from original angry/agreed vector fitting IDs; reverify stored e2v labels by audio hash.',
+        parent_source_vector_sha256=job['source']['vector_sha256'])
+    with zipfile.ZipFile(bundle) as archive:
+        environment=json.loads(archive.read(probe.MARKER))
+    return dict(protocol='diffa-active-pooling-portable-inputs-v1',fit=fit,job=job,baseline=baseline,
+        source_rows={q:None for q in ids},agreed_labels=labels,models=environment['models'],packages=environment['packages'],
+        parent_evaluation_bundle_sha256=winners.digest(bundle),construction='existing-probe-and-jenny-v1',
+        note='Fitting metadata and hash-verified e2v labels resolved from existing Jenny ZIP. '
+             'Old fitting responses were not bundled; fresh responses are retained. '
+             'Exact evaluation neutral replay is checked before collection.')
+
+
+def input_data(bundle,roots,output,summary_only=False):
+    with zipfile.ZipFile(bundle) as archive:
+        markers=set(archive.namelist())
+    if MARKER in markers:
+        return load_bundle(bundle)
+    if probe.MARKER not in markers:
+        raise ValueError('Expected a DIFFA layer-probe ZIP or active-pooling input ZIP.')
+    cached=output/'local-inputs.json'
+    if cached.exists():
+        saved=json.loads(cached.read_text())
+        data=saved['data']
+        if saved['data_sha256']!=vanilla.fingerprint(data) or data['parent_evaluation_bundle_sha256']!=winners.digest(bundle):
+            raise ValueError('Locally resolved inputs differ from the frozen probe bundle.')
+        return data
+    if summary_only:
+        return None
+    root=next((Path(r) for r in roots if (Path(r)/'metadata/audio_inventory.jsonl').is_file()
+               or (Path(r)/'outputs/shared-three-emotions/audio_inventory.jsonl').is_file()),None)
+    if root is None:
+        raise ValueError('Locate the extracted Jenny audio directory with --audio-root (normally outputs/jenny-zip-audio).')
+    print(f'Using existing layer ZIP and Jenny metadata at {root}; no additional ZIP needed.',flush=True)
+    registry=vanilla.Registry(root)
+    data=from_existing_probe(bundle,registry)
+    winners.freeze(cached,dict(data=data,data_sha256=vanilla.fingerprint(data)))
+    print(f'Resolved {len(data["fit"]["pairs"])} angry/agreed fitting pairs and {len(data["baseline"])} disjoint evaluation questions.',flush=True)
+    return data
+
+
 def prepare(data,bundle,output):
     fit=data['fit']
     ids=fit['collection_ids']
@@ -109,6 +190,8 @@ def prepare(data,bundle,output):
             or set(data['source_rows'])!=set(ids) or set(ids).intersection(expected)
             or len(baseline)!=len(expected) or {r['question_id'] for r in baseline}!=set(expected)):
         raise ValueError('Portable fitting/evaluation cohorts or recipe differ.')
+    if any(value is None for value in data['source_rows'].values()) and data.get('construction')!='existing-probe-and-jenny-v1':
+        raise ValueError('Missing source replay metadata without local Jenny reconstruction.')
     for pair in fit['pairs']:
         label=data['agreed_labels'][pair['question_id']]
         if label!=dict(emotion='angry',audio_sha256=pair['emotion']['audio_sha256']):
@@ -167,7 +250,7 @@ def collect(data,plans,output,paths,model,tokenizer,features):
                 lambda:vanilla.task.generate(record,fit,fit['prompt'],model,tokenizer,features),decoder,fit['max_new_tokens']))
         (nr,ne,n,na),(er,ee,e,ea)=traces
         expected=data['source_rows'][q]
-        if (nr!=expected['neutral_response'] or er!=expected['emotion_response']
+        if expected is not None and (nr!=expected['neutral_response'] or er!=expected['emotion_response']
                 or n.shape[1]!=expected['neutral_forwards'] or e.shape[1]!=expected['emotion_forwards']):
             raise ValueError(f'{q}: source response/forward replay differs; no steering started.')
         pooled,matched=pooling.pool_pair(n,e,na,ea)
@@ -215,7 +298,12 @@ def main():
         package(args.source,args.bundle,args.output or Path('outputs/gsm8k-angry-agreed-active-fit200-eval200.zip'))
         return
     output=args.output or Path('outputs/diffa-active-pooling-fit200-eval200')
-    data=load_bundle(args.bundle)
+    repo=Path(__file__).resolve().parent
+    roots=[*(args.audio_root or [repo/'outputs/jenny-zip-audio']),repo]
+    data=input_data(args.bundle,roots,output,summary_only=args.mode=='summary')
+    if data is None:
+        print('Active-pooling experiment not started yet. Run with this same layer-probe ZIP to collect.',flush=True)
+        return
     plans,job=prepare(data,args.bundle,output)
     if args.mode=='summary':
         summary(plans,job,data,output)

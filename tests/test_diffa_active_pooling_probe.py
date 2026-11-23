@@ -75,6 +75,45 @@ class PortablePoolingTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'cohorts'):
                 portable.prepare(bad,destination,root/'overlap')
 
+    def test_existing_layer_bundle_uses_jenny_records_without_new_transfer(self):
+        with tempfile.TemporaryDirectory() as directory,redirect_stdout(io.StringIO()):
+            root=Path(directory)
+            source,bundle=self.fixture(root)
+            source_plan=json.loads((source/'run_config.json').read_text())
+            options={}
+            for pair in source_plan['pairs']:
+                q=pair['question_id']
+                for key,style in [('neutral','neutral'),('emotion','angry')]:
+                    options['gsm8k',q,style]=[dict(record=pair[key],question='Question '+q,answer='2')]
+            registry=SimpleNamespace(options=options,choose=lambda task,q,style,**kw:options[task,q,style][0])
+            data=portable.from_existing_probe(bundle,registry,questions=1)
+            self.assertEqual(data['fit']['collection_ids'],['fit0'])
+            self.assertEqual([r['question_id'] for r in data['baseline']],['q0','q1'])
+            self.assertEqual(data['source_rows'],{'fit0':None})
+            plans,job=portable.prepare(data,bundle,root/'new')
+            self.assertEqual(job['source']['vector_info']['pairs'],1)
+            self.assertEqual(plans['active-block']['collection_ids'],['fit0'])
+            output=root/'local-reconstruction'
+            self.assertIsNone(portable.input_data(bundle,[],output,summary_only=True))
+            audio_root=root/'jenny'
+            (audio_root/'metadata').mkdir(parents=True)
+            (audio_root/'metadata/audio_inventory.jsonl').touch()
+            with patch.object(portable.vanilla,'Registry',return_value=registry), \
+                 patch.object(portable,'from_existing_probe',return_value=data) as reconstruct:
+                resolved=portable.input_data(bundle,[audio_root],output)
+                again=portable.input_data(bundle,[],output)
+            self.assertEqual(reconstruct.call_count,1)
+            self.assertEqual(resolved,again)
+            cached=output/'local-inputs.json'
+            contents=json.loads(cached.read_text())
+            contents['data']['fit']['collection_ids']=['wrong-id']
+            cached.write_text(json.dumps(contents))
+            with self.assertRaisesRegex(ValueError,'Locally resolved'):
+                portable.input_data(bundle,[],output)
+            options['gsm8k','fit0','angry'].append(dict(record=dict(options['gsm8k','fit0','angry'][0]['record'],audio_sha256='other'),question='Question fit0',answer='2'))
+            with self.assertRaisesRegex(ValueError,'Ambiguous'):
+                portable.from_existing_probe(bundle,registry,questions=1)
+
     def test_subset_control_is_fitted_fresh_with_subset_count_and_resumes(self):
         with tempfile.TemporaryDirectory() as directory,redirect_stdout(io.StringIO()):
             root=Path(directory)
