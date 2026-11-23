@@ -28,8 +28,9 @@ def restore(path, root):
     restored = reused = 0
     with zipfile.ZipFile(path) as archive:
         names = archive.namelist()
-        if 'DIFFA_MIGRATION_MANIFEST.json' in names:
-            manifest = json.loads(archive.read('DIFFA_MIGRATION_MANIFEST.json'))
+        run_manifest = next((name for name in ('DIFFA_MIGRATION_MANIFEST.json', 'DIFFA_GSM_PROMPT_INPUTS_MANIFEST.json') if name in names), None)
+        if run_manifest:
+            manifest = json.loads(archive.read(run_manifest))
             if manifest['repo'] != str(root):
                 raise ValueError(f'Frozen paths require clone at {manifest["repo"]}; current root is {root}.')
         elif 'JENNY_AUDIO_MANIFEST.json' not in names:

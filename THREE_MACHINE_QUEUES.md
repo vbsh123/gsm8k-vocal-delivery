@@ -232,3 +232,52 @@ numeric equivalence for math, flexible extraction for BBH and strict prompt
 compliance for IFEval; strict and flexible metrics are also retained. Missing
 remote summaries are shown as unavailable, never as failed experiments. All
 tests/intervals remain exploratory and unadjusted.
+
+## New DIFFA GSM prompt × vector ablation (original and shared3)
+
+Use the completed ORIGINAL angry/happy vectors on425/718 and the completed
+shared3 angry/happy vectors on609/660. Vectors remain fixed. Each protocol runs
+its own frozen neutral-audio evaluation questions with BOTH the current concise
+prompt and the older Phi "Let's think step by step" prompt, keeping `####`,
+model, seed, budget, and L31 answer +1 fixed. Conditions per prompt are neutral,
+angry-vector steering and happy-vector steering. No emotional-audio delivery,
+TTS, e2v inference or vector collection is scheduled.
+
+The previous handoff intentionally omitted original-method vectors. On ORIGINAL
+DIFFA, export only the missing original GSM vectors, configs and saved answers:
+
+```bash
+git pull --ff-only
+.venv-diffa/bin/python pack_diffa_gsm_prompt_inputs.py
+```
+
+Download the printed `/workspace/diffa-gsm-original-prompt-inputs-*.zip` and its
+`.sha256`, upload both to `/workspace` on NEW DIFFA, then:
+
+```bash
+git pull --ff-only
+.venv-diffa/bin/python restore_diffa_bundle.py /workspace/diffa-gsm-original-prompt-inputs-*.zip
+bash run_diffa_gsm_prompt_ablation.sh --mode prepare
+nohup bash run_diffa_gsm_prompt_ablation.sh > outputs/diffa-gsm-prompt-ablation.log 2>&1 </dev/null &
+```
+
+The runner waits on the current shared DIFFA GPU lock before model loading.
+Preparation reuses compatible concise-prompt answers and reports missing counts.
+After waiting it refreshes that reuse, so any newly completed main-queue answers
+are used too. Prompt-matched neutral answers are reused across protocol cohorts
+where their question IDs/audio hashes/recipes agree. Baselines from the concise
+prompt are never reused for the older prompt.
+
+Each protocol has up to six conditions per question, with compatible existing
+answers reused. Results are in `outputs/diffa-gsm-prompt-ablation/{original,shared3}`.
+Reports provide gains against each prompt's own baseline, direct paired
+happy-versus-angry tests and older-versus-concise prompt comparisons. The root
+`common-heldout-comparison.json` compares original/shared3 vectors ONLY on IDs
+held out from BOTH vector collections, with identical audio/prompt/budget checks.
+Original718 and shared3 660 headline scores are not treated as the same cohort.
+All comparisons remain exploratory and unadjusted.
+
+```bash
+tail -n 30 outputs/diffa-gsm-prompt-ablation.log
+bash run_diffa_gsm_prompt_ablation.sh --mode summary
+```
