@@ -119,3 +119,16 @@ inferred from which neutral comparisons reach significance.
 This is a new prompt experiment. Compare vectors on common questions held out
 from both fits, not against historical gains on other cohorts. Earlier500-only
 steering artifacts, if present, are preserved in the old `strength-1` folders.
+
+Sample saved angry/random steering failures (neutral correct, steered wrong):
+
+```bash
+bash run_diffa_sample_failures.sh --emotion angry --regime random --count 8
+```
+
+The CPU-only script prints the question, gold, full paired responses, extraction
+results and token counts, and saves TXT/JSON under the steering folder's
+`failure-samples`. Add `--min-extra-tokens 20` for failures with longer steered
+output, or `--kind errors` for all steered errors including questions where the
+neutral answer was also wrong. It uses the latest saved `rescored.jsonl` snapshot;
+run the normal summary first to refresh scores during an active steering run.
