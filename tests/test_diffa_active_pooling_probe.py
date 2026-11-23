@@ -148,6 +148,53 @@ class PortablePoolingTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'Frozen collection'):
                 portable.prepare(data,destination,root/'matched',time_average='all')
 
+    def test_full_buffer_all_forwards_never_observes_current_block(self):
+        with tempfile.TemporaryDirectory() as directory,redirect_stdout(io.StringIO()):
+            root=Path(directory)
+            source,bundle=self.fixture(root)
+            destination=root/'inputs.zip'
+            portable.package(source,bundle,destination,questions=1)
+            data=portable.load_bundle(destination)
+            data.update(source_rows={'fit0':None},construction='existing-probe-and-jenny-v1')
+            output=root/'full-all'
+            plans,job=portable.prepare(data,destination,output,time_average='all',pooling_scope='full-buffer')
+            self.assertEqual(set(plans),{'full-buffer'})
+            paths={record['audio_sha256']:'/new/'+record['audio_sha256']
+                for pair in data['fit']['pairs'] for record in (pair['neutral'],pair['emotion'])}
+            def generate(record,*args):
+                return record['style'],{}
+            def capture(model,generate,decoder,budget):
+                style,_=generate()
+                if style=='neutral':
+                    full=torch.zeros(32,1,4,3)
+                else:
+                    full=torch.full((32,3,4,3),6.)
+                    full[:,0]=0.
+                return '#### 2',{},full
+            decoder=SimpleNamespace()
+            modules={'src':SimpleNamespace(fast_dllm=SimpleNamespace(diffa_generate=decoder)),
+                'src.fast_dllm':SimpleNamespace(diffa_generate=decoder),'src.fast_dllm.diffa_generate':decoder}
+            with patch.dict('sys.modules',modules), \
+                 patch.object(portable.vanilla.task,'generate',side_effect=generate), \
+                 patch.object(portable.vanilla.task.emotion,'capture',side_effect=capture) as native, \
+                 patch.object(portable.pooling,'capture_poolings',side_effect=AssertionError('Must not observe blocks')):
+                portable.collect(data,plans,output,paths,None,None,None)
+                portable.collect(data,plans,output,paths,None,None,None)
+            self.assertEqual(native.call_count,2)
+            state=portable.load_collection_state(output,plans)
+            row=state['scopes']['full-buffer']['rows'][0]
+            self.assertEqual((row['neutral_forwards'],row['emotion_forwards'],row['matched_forwards']),(1,3,None))
+            direction,_=portable.winners.read_vector(output/'full-buffer/style-vectors.pt','angry',31,'answer')
+            torch.testing.assert_close(direction,torch.full((3,),4.))
+            self.assertFalse((output/'active-block').exists())
+            jobs=portable.active_steering_jobs(plans,job,data,output)
+            self.assertEqual(len(jobs),1)
+            self.assertEqual(jobs[0][1]['pooling_scope'],'full-buffer')
+            self.assertEqual(jobs[0][1]['layer'],31)
+            self.assertFalse((output/'active-block').exists())
+            with self.assertRaisesRegex(ValueError,'Frozen collection'):
+                portable.prepare(data,destination,output,time_average='all',pooling_scope='active-block')
+
     def test_subset_control_is_fitted_fresh_with_subset_count_and_resumes(self):
         with tempfile.TemporaryDirectory() as directory,redirect_stdout(io.StringIO()):
             root=Path(directory)
