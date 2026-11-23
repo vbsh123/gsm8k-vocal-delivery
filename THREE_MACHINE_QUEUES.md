@@ -281,3 +281,53 @@ All comparisons remain exploratory and unadjusted.
 tail -n 30 outputs/diffa-gsm-prompt-ablation.log
 bash run_diffa_gsm_prompt_ablation.sh --mode summary
 ```
+
+## Fresh step-by-step refit on NEW DIFFA: GSM + MultiArith, both cohorts
+
+This is different from the fixed-vector prompt ablation above: it REFITS angry
+and happy vectors with the older step-by-step instruction. It never removes the
+step-by-step request. In collection AND evaluation, replace exactly
+"Give concise step-by-step reasoning with only the necessary calculations."
+with "Let's think step by step." All other wording stays fixed. In particular,
+original GSM collection retains `Final answer: <number>`, while its held-out
+evaluation retains `#### <number>`.
+
+Default cases: GSM/original, GSM/shared3, MultiArith/original,
+MultiArith/shared3. Each reads its EXACT frozen fitting/evaluation IDs and
+recording hashes from the existing source configs; no new split, TTS or e2v
+selection. Original means the original protocol, including GSM's inherited
+425 contributing IDs. Shared3 membership is inherited from its frozen split.
+
+Only frozen source metadata and the Jenny audio are needed on NEW DIFFA. The
+original vector files omitted from the first handoff are NOT needed, because
+this experiment fits fresh vectors. Existing vectors/results remain separate.
+
+```bash
+git pull --ff-only
+bash run_diffa_step_by_step_refit.sh --mode prepare
+nohup bash run_diffa_step_by_step_refit.sh > outputs/diffa-step-by-step-refit.log 2>&1 </dev/null &
+```
+
+It waits for the shared DIFFA GPU lock. FIRST evaluate neutral/angry/happy
+recordings across the four cases, reusing only answers with identical audio,
+new prompt and recipe. THEN collect fresh vectors and steer held-out neutrals
+with angry and happy directions separately at L31 answer +1. One neutral
+activation capture serves both emotion pairs per fitting question; each
+emotion retains the original matched-forward averaging rule. Atomic running
+checkpoints allow safe stop/resume between emotions or questions.
+
+Outputs: `outputs/diffa-step-by-step-refit/{original,shared3}/{gsm8k,multiarith}`.
+Reports include collection diagnostics, held-out delivery accuracy, each
+steering effect versus neutral, and direct happy-versus-angry paired tests.
+`common-heldout-{gsm8k,multiarith}.json` compares protocols only on questions
+held out from BOTH vector fittings, with identical audio/prompt/budget checks.
+No results from the other cohorts are pooled as if their questions were equal.
+
+```bash
+tail -n 30 outputs/diffa-step-by-step-refit.log
+bash run_diffa_step_by_step_refit.sh --mode summary
+```
+
+The full default fits eight vectors (two emotions × two datasets × two
+protocols) and evaluates deliveries and steering for each case. No other
+datasets, strengths grid or transfers are scheduled.
