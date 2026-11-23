@@ -125,7 +125,19 @@ def prepare(data,bundle,output):
         answer_pooling='full-buffer512 versus current-block32; same generations for both.',
         steering='L31 answer x+1; inject across full answer buffer, unchanged.',
         runner_sha256=winners.digest(__file__),collector_sha256=winners.digest(pooling.__file__))
-    winners.freeze(output/'experiment.json',receipt)
+    # Steering-policy updates do not invalidate an unchanged collection checkpoint.
+    # Keep the original runner hash as provenance; record the current execution separately.
+    receipt_path=output/'experiment.json'
+    if receipt_path.exists():
+        original_receipt=json.loads(receipt_path.read_text())
+        scientific=lambda value:{k:v for k,v in value.items() if k!='runner_sha256'}
+        if scientific(original_receipt)!=scientific(receipt):
+            raise ValueError('Frozen collection settings differ.')
+    else:
+        winners.freeze(receipt_path,receipt)
+    winners.atomic_text(output/'steering-policy.json',json.dumps(dict(
+        runner_sha256=winners.digest(__file__),steer_scopes=['active-block'],
+        note='Keep both collected averages; generate steering responses only for active-block.'),indent=2)+'\n')
     plans={}
     for scope in pooling.SCOPES:
         plan=deepcopy(fit)
@@ -176,11 +188,17 @@ def relocate(data,roots):
     return probe.resolve_audio(dict(target=dict(records=records)),roots)
 
 
+def active_steering_jobs(plans,job,data,output,create=True):
+    return [(child,selected) for child,selected in
+            pooling.steering_jobs(plans,job,data['baseline'],output,[31],create=create)
+            if selected['pooling_scope']=='active-block']
+
+
 def summary(plans,job,data,output):
     state=pooling.load_state(output,plans)
     print(f'Angry/agreed fitting: {len(state["scopes"]["full-buffer"]["completed_ids"])}/{len(data["fit"]["pairs"])}; '
           f'evaluation: {len(data["baseline"])} separate questions; L31 answer x+1.',flush=True)
-    for child,selected in pooling.steering_jobs(plans,job,data['baseline'],output,[31],create=False):
+    for child,selected in active_steering_jobs(plans,job,data,output,create=False):
         print(f'{selected["pooling_scope"]} / L31',flush=True)
         vanilla.task.report_steering(child)
 
@@ -233,14 +251,14 @@ def main():
                 if response!=row['response']:
                     raise ValueError('Evaluation neutral replay differs; collection not started.')
             collect(data,plans,output,paths,model,tokenizer,features)
-            for child,selected in pooling.steering_jobs(plans,job,data['baseline'],output,[31]):
+            for child,selected in active_steering_jobs(plans,job,data,output):
                 runtime=probe.with_audio_paths(selected,paths)
                 probe.validate(runtime,child,check_audio=True)
                 winners.generate_job(runtime,child,model,tokenizer,features)
                 probe.validate(runtime,child)
                 print(f'{selected["pooling_scope"]} / L31',flush=True)
                 vanilla.task.report_steering(child,tokenizer)
-            print('DONE: both200-pair vectors and both L31 x+1 runs on the same disjoint200 questions.',flush=True)
+            print('DONE: both200-pair averages collected; ONLY active-block steered at L31 x+1 on the disjoint200 questions.',flush=True)
 
 
 if __name__=='__main__':

@@ -57,6 +57,15 @@ class PortablePoolingTests(unittest.TestCase):
             self.assertEqual(job['source']['extraction_ids'],['fit0'])
             self.assertEqual(job['target']['records'],data['job']['target']['records'])
             self.assertEqual(len(plans['active-block']['collection_ids']),1)
+            receipt=output/'experiment.json'
+            frozen=json.loads(receipt.read_text())
+            frozen['runner_sha256']='previous runner before steering-policy update'
+            receipt.write_text(json.dumps(frozen))
+            before=portable.pooling.load_state(output,plans)['experiment_sha256']
+            portable.prepare(data,destination,output)
+            self.assertEqual(portable.pooling.load_state(output,plans)['experiment_sha256'],before)
+            self.assertEqual(json.loads(receipt.read_text())['runner_sha256'],frozen['runner_sha256'])
+            self.assertEqual(json.loads((output/'steering-policy.json').read_text())['steer_scopes'],['active-block'])
             bad=json.loads(json.dumps(data))
             bad['agreed_labels']['fit0']['emotion']='sad'
             with self.assertRaisesRegex(ValueError,'classification'):
@@ -108,8 +117,11 @@ class PortablePoolingTests(unittest.TestCase):
             self.assertEqual(info['pairs'],1)
             torch.testing.assert_close(full,torch.full((3,),2.))
             torch.testing.assert_close(current,torch.full((3,),7.))
-            jobs=portable.pooling.steering_jobs(plans,job,data['baseline'],output,[31])
-            self.assertEqual(len(jobs),2)
+            jobs=portable.active_steering_jobs(plans,job,data,output)
+            self.assertEqual(len(jobs),1)
+            self.assertEqual(jobs[0][1]['pooling_scope'],'active-block')
+            control=portable.pooling.read_rows(output/'full-buffer/L31-answer-a1/results.jsonl')
+            self.assertTrue(all(row['strength']==0. for row in control))
             for folder,selected in jobs:
                 self.assertEqual(selected['source']['extraction_ids'],['fit0'])
                 self.assertEqual(selected['source']['vector_info']['pairs'],1)
