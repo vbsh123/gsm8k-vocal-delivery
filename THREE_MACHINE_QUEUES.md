@@ -331,3 +331,34 @@ bash run_diffa_step_by_step_refit.sh --mode summary
 The full default fits eight vectors (two emotions × two datasets × two
 protocols) and evaluates deliveries and steering for each case. No other
 datasets, strengths grid or transfers are scheduled.
+
+## Compare angry and happy vector geometry (no GPU inference)
+
+On ORIGINAL DIFFA:
+
+```bash
+git pull --ff-only
+bash run_compare_diffa_vectors.sh
+```
+
+On NEW DIFFA, for existing shared3 vectors:
+
+```bash
+bash run_compare_diffa_vectors.sh --cohort shared3
+```
+
+For the new refits, use `--cohort step-original` or `--cohort step-shared3`
+with `--datasets gsm8k multiarith`. Missing/incomplete vectors are reported as
+pending. The default display is L31 answer; all available layers/groups are
+written to JSON/CSV under `outputs/emotion-vector-comparison/<cohort>`.
+Optional display: `--layers 26 31 --groups answer acoustic semantic combined`.
+
+Cosine measures direction, norm ratio measures scale, and relative distance
+includes both. The tool uses the same float32 sum/count mean as the steering
+reader, then double precision for geometry. Actual contributing IDs are checked
+rather than confusing GSM's500 excluded IDs with425 contributing pairs. Prompt
+and budget mismatches are flagged. Saved running checkpoints supply within-emotion
+direction consistency when complete and matched. Aggregate-only checkpoints do
+not support reconstructing per-question angry/happy cosines or uncertainty of
+the final mean; these are not fabricated. Geometric difference is distinct from
+a demonstrated behavioral difference.
