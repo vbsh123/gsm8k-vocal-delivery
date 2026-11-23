@@ -67,6 +67,18 @@ If a vanilla runner is still active, the new launch waits for it to finish.
 The runner also waits for the shared DIFFA lock and an idle GPU before loading weights.
 It never stops any existing process.
 
+Inspect saved mean activation change% at every layer, random and agreed side by side:
+
+```bash
+python3 show_diffa_layer_changes.py --emotions angry
+python3 show_diffa_layer_changes.py --emotions happy sad
+```
+
+Defaults to the answer group. Add `--cosine` for neutral/emotion cosine,
+`--median` for median change%, or `--group all` for all four groups. These
+read existing CSVs without inference. The cosine is between emotional and neutral
+states, not an alignment with a reasoning direction.
+
 CPU reports while running, using the corresponding emotion selection:
 
 ```bash
