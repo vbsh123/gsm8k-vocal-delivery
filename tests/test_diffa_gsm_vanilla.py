@@ -96,7 +96,7 @@ class VanillaTests(unittest.TestCase):
             def score(plan, rows, folder):
                 return [dict(r, metrics={'flexible-numeric': r['response'] == '#### 2'}) for r in rows], {}
             with patch.object(vanilla.task.winners, 'score_rows', side_effect=score):
-                vanilla.report_agreed_accuracy(plans, root, ['happy', 'sad'], tokenizer)
+                vanilla.report_agreed_accuracy(plans, root, ['happy', 'sad'], tokenizer, agreement_emotions=['happy', 'sad'])
             reports = root/'agreed-accuracy/happy-sad'
             for e in ('happy', 'sad'):
                 summary = json.loads((reports/e/'summary.json').read_text())
@@ -106,6 +106,15 @@ class VanillaTests(unittest.TestCase):
             compared = json.loads((reports/'emotion-comparisons.json').read_text())
             self.assertEqual(compared[0]['pairs'], 14)
             self.assertEqual((untouched/'summary.json').read_text(), 'original unfiltered report')
+            with patch.object(vanilla.task.winners, 'score_rows', side_effect=score):
+                vanilla.report_agreed_accuracy(plans, root, ['happy', 'sad'], tokenizer)
+            # Default reports MUST NOT require the other emotion to be recognized.
+            for e in ('happy', 'sad'):
+                summary = json.loads((root/'agreed-accuracy'/e/e/'summary.json').read_text())
+                self.assertEqual(summary['matched_questions'], 15)
+                self.assertEqual(summary['required_agreement'], [e])
+                self.assertEqual(summary['paired'][0]['baseline_correct'], 15)
+                self.assertEqual(summary['paired'][0]['steered_correct'], 15 if e == 'happy' else 0)
 
     def test_manifest_hash_is_portable_and_plans_use_same_prompt_and_test(self):
         with tempfile.TemporaryDirectory() as directory:

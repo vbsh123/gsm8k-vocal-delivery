@@ -86,17 +86,17 @@ For **accuracy restricted to recognized emotional recordings**, use:
 bash run_diffa_gsm_vanilla.sh --mode summary --emotions happy sad --agreed-only
 ```
 
-This requires recognized happy AND sad on the same questions, plus completed
-neutral/happy/sad responses. It prints paired accuracy and direct happy/sad tests
-on that one common cohort, not just classifier agreement percentages. Neutral
-recognition is not required. For one emotion, request just `--emotions angry`
-or `--emotions happy` to use that emotion's recognized subset.
+This reports each emotion independently: recognized happy versus paired neutral,
+then recognized sad versus paired neutral. Happy does not require sad recognition
+or a completed sad response, and vice versa. It prints accuracy and paired tests,
+not just classifier percentages. Neutral recognition is not required. It does NOT
+automatically restrict emotions to an overlap or compare their different subsets
+against one another. Request `--emotions angry --agreed-only` for angry alone.
 
-To compare angry on the original machine against happy/sad on the new one with
-the same classifier selection, add `--agreement-emotions angry happy sad` to
-both commands. All three labels are available in the frozen metadata even when
-responses are split across machines. Partial completion can still produce
-different matched Ns until both runs finish.
+Only when an overlap comparison is explicitly wanted, add
+`--agreement-emotions happy sad` or `--agreement-emotions angry happy sad`.
+This opt-in mode requires all named labels on each question. It is never the
+default behavior of `--agreed-only`.
 
 Filtered results are saved separately under `agreed-accuracy/<required-emotions>`.
 The options are CPU-only summaries and never change generation or vector fitting.

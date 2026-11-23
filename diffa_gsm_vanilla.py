@@ -447,7 +447,11 @@ def agreed_cohort(manifest, rows, emotions, agreement_emotions=None):
 
 
 def report_agreed_accuracy(plans, output, emotions, tokenizer=None, agreement_emotions=None):
-    """CPU-only accuracy on the same recognized questions for all requested conditions."""
+    """Per-emotion recognized accuracy by default; shared cohorts only if explicit."""
+    if agreement_emotions is None:
+        for e in emotions:
+            report_agreed_accuracy(plans, output, [e], tokenizer, agreement_emotions=[e])
+        return
     from rescore_audio_steering import paired
     manifest = json.loads((output/'split.json').read_text())
     if fingerprint(manifest) != plans['angry']['random']['split_sha256']:
@@ -465,7 +469,7 @@ def report_agreed_accuracy(plans, output, emotions, tokenizer=None, agreement_em
                           'Saved natural responses only; no generation, collection or steering changes.')
     task.winners.atomic_text(root/'selection.json', json.dumps(selection, indent=2)+'\n')
     print(f'E2V-AGREED ACCURACY: recognized as {", ".join(required)}; '
-          f'{len(completed)}/{len(eligible)} common questions completed. Neutral recognition NOT required.', flush=True)
+          f'{len(completed)}/{len(eligible)} paired questions completed. Neutral recognition NOT required.', flush=True)
     selected = set(completed)
     groups = {}
     for e in emotions:
@@ -473,7 +477,7 @@ def report_agreed_accuracy(plans, output, emotions, tokenizer=None, agreement_em
         folder = root/e
         folder.mkdir(exist_ok=True)
         rows = [r for r in raw if r['question_id'] in selected and r['condition'] in ('neutral', e)]
-        task.report_delivery(plan, folder, tokenizer, rows=rows, cohort='e2v-agreed common questions')
+        task.report_delivery(plan, folder, tokenizer, rows=rows, cohort='e2v-agreed')
         if completed:
             summary_path = folder/'summary.json'
             summary = json.loads(summary_path.read_text())
@@ -556,7 +560,7 @@ def main():
     parser.add_argument('--audio-root', type=Path, default=Path('.'))
     parser.add_argument('--output', type=Path, default=Path('outputs/diffa-gsm-vanilla'))
     parser.add_argument('--detailed', action='store_true', help='Also print fitting-set accuracy diagnostics.')
-    parser.add_argument('--agreed-only', action='store_true', help='Summary only: accuracy on common e2v-recognized questions.')
+    parser.add_argument('--agreed-only', action='store_true', help='Summary only: each emotion on its own e2v-recognized recordings.')
     parser.add_argument('--agreement-emotions', nargs='+', choices=EMOTIONS,
                         help='Require these labels even if their responses are on another machine; default: --emotions.')
     args = parser.parse_args()

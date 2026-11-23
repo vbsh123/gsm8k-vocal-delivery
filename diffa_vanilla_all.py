@@ -168,7 +168,7 @@ def main():
     parser.add_argument('--output', type=Path, default=Path('outputs/diffa-vanilla'))
     parser.add_argument('--gsm-output', type=Path, default=Path('outputs/diffa-gsm-vanilla'))
     parser.add_argument('--detailed', action='store_true')
-    parser.add_argument('--agreed-only', action='store_true', help='Summary only: accuracy on common e2v-recognized questions.')
+    parser.add_argument('--agreed-only', action='store_true', help='Summary only: each emotion on its own e2v-recognized recordings.')
     parser.add_argument('--agreement-emotions', nargs='+', choices=engine.EMOTIONS)
     args = parser.parse_args()
     args.datasets = list(dict.fromkeys(args.datasets))
