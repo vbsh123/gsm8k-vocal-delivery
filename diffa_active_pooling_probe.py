@@ -176,7 +176,9 @@ def input_data(bundle,roots,output,summary_only=False):
     return data
 
 
-def prepare(data,bundle,output):
+def prepare(data,bundle,output,time_average="matched"):
+    if time_average not in ("matched","all"):
+        raise ValueError("Time averaging must be matched or all.")
     fit=data['fit']
     ids=fit['collection_ids']
     baseline=data['baseline']
@@ -204,7 +206,8 @@ def prepare(data,bundle,output):
     receipt=dict(protocol=data['protocol'],input_bundle_sha256=winners.digest(bundle),layers=[31],
         scopes=list(pooling.SCOPES),collection_ids=ids,evaluation_ids=list(expected),
         collection_count=len(ids),evaluation_count=len(expected),models=data['models'],packages=data['packages'],
-        time_average='Matched forwards, unchanged.',
+        time_average=('Matched forwards, unchanged.' if time_average=='matched' else
+                      'Independent mean over every forward of each recording; then angry minus neutral; equal question weight.'),
         answer_pooling='full-buffer512 versus current-block32; same generations for both.',
         steering='L31 answer x+1; inject across full answer buffer, unchanged.',
         runner_sha256=winners.digest(__file__),collector_sha256=winners.digest(pooling.__file__))
@@ -226,6 +229,8 @@ def prepare(data,bundle,output):
         plan=deepcopy(fit)
         plan.update(protocol=data['protocol']+'-'+scope,pooling_scope=scope,
                     averaging=f'{scope} answer mean; matched forwards; equal question weight.')
+        if time_average=='all':
+            plan.update(forward_averaging='all',averaging=f'{scope} answer mean; independent all-forward means within each recording; equal question weight.')
         winners.freeze(output/scope/'run_config.json',plan)
         plans[scope]=plan
     # Every new direction is fitted on200, not the original425: update provenance too.
@@ -233,6 +238,16 @@ def prepare(data,bundle,output):
         job[key]['extraction_ids']=ids
         job[key]['vector_info']=dict(job[key].get('vector_info',{}),extraction_ids=ids,pairs=len(ids))
     return plans,job
+
+
+def pool_pair_all(neutral,emotion,neutral_active,emotion_active):
+    """Keep the entire trajectory on EACH side; preserve equal question weight."""
+    nm,em,delta,_=vanilla.task.average_pair(neutral,emotion,'all')
+    na,ea,da,_=vanilla.task.average_pair(neutral_active.unsqueeze(2),emotion_active.unsqueeze(2),'all')
+    active=[value.clone() for value in (nm,em,delta)]
+    for value,answer in zip(active,(na,ea,da)):
+        value[:,3]=answer[:,0]
+    return {'full-buffer':(nm,em,delta),'active-block':tuple(active)},None
 
 
 def collect(data,plans,output,paths,model,tokenizer,features):
@@ -253,7 +268,8 @@ def collect(data,plans,output,paths,model,tokenizer,features):
         if expected is not None and (nr!=expected['neutral_response'] or er!=expected['emotion_response']
                 or n.shape[1]!=expected['neutral_forwards'] or e.shape[1]!=expected['emotion_forwards']):
             raise ValueError(f'{q}: source response/forward replay differs; no steering started.')
-        pooled,matched=pooling.pool_pair(n,e,na,ea)
+        average=pool_pair_all if plans['active-block'].get('forward_averaging')=='all' else pooling.pool_pair
+        pooled,matched=average(n,e,na,ea)
         for scope in pooling.SCOPES:
             nm,em,delta=pooled[scope]
             pooling.running.append(state['scopes'][scope],dict(question_id=q,neutral=nm,emotion=em,difference=delta,
@@ -279,6 +295,7 @@ def active_steering_jobs(plans,job,data,output,create=True):
 
 def summary(plans,job,data,output):
     state=pooling.load_state(output,plans)
+    print('Time averaging:',plans['active-block'].get('forward_averaging','matched'),flush=True)
     print(f'Angry/agreed fitting: {len(state["scopes"]["full-buffer"]["completed_ids"])}/{len(data["fit"]["pairs"])}; '
           f'evaluation: {len(data["baseline"])} separate questions; L31 answer x+1.',flush=True)
     for child,selected in active_steering_jobs(plans,job,data,output,create=False):
@@ -292,19 +309,22 @@ def main():
     parser.add_argument('--source',type=Path,default=Path('outputs/diffa-gsm-vanilla/angry/agreed'))
     parser.add_argument('--bundle',type=Path,required=True)
     parser.add_argument('--output',type=Path)
+    parser.add_argument('--time-average',choices=('matched','all'),default='matched',
+                        help='all retains every forward on each side, with separate within-recording means.')
     parser.add_argument('--audio-root',type=Path,action='append')
     args=parser.parse_args()
     if args.mode=='pack':
         package(args.source,args.bundle,args.output or Path('outputs/gsm8k-angry-agreed-active-fit200-eval200.zip'))
         return
-    output=args.output or Path('outputs/diffa-active-pooling-fit200-eval200')
+    suffix='-all-forwards' if args.time_average=='all' else ''
+    output=args.output or Path('outputs/diffa-active-pooling-fit200-eval200'+suffix)
     repo=Path(__file__).resolve().parent
     roots=[*(args.audio_root or [repo/'outputs/jenny-zip-audio']),repo]
     data=input_data(args.bundle,roots,output,summary_only=args.mode=='summary')
     if data is None:
         print('Active-pooling experiment not started yet. Run with this same layer-probe ZIP to collect.',flush=True)
         return
-    plans,job=prepare(data,args.bundle,output)
+    plans,job=prepare(data,args.bundle,output,time_average=args.time_average)
     if args.mode=='summary':
         summary(plans,job,data,output)
         return

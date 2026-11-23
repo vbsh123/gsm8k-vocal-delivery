@@ -114,6 +114,40 @@ class PortablePoolingTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'Ambiguous'):
                 portable.from_existing_probe(bundle,registry,questions=1)
 
+    def test_full_trajectory_means_keep_angry_tail_without_length_weighting(self):
+        neutral=torch.zeros(32,2,4,3)
+        neutral[:,1]=4.
+        emotion=torch.full((32,3,4,3),8.)
+        emotion[:,0]=2.
+        na=torch.ones(32,2,3)
+        na[:,1]=5.
+        ea=torch.full((32,3,3),12.)
+        ea[:,0]=3.
+        pooled,matched=portable.pool_pair_all(neutral,emotion,na,ea)
+        self.assertIsNone(matched)
+        torch.testing.assert_close(pooled['full-buffer'][2],torch.full((32,4,3),4.))
+        torch.testing.assert_close(pooled['active-block'][2][:,3],torch.full((32,3),6.))
+        prefix,_=portable.pooling.pool_pair(neutral,emotion,na,ea)
+        torch.testing.assert_close(prefix['full-buffer'][2],torch.full((32,4,3),3.))
+        duplicated,_=portable.pool_pair_all(neutral,emotion.repeat(1,2,1,1),na,ea.repeat(1,2,1))
+        torch.testing.assert_close(duplicated['active-block'][2],pooled['active-block'][2])
+
+    def test_all_mode_has_separate_frozen_recipe_and_preserves_question_ids(self):
+        with tempfile.TemporaryDirectory() as directory,redirect_stdout(io.StringIO()):
+            root=Path(directory)
+            source,bundle=self.fixture(root)
+            destination=root/'inputs.zip'
+            portable.package(source,bundle,destination,questions=1)
+            data=portable.load_bundle(destination)
+            matched,_=portable.prepare(data,destination,root/'matched')
+            all_plans,job=portable.prepare(data,destination,root/'all',time_average='all')
+            self.assertEqual(all_plans['active-block']['collection_ids'],matched['active-block']['collection_ids'])
+            self.assertEqual(job['target']['records'],data['job']['target']['records'])
+            self.assertEqual(all_plans['active-block']['forward_averaging'],'all')
+            self.assertIn('independent all-forward',all_plans['active-block']['averaging'])
+            with self.assertRaisesRegex(ValueError,'Frozen collection'):
+                portable.prepare(data,destination,root/'matched',time_average='all')
+
     def test_subset_control_is_fitted_fresh_with_subset_count_and_resumes(self):
         with tempfile.TemporaryDirectory() as directory,redirect_stdout(io.StringIO()):
             root=Path(directory)
@@ -122,7 +156,7 @@ class PortablePoolingTests(unittest.TestCase):
             portable.package(source,bundle,destination,questions=1)
             data=portable.load_bundle(destination)
             output=root/'Phi'
-            plans,job=portable.prepare(data,destination,output)
+            plans,job=portable.prepare(data,destination,output,time_average='all')
             old=torch.load(source/'style-vectors.pt',weights_only=True)
             delta=old['pair_mean_sums']['angry']/2
             paths={record['audio_sha256']:'/new/zip/'+record['audio_sha256']
@@ -150,6 +184,10 @@ class PortablePoolingTests(unittest.TestCase):
                 portable.collect(data,plans,output,paths,None,None,None)
                 portable.collect(data,plans,output,paths,None,None,None)
             self.assertEqual(capture_call.call_count,4)
+            state=portable.pooling.load_state(output,plans)
+            self.assertIsNone(state['scopes']['active-block']['rows'][0]['matched_forwards'])
+            vector=torch.load(output/'active-block/style-vectors.pt',weights_only=True)
+            self.assertIn('independent all-forward',vector['averaging'])
             self.assertTrue(all(path.startswith('/new/zip/') for path in seen))
             full,info=portable.winners.read_vector(output/'full-buffer/style-vectors.pt','angry',28,'answer')
             current,_=portable.winners.read_vector(output/'active-block/style-vectors.pt','angry',28,'answer')
