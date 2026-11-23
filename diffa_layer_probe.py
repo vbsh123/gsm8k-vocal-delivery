@@ -246,15 +246,53 @@ def probe_jobs(folder, job, receipt):
     return result
 
 
+def report_natural_benefit(job, baseline_rows, data_root, output):
+    """Natural emotional audio vs neutral on exactly the probe's selected questions."""
+    winners = vanilla.task.winners
+    if not (data_root/'split.json').exists() or not (data_root/'delivery/results.jsonl').exists():
+        raise FileNotFoundError(f'Natural emotion answers missing under {data_root}. Run this report on the original DIFFA machine.')
+    manifest = json.loads((data_root/'split.json').read_text())
+    if vanilla.fingerprint(manifest) != job['split_sha256']:
+        raise ValueError('Natural answers belong to a different frozen prompt/audio cohort.')
+    emotion = job['emotion']
+    expected = {(r['question_id'], r['voice']): r for r in job['target']['records']}
+    neutral_snapshot = {(r['question_id'], r['voice']): r for r in baseline_rows if r['strength'] == 0.}
+    if set(neutral_snapshot) != set(expected):
+        raise ValueError('Bundle baselines do not match its target questions.')
+    selected = {}
+    for row in read_rows(data_root/'delivery/results.jsonl'):
+        key = row['question_id'], row['voice']
+        style = row['condition']
+        if key not in expected or style not in ('neutral', emotion):
+            continue
+        record = dict(expected[key], audio_sha256=manifest['audio_sha256'][key[0]][style])
+        if ((key, style) in selected or row.get('strength') != 0. or row.get('interventions') != []
+                or not winners.reusable(row, {}, record, job['target'])):
+            raise ValueError('Natural response differs from the probe prompt, audio hash or decoding recipe.')
+        if style == 'neutral' and row['response'] != neutral_snapshot[key]['response']:
+            raise ValueError('Natural neutral answer differs from the exact baseline used by the layer sweep.')
+        selected[key, style] = row
+    ids = [r['question_id'] for r in job['target']['records']]
+    plan = dict(name=job['target']['name'], emotion=emotion, prompt=job['target']['prompt'],
+                test_ids=ids, target=job['target'])
+    output.mkdir(parents=True, exist_ok=True)
+    winners.atomic_text(output/'selection.json', json.dumps(dict(question_ids=ids, split_sha256=job['split_sha256'],
+        note='Exact layer-probe subset. Natural emotion audio versus the same neutral baselines. No e2v or correctness filtering.'), indent=2)+'\n')
+    print(f'NATURAL {emotion} AUDIO vs NEUTRAL: exact{len(ids)} layer-sweep questions; no steering; no extra filtering.', flush=True)
+    vanilla.task.report_delivery(plan, output, rows=list(selected.values()), cohort='exact layer-sweep subset')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--mode', choices=('pack', 'run', 'summary'), default='run')
+    parser.add_argument('--mode', choices=('pack', 'run', 'summary', 'deliveries'), default='run')
     parser.add_argument('--source', type=Path, default=Path('outputs/diffa-gsm-vanilla/angry/random'))
     parser.add_argument('--layer', type=int, default=28)
     parser.add_argument('--layers', type=int, nargs='+', help='Pack a sequential sweep using one shared vector file and question subset.')
     parser.add_argument('--questions', type=int, help='Seed42 random subset of the existing unfitted test questions.')
     parser.add_argument('--strength', type=float, default=1.)
     parser.add_argument('--bundle', type=Path)
+    parser.add_argument('--data-root', type=Path, default=Path('outputs/diffa-gsm-vanilla'),
+                        help='Saved natural responses for --mode deliveries; use on the original DIFFA machine.')
     parser.add_argument('--audio-root', action='append', type=Path,
                         help='Extracted Jenny ZIP root; default outputs/jenny-zip-audio and the repository.')
     parser.add_argument('--output', type=Path)
@@ -279,6 +317,21 @@ def main():
     if args.mode == 'pack':
         package(args.source.resolve(), folder, repo, args.layers[0] if args.layers else args.layer, args.strength,
                 layers=args.layers, questions=args.questions)
+        return
+    if args.mode == 'deliveries':
+        if not args.bundle:
+            parser.error('--mode deliveries requires --bundle to identify the exact sweep questions.')
+        with zipfile.ZipFile(args.bundle) as stream:
+            manifest = json.loads(stream.read(MARKER))
+            prefix = manifest['folder']
+            job_bytes = stream.read(prefix+'/run_config.json')
+            baseline_bytes = stream.read(prefix+'/results.jsonl')
+            if sha(job_bytes) != manifest['files'][prefix+'/run_config.json'] or sha(baseline_bytes) != manifest['files'][prefix+'/results.jsonl']:
+                raise ValueError('Bundle question/baseline metadata is corrupt.')
+            job = json.loads(job_bytes)
+            baseline_rows = [json.loads(line) for line in baseline_bytes.splitlines() if line.strip()]
+        report_natural_benefit(job, baseline_rows, args.data_root,
+            repo/'outputs/diffa-layer-natural-benefit'/Path(prefix).name)
         return
     if args.bundle:
         folder = unpack(args.bundle, repo)

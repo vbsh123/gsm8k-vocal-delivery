@@ -191,6 +191,41 @@ class LayerProbeTests(unittest.TestCase):
             self.assertEqual(len(job['target']['records']), 2)
             self.assertFalse(set(train) & {r['question_id'] for r in job['target']['records']})
 
+    def test_natural_benefit_scores_only_exact_probe_questions_with_same_baseline(self):
+        from tests.test_diffa_gsm_vanilla import VanillaTests
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            run = root/'original'
+            helper = VanillaTests()
+            manifest, plans = helper.prepare(run)
+            scoped = probe.vanilla.prepare_deliveries(helper.registry(), manifest, plans, run)
+            tokenizer = SimpleNamespace(encode=lambda *a, **kw: [1, 2])
+            def generate(record, *args):
+                return ('#### 3' if record['style'] == 'angry' and record['question_id'] == 'q00' else '#### 2'), {}
+            with patch.object(probe.vanilla.task, 'generate', side_effect=generate):
+                probe.vanilla.deliver(scoped, ['angry'], run/'delivery', None, tokenizer, None)
+            target = dict(scoped['angry']['agreed']['target'])
+            wanted = {'q00', 'q03'}
+            target['records'] = [r for r in target['records'] if r['question_id'] in wanted]
+            target['bank'] = {q: target['bank'][q] for q in wanted}
+            job = dict(target=target, emotion='angry', split_sha256=probe.vanilla.fingerprint(manifest))
+            baselines = [r for r in probe.read_rows(run/'delivery/results.jsonl')
+                         if r['question_id'] in wanted and r['condition'] == 'neutral']
+            output = root/'report'
+            def score(plan, rows, folder):
+                return [dict(r, metrics={'flexible-numeric': r['response'] == '#### 2'}) for r in rows], {}
+            with patch.object(probe.vanilla.task.winners, 'score_rows', side_effect=score):
+                probe.report_natural_benefit(job, baselines, run, output)
+            summary = json.loads((output/'summary.json').read_text())
+            self.assertEqual(summary['matched_questions'], 2)
+            self.assertEqual(summary['paired'][0]['baseline_correct'], 2)
+            self.assertEqual(summary['paired'][0]['steered_correct'], 1)
+            # q00 is not angry-recognized, but must stay in this exact200-style cohort.
+            self.assertIn('q00', json.loads((output/'selection.json').read_text())['question_ids'])
+            baselines[0]['response'] = 'different neutral'
+            with self.assertRaisesRegex(ValueError, 'exact baseline'):
+                probe.report_natural_benefit(job, baselines, run, output)
+
 
 if __name__ == '__main__':
     unittest.main()

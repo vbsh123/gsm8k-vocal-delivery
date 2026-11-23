@@ -245,9 +245,11 @@ def report_delivery(plan,folder,tokenizer=None,*,rows=None,cohort='held-out',exp
     scored,provenance=winners.score_rows(scoring,rows,folder)
     groups={c:{(r['question_id'],r['voice']):r for r in scored if r['condition']==c} for c in ('neutral',label)}
     keys=sorted(groups['neutral'].keys()&groups[label].keys());results=[];lengths={}
-    if tokenizer is None:
+    if tokenizer is None and any(groups[c][k].get('response_tokens') is None for c in groups for k in keys):
         from transformers import AutoTokenizer
-        tokenizer=AutoTokenizer.from_pretrained('GSAI-ML/LLaDA-8B-Instruct',local_files_only=True)
+        from diffa_model_receipts import model_revisions
+        tokenizer=AutoTokenizer.from_pretrained('GSAI-ML/LLaDA-8B-Instruct',
+            revision=model_revisions().get('GSAI-ML/LLaDA-8B-Instruct'),local_files_only=True)
     for c,g in groups.items():
         counts=[r.get('response_tokens') if r.get('response_tokens') is not None else len(tokenizer.encode(r['response'],add_special_tokens=False)) for r in (g[k] for k in keys)]
         if counts:lengths[c]=dict(n=len(counts),mean_tokens=statistics.mean(counts),median_tokens=statistics.median(counts))

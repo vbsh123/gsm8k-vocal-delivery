@@ -33,6 +33,20 @@ Layer-specific answers are kept in `L25` through `L30` subfolders; restarting
 preserves completed answers. Use the new200-question sweep bundle, since runtime
 settings come from the bundle rather than command-line overrides.
 
+To check how much **natural angry audio** helps on those exact200 questions,
+run this on the original DIFFA machine (where the saved angry answers live):
+
+```bash
+git pull --ff-only
+bash run_diffa_layer_probe.sh --mode deliveries --bundle outputs/diffa-layer-probes/gsm8k-angry-agreed-L25-30-answer-a1-n200.zip
+```
+
+This reads the selected IDs and neutral baseline snapshot directly from the ZIP,
+then scores saved neutral/angry natural answers on that exact subset. It verifies
+the prompt, decoding recipe, golds, audio hashes and identical neutral responses.
+No extraction, generation, recollection or extra e2v filtering occurs. Reports
+are written under `outputs/diffa-layer-natural-benefit/<probe-name>`.
+
 ## Single-layer option
 
 This runs DIFFA, with the already collected vanilla angry/random direction.
