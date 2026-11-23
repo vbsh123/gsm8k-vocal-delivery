@@ -398,10 +398,48 @@ def steer(plans, scoped, emotions, output, model, tokenizer, features):
             task.report_steering(folder, tokenizer)
 
 
+def agreement_counts(predictions, ids, emotion):
+    ids = list(ids)
+    labels = [predictions.get(q, {}).get(emotion) for q in ids]
+    classified = sum(label is not None for label in labels)
+    agreed = sum(label == emotion for label in labels)
+    return dict(questions=len(ids), classified=classified, agreed=agreed, missing=len(ids)-classified,
+                agreement_pct=100*agreed/classified if classified else None)
+
+
+def report_agreement(plans, output, emotions, rows):
+    """Count saved audio labels; do not filter response accuracy or rerun classification."""
+    manifest = json.loads((output/'split.json').read_text())
+    if fingerprint(manifest) != plans['angry']['random']['split_sha256']:
+        raise ValueError('Emotion agreement snapshot differs from the frozen generation inputs.')
+    predictions = manifest['emotion2vec_predictions']
+    neutral = {r['question_id'] for r in rows if r['condition'] == 'neutral'}
+    result = {}
+    for e in EMOTIONS:
+        completed = neutral & {r['question_id'] for r in rows if r['condition'] == e}
+        scopes = dict(all_clips=agreement_counts(predictions, manifest['bank'], e),
+                      matched_accuracy_pairs=agreement_counts(predictions, sorted(completed), e))
+        for regime in REGIMES:
+            scopes[regime+'_fitting'] = agreement_counts(predictions, plans[e][regime]['collection_ids'], e)
+        result[e] = scopes
+        if e in emotions:
+            def display(info):
+                rate = f'{info["agreement_pct"]:.1f}%' if info['agreement_pct'] is not None else 'n/a'
+                return f'{info["agreed"]}/{info["classified"]} ({rate}); missing={info["missing"]}'
+            print(f'emotion2vec / {e}: all clips {display(scopes["all_clips"])}; '
+                  f'completed accuracy pairs {display(scopes["matched_accuracy_pairs"])}.', flush=True)
+    task.winners.atomic_text(output/'emotion2vec-agreement.json', json.dumps(dict(
+        split_sha256=fingerprint(manifest), source='Frozen whole-recording emotion2vec predictions for exact Jenny audio hashes.',
+        note='Agreement percentages only. Natural response accuracy remains unfiltered. Neutral predictions are not filtered.',
+        emotions=result), indent=2)+'\n')
+    return result
+
+
 def report(plans, output, emotions, tokenizer=None, detailed=False):
     from rescore_audio_steering import paired
     scoped = delivery_scope(plans, output)
     raw = list(delivery_rows(scoped, output/'delivery').values())
+    report_agreement(plans, output, emotions, raw)
     scored_groups = {}
     for e in emotions:
         plan = scoped[e]['random']

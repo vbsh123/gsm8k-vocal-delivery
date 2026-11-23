@@ -50,6 +50,21 @@ class VanillaTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'recognized fitting'):
             vanilla.select(pool, dict(all_agreed, happy=[]), 20, 25)
 
+    def test_agreement_reports_all_clips_and_exact_completed_pairs_without_neutral_filter(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            _, plans = self.prepare(root)
+            rows = [dict(question_id=q, condition=s) for q, s in
+                    [('q00', 'neutral'), ('q02', 'neutral'), ('q00', 'happy'), ('q01', 'happy')]]
+            stats = vanilla.report_agreement(plans, root, ['happy', 'sad'], rows)
+            self.assertEqual(stats['happy']['all_clips']['classified'], 16)
+            self.assertEqual(stats['happy']['all_clips']['agreed'], 15)
+            self.assertEqual(stats['happy']['matched_accuracy_pairs']['questions'], 1)
+            self.assertEqual(stats['happy']['matched_accuracy_pairs']['agreement_pct'], 100.)
+            self.assertEqual(stats['happy']['agreed_fitting']['agreed'], 5)
+            self.assertIsNone(stats['sad']['matched_accuracy_pairs']['agreement_pct'])
+            self.assertEqual(vanilla.agreement_counts({}, ['q00'], 'sad')['missing'], 1)
+
     def test_manifest_hash_is_portable_and_plans_use_same_prompt_and_test(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -74,6 +74,12 @@ bash run_diffa_gsm_vanilla.sh --mode summary --emotions angry
 bash run_diffa_gsm_vanilla.sh --mode summary --emotions happy sad
 ```
 
+Summaries also print saved emotion2vec agreement for each emotion across all
+clips and on the exact completed neutral/emotion accuracy pairs. Counts come
+from the frozen exact-audio label snapshot, with no new classification. These
+percentages do not filter accuracy. `emotion2vec-agreement.json` additionally
+records agreement within each vector's fitting selection.
+
 Artifacts live in `outputs/diffa-gsm-vanilla`: `split.json`, `delivery/results.jsonl`,
 and `<emotion>/{random,agreed}/style-vectors.pt`. `<emotion>/delivery-report`
 compares all1319 natural deliveries; partial reports show the matched count.
