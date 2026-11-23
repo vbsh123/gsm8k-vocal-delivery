@@ -1,5 +1,6 @@
 """Report actual saved neutral/emotion decoder forward counts. CPU only, read only."""
 import argparse
+import json
 from pathlib import Path
 from statistics import mean,median
 
@@ -36,12 +37,46 @@ def statistics(rows):
         actual_angry_retained_mean_pct=actual)
 
 
-def report(path):
+def original_rows(config_path):
     import torch
-    state=torch.load(path,map_location='cpu',weights_only=True)
-    # Both pooling scopes came from the same generation; count each pair once.
-    saved=state['scopes'].get('full-buffer',next(iter(state['scopes'].values()))) if 'scopes' in state else state
-    rows=saved['rows']
+    config=json.loads(config_path.read_text())
+    vector=Path(config['vector'])
+    state=torch.load(vector,map_location='cpu',weights_only=True)
+    pairs=state.get('pairs')
+    ids=[p['question_id'] for p in pairs] if pairs else state.get('extraction_question_ids',[])
+    if not ids or len(set(ids))!=len(ids):
+        raise ValueError('Original vector lacks unique contributing question IDs.')
+    candidates=[folder for folder in (vector.parent/'pairs',vector.parent.parent/'pairs') if folder.is_dir()]
+    if len(candidates)!=1:
+        raise ValueError(f'Need the original per-pair forward-count caches beside {vector}; found {candidates}. No inference performed.')
+    print(f'Original vector: {vector}\nCollection prompt: {state.get("prompt")}')
+    print(f'Reading saved pair caches from {candidates[0]}; CPU only.',flush=True)
+    expected=set(ids)
+    selected={}
+    for path in sorted(candidates[0].glob('*.pt')):
+        saved=torch.load(path,map_location='cpu',weights_only=True)
+        q=saved.get('question_id') or saved.get('pair',{}).get('question_id')
+        if q not in expected:
+            continue
+        if q in selected:
+            raise ValueError(f'Duplicate original fitting pair: {q}')
+        selected[q]=dict(question_id=q,neutral_forwards=saved['neutral_forwards'],
+            emotion_forwards=saved['emotion_forwards'] if 'emotion_forwards' in saved else saved['angry_forwards'],
+            matched_forwards=saved['matched_forwards'])
+    if set(selected)!=expected:
+        raise ValueError(f'Missing original forward-count caches: {len(expected-set(selected))}/{len(ids)} pairs.')
+    return [selected[q] for q in ids]
+
+
+def report(path,original=False):
+    import torch
+    if original:
+        rows=original_rows(path)
+    else:
+        state=torch.load(path,map_location='cpu',weights_only=True)
+        # Both pooling scopes came from the same generation; count each pair once.
+        saved=state['scopes'].get('full-buffer',next(iter(state['scopes'].values()))) if 'scopes' in state else state
+        rows=saved['rows']
     if len({r['question_id'] for r in rows})!=len(rows):
         raise ValueError(f'Duplicate fitting questions: {path}')
     stats=statistics(rows)
@@ -63,7 +98,12 @@ def report(path):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('checkpoints',nargs='*',type=Path)
+    parser.add_argument('--original-gsm',action='store_true',help='Read the original vector and its per-pair caches via the historical run config.')
+    parser.add_argument('--original-config',type=Path,default=Path('outputs/reasoning-transfer/gsm8k/run_config.json'))
     args=parser.parse_args()
+    if args.original_gsm:
+        report(args.original_config,original=True)
+        return
     paths=args.checkpoints or [Path(p) for p in DEFAULTS if Path(p).is_file()]
     print('Saved model forward counts, NOT output token counts. No inference or file changes.')
     if not paths:
