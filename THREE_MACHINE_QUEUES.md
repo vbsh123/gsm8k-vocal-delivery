@@ -135,6 +135,27 @@ bash run_phi4_zip_recheck.sh --mode summary
 python3 report_three_machine_queues.py
 ```
 
+## Phi GSM older-prompt ablation
+
+This separate run evaluates only the SAME718 held-out GSM questions with the
+SAME fresh audio, model revision, seed and token budget. It changes only
+"Give concise step-by-step reasoning with only the necessary calculations."
+to the older "Let's think step by step." Both neutral and angry are generated;
+the425 collection questions remain excluded. No vectors or steering are run.
+The main queue and its artifacts are unchanged. This concurrent run checks
+available GPU memory immediately and does not wait on the main GPU queue.
+
+```bash
+git pull --ff-only
+nohup bash run_phi4_gsm_old_prompt.sh > outputs/phi4-gsm-old-prompt.log 2>&1 </dev/null &
+bash run_phi4_gsm_old_prompt.sh --mode summary
+```
+
+Saved in `outputs/phi4-gsm-fresh-audio-old-prompt`. The summary reports the
+older-prompt angry-versus-neutral effect; `prompt-comparison.json` compares
+both prompt conditions on common completed question/voice IDs, requiring exact
+audio hashes and budgets. These remain exploratory prompt ablations.
+
 ## New DIFFA A40
 
 Upload/Cloud Copy both COMPLETE ZIPs and checksum files into `/workspace`.
