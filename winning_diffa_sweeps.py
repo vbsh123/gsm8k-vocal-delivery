@@ -397,7 +397,10 @@ def report_job(folder):
                 if bits:
                     instruction_totals.append(dict(strength=a, mode=mode, instructions=len(bits), correct=sum(bits), accuracy=sum(bits)/len(bits)))
     atomic_text(folder/'rescored.jsonl', ''.join(json.dumps(r)+'\n' for r in scored))
-    atomic_text(folder/'summary.json', json.dumps(dict(scorer=provenance, primary_metric=plan['target']['primary_metric'],
+    atomic_text(folder/'summary.json', json.dumps(dict(scorer=provenance, primary_metric=plan['target'].get('primary_metric',
+        'strict_prompt' if plan['target']['task'] == 'ifeval' else
+        'flexible-extract' if plan['target']['task'].startswith('bbh') else
+        'flexible-numeric'),
         paired=results, instruction_totals=instruction_totals,
         note='Exploratory; unadjusted exact McNemar tests and 95% question-paired bootstrap intervals. '
              'Numeric equivalence/format compliance are additional diagnostics; no cross-task metric pooling.'), indent=2)+'\n')

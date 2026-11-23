@@ -49,5 +49,31 @@ class SteeringReportTests(unittest.TestCase):
         self.assertIn('Accuracy scores remain valid', result['lengths_note'])
 
 
+class MissingMetricRegressionTests(unittest.TestCase):
+    def test_reporting_infers_task_metric_without_changing_frozen_configs(self):
+        import winning_diffa_sweeps as winners
+        for task,primary in [('gsm8k','flexible-numeric'),('svamp','flexible-numeric'),
+                             ('multiarith','flexible-numeric'),('bbh3','flexible-extract'),
+                             ('bbh5','flexible-extract'),('ifeval','strict_prompt')]:
+            with self.subTest(task=task),tempfile.TemporaryDirectory() as directory,redirect_stdout(io.StringIO()):
+                folder=Path(directory)
+                plan=dict(source=dict(name=task),target=dict(name=task,task=task),strengths=[0.,1.])
+                config=folder/'run_config.json'
+                config.write_text(json.dumps(plan))
+                before=config.read_bytes()
+                rows=[dict(question_id='q0',voice='Jenny',condition='neutral',strength=0.,response='baseline'),
+                      dict(question_id='q0',voice='Jenny',condition='L31-answer-a1',strength=1.,response='steered')]
+                (folder/'results.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rows))
+                def score(*args):
+                    return [dict(r,metrics={primary:r['strength']==1.},official_scores={
+                        'strict':dict(instructions=[True]),'loose':dict(instructions=[True])}) for r in rows],{}
+                with patch.object(winners,'score_rows',side_effect=score):
+                    winners.report_job(folder)
+                summary=json.loads((folder/'summary.json').read_text())
+                self.assertEqual(summary['primary_metric'],primary)
+                self.assertEqual(summary['paired'][-1]['gain_pp'],100.)
+                self.assertEqual(config.read_bytes(),before)
+
+
 if __name__ == '__main__':
     unittest.main()
