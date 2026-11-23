@@ -323,7 +323,8 @@ def generate_job(plan, folder, model, tokenizer, features):
                 source_dataset=source['name'], target_dataset=target['name'],
                 vector_sha256=source['vector_sha256'] if a else None, interventions=interventions,
                 steered_forwards=max(s['state']['steered'] for s in states), audio_encoding=encoding,
-                generation_seconds=time.monotonic()-started, reused_from=None)
+                generation_seconds=time.monotonic()-started, reused_from=None,
+                response_tokens=len(tokenizer.encode(response,add_special_tokens=False)) if tokenizer is not None else None)
             stream.write(json.dumps(saved)+'\n'); stream.flush()
 
 

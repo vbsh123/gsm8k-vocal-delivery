@@ -187,6 +187,46 @@ def validate(job, folder, check_audio=False):
     return done
 
 
+def resolve_audio(job, roots):
+    """Relocate exact bytes from the Phi ZIP directory without changing frozen configs."""
+    roots = list(dict.fromkeys(Path(root).resolve() for root in roots))
+    alternatives = {}
+    for root in roots:
+        manifest = root/'JENNY_AUDIO_MANIFEST.json'
+        if manifest.exists():
+            for entry in json.loads(manifest.read_text()).get('files', []):
+                if entry.get('audio_sha256') and entry.get('member'):
+                    alternatives.setdefault(entry['audio_sha256'], []).append(root/entry['member'])
+    found, mappings = {}, []
+    for record in job['target']['records']:
+        key = record['audio_sha256']
+        original = record['audio_file']
+        if key not in found:
+            candidates = [Path(original)]
+            if '/outputs/' in original:
+                suffix = original.split('/outputs/', 1)[1]
+                candidates.extend(root/'outputs'/suffix for root in roots)
+            candidates.extend(alternatives.get(key, []))
+            for path in dict.fromkeys(candidates):
+                if path.is_file() and vanilla.task.winners.digest(path) == key:
+                    found[key] = str(path.resolve())
+                    break
+            else:
+                raise ValueError(f'Exact audio bytes not found for {record["question_id"]}; expected SHA256={key}. '
+                                 f'Searched original path and {[str(r) for r in roots]}. '
+                                 'Use --audio-root with the directory containing the extracted Jenny ZIP.')
+        mappings.append(dict(question_id=record['question_id'], audio_sha256=key,
+                             source_audio_file=original, runtime_audio_file=found[key]))
+    return found, mappings
+
+
+def with_audio_paths(job, paths):
+    result = deepcopy(job)
+    result['target']['records'] = [dict(record, audio_file=paths[record['audio_sha256']])
+                                   for record in job['target']['records']]
+    return result
+
+
 def probe_jobs(folder, job, receipt):
     layers = receipt.get('layers')
     if layers is None:
@@ -215,6 +255,8 @@ def main():
     parser.add_argument('--questions', type=int, help='Seed42 random subset of the existing unfitted test questions.')
     parser.add_argument('--strength', type=float, default=1.)
     parser.add_argument('--bundle', type=Path)
+    parser.add_argument('--audio-root', action='append', type=Path,
+                        help='Extracted Jenny ZIP root; default outputs/jenny-zip-audio and the repository.')
     parser.add_argument('--output', type=Path)
     parser.add_argument('--replay-count', type=int, default=3, help='Check source neutral reproducibility before steering.')
     args = parser.parse_args()
@@ -251,6 +293,14 @@ def main():
         return
     with (folder/'run.lock').open('a') as own, Path('outputs/jenny-task-vectors.lock').open('a') as gpu:
         fcntl.flock(own, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        roots = [*(args.audio_root or [repo/'outputs/jenny-zip-audio']), repo]
+        paths, mappings = resolve_audio(job, roots)
+        vanilla.task.winners.atomic_text(folder/'audio-relocations.json', json.dumps(dict(
+            source_config_sha256=vanilla.task.winners.digest(folder/'run_config.json'), recordings=mappings), indent=2)+'\n')
+        changed = sum(row['source_audio_file'] != row['runtime_audio_file'] for row in mappings)
+        print(f'Audio verified: {len(mappings)} exact hashes; {changed} paths relocated. Original recordings/configs unchanged.', flush=True)
+        job = with_audio_paths(job, paths)
+        cases = [(child, with_audio_paths(selected, paths)) for child, selected in cases]
         done = validate(job, folder, check_audio=True)
         pending = sum(len(selected['target']['records'])*len(selected['strengths'])-len(validate(selected, child))
                       for child, selected in cases)

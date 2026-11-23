@@ -292,22 +292,34 @@ def report_collection(plan,folder,tokenizer=None):
 def report_steering(folder,tokenizer=None):
     winners.report_job(folder)
     rows=read_rows(folder/'results.jsonl');lengths={}
-    if tokenizer is None:
-        from transformers import AutoTokenizer
-        tokenizer=AutoTokenizer.from_pretrained('GSAI-ML/LLaDA-8B-Instruct',local_files_only=True)
     groups={}
     for row in rows:groups.setdefault(row['condition'],{})[row['question_id'],row['voice']]=row
     common=set.intersection(*(set(g) for g in groups.values())) if len(groups)>1 else set()
-    for row in rows:
-        if (row['question_id'],row['voice']) not in common:continue
-        count=row.get('response_tokens')
-        if count is None:count=len(tokenizer.encode(row['response'],add_special_tokens=False))
-        lengths.setdefault(row['condition'],[]).append(count)
+    matched=[row for row in rows if (row['question_id'],row['voice']) in common]
+    note=None
+    if tokenizer is None and any(row.get('response_tokens') is None for row in matched):
+        try:
+            from transformers import AutoTokenizer
+            from diffa_model_receipts import model_revisions
+            revision=model_revisions().get('GSAI-ML/LLaDA-8B-Instruct')
+            tokenizer=AutoTokenizer.from_pretrained('GSAI-ML/LLaDA-8B-Instruct',revision=revision,local_files_only=True)
+        except (OSError,ImportError,ValueError) as error:
+            note=f'Token lengths unavailable: saved counts missing and local tokenizer unavailable ({type(error).__name__}). Accuracy scores remain valid.'
+    if note is None:
+        for row in matched:
+            count=row.get('response_tokens')
+            if count is None:count=len(tokenizer.encode(row['response'],add_special_tokens=False))
+            lengths.setdefault(row['condition'],[]).append(count)
+    if not matched:
+        note='No matched steered answers saved yet; only baseline scores are available.'
     path=folder/'summary.json'
     if path.exists():
         summary=json.loads(path.read_text());summary['lengths']={k:dict(n=len(v),mean_tokens=statistics.mean(v),median_tokens=statistics.median(v)) for k,v in lengths.items()}
+        if note:summary['lengths_note']=note
+        else:summary.pop('lengths_note',None)
         winners.atomic_text(path,json.dumps(summary,indent=2)+'\n')
         for c,info in summary['lengths'].items():print(c,'matched mean/median tokens:',round(info['mean_tokens'],1),info['median_tokens'],flush=True)
+    if note:print(note,flush=True)
 
 
 def summarize(root,names):

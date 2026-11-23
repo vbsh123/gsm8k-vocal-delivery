@@ -60,6 +60,13 @@ git pull --ff-only
 nohup bash run_diffa_layer_probe.sh --bundle /workspace/gsm8k-angry-random-L28-answer-a1.zip >> outputs/diffa-L28-angry-random.log 2>&1 </dev/null &
 ```
 
+The probe resolves the original source paths against the Phi ZIP directory
+`outputs/jenny-zip-audio` and the repository, accepting only exact SHA256 matches.
+An alternate extraction root can be passed with `--audio-root`. It leaves the
+frozen source configs and older Phi audio unchanged, and records runtime paths
+in `audio-relocations.json`. No audio re-upload or new probe bundle is needed
+when only local paths differ.
+
 Uses the existing `.venv-diffa`, Whisper cache and pinned DIFFA source. Missing
 LLaDA/DIFFA weights download at model load; the environment and Whisper do not
 need to be downloaded again. No Phi weights or outputs are removed. The wrapper
@@ -82,6 +89,11 @@ Check scores without loading the model:
 ```bash
 bash run_diffa_layer_probe.sh --mode summary
 ```
+
+Baseline-only summaries need no tokenizer. New generations save token counts
+with each response. For older rows without counts, reporting tries the pinned
+tokenizer revision locally; if unavailable, it keeps accuracy results and omits
+token lengths instead of failing or downloading weights.
 
 Results live under
 `outputs/diffa-layer-probes/gsm8k-angry-random-L28-answer-a1/`.

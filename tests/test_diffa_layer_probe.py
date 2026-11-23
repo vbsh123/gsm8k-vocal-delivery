@@ -96,12 +96,42 @@ class LayerProbeTests(unittest.TestCase):
                 return original_to(tensor, *args, **kw)
             modules = {'extract_vectors': SimpleNamespace(gen_chunked=generate),
                        'soundfile': SimpleNamespace(read=lambda *a, **kw: (np.zeros(10), 16000))}
+            tokenizer = SimpleNamespace(encode=lambda *a, **kw: [1, 2, 3])
             with patch.dict('sys.modules', modules), patch.object(torch.Tensor, 'to', cpu_to), redirect_stdout(io.StringIO()):
-                probe.vanilla.task.winners.generate_job(job, folder, model, None, None)
-                probe.vanilla.task.winners.generate_job(job, folder, model, None, None)
+                probe.vanilla.task.winners.generate_job(job, folder, model, tokenizer, None)
+                probe.vanilla.task.winners.generate_job(job, folder, model, tokenizer, None)
             self.assertEqual(observed, [(2., 0.), (2., 0.)])
             self.assertEqual(len(probe.validate(job, folder)), 4)
+            self.assertTrue(all(row['response_tokens'] == 3 for row in probe.validate(job, folder).values()))
             self.assertTrue(all(not block._forward_hooks for block in blocks))
+
+    def test_audio_relocation_uses_exact_zip_hash_without_overwriting_old_phi_audio(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            archive, folder = self.fixture(root)
+            probe.unpack(archive, root)
+            config_file = folder/'run_config.json'
+            original_config = config_file.read_bytes()
+            job = json.loads(original_config)
+            audio_root = root/'outputs/jenny-zip-audio'
+            audio_root.mkdir(parents=True)
+            entries = []
+            for record in job['target']['records']:
+                original = Path(record['audio_file'])
+                copied = audio_root/original.name
+                copied.write_bytes(original.read_bytes())
+                original.write_bytes(b'older Phi recording')
+                entries.append(dict(member=copied.name, audio_sha256=record['audio_sha256']))
+            (audio_root/'JENNY_AUDIO_MANIFEST.json').write_text(json.dumps(dict(files=entries)))
+            paths, mappings = probe.resolve_audio(job, [audio_root, root])
+            relocated = probe.with_audio_paths(job, paths)
+            self.assertEqual(len(probe.validate(relocated, folder, check_audio=True)), 2)
+            self.assertEqual(len(mappings), 2)
+            self.assertTrue(all(Path(row['runtime_audio_file']).parent == audio_root for row in mappings))
+            self.assertEqual(config_file.read_bytes(), original_config)
+            self.assertTrue(all(Path(r['audio_file']).read_bytes() == b'older Phi recording' for r in job['target']['records']))
+            with self.assertRaisesRegex(ValueError, 'Exact audio bytes not found'):
+                probe.resolve_audio(job, [root/'empty-root'])
 
     def test_agreed_sweep_uses_identical_seeded_subset_and_shared_vector(self):
         with tempfile.TemporaryDirectory() as directory:
