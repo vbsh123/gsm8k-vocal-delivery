@@ -9,16 +9,16 @@ Solve the math problem in the audio. End your response with a final answer line 
 
 Collection and evaluation use the same prompt and decoding recipe: seed42,
 512 new tokens, 128 diffusion steps, block32, temperature0. After natural
-delivery evaluation and fitting finish, each vector steers the same fixed500
-neutral deliveries at L31/answer x+1. Raw mean vectors retain their original
+delivery evaluation and fitting finish, each vector steers every neutral question
+outside its own425 fitting IDs (894 questions) at L31/answer x+1. Raw mean vectors retain their original
 magnitudes. No audio generation or classifier inference occurs.
 
-From the complete1319-question four-delivery pool, sort IDs, shuffle with seed42
-and reserve the first500 as a common steering holdout **before consulting emotion labels**.
-Natural delivery accuracy is evaluated on **all1319 questions**, with that
-fixed500 subset also reported separately. Including fitting questions in natural
-delivery evaluation does not apply a fitted vector to them.
-All fitting excludes these500. Sample425 fitting IDs with seed43 for the random
+Natural delivery accuracy is evaluated on **all1319 questions**, with activation
+capture during that same generation pass on selected fitting questions.
+The existing425 selections are frozen to preserve collected work. The first
+implementation sampled them from819 questions after a seed42 shuffle; its old
+500-question split remains in metadata only and no longer restricts generation
+or steering. Sample425 fitting IDs with seed43 for the random
 regime, shared across emotions. Independently sample425 recognized fitting IDs
 per emotion with seed44 for the agreed regime. Agreement concerns only the
 requested emotion; neutral predictions are ignored. The agreed cohorts may
@@ -46,15 +46,19 @@ git pull --ff-only
 nohup bash run_diffa_gsm_vanilla.sh --emotions happy sad >> outputs/diffa-gsm-vanilla-happy-sad.log 2>&1 </dev/null &
 ```
 
-The fixed500 natural deliveries run first. Collection then traverses the union of
-selected fitting questions. Overlapping regimes reuse captures, and selected
-emotions reuse the neutral capture on overlapping IDs. Running aggregates retain
+Generation and activation collection now happen together, question by question.
+Overlapping regimes reuse captures, and selected emotions reuse the neutral
+capture on overlapping IDs. Running aggregates retain
 raw responses and drift summaries, with atomic per-regime checkpoints and no full
 per-question activation cache. Repeating the launch safely resumes completed work.
-Collection responses are reused as natural deliveries with exact audio/prompt/
-recipe validation, then the remaining deliveries complete the full1319 pool.
+Existing collection responses are reused as natural deliveries with exact
+audio/prompt/recipe validation; existing completed aggregates are not recollected.
+Old saved text without activations cannot reconstruct an unfinished fitting pair:
+only those missing activation captures must be rerun.
 Then each selected emotion runs two steering evaluations: random-vector x+1 and
-agreed-vector x+1, both on the common500 holdout. Zero-strength baseline answers
+agreed-vector x+1, each on all894 questions outside that vector's425 fitting IDs.
+Direct comparisons between vectors must use the intersection held out from both,
+since their fitting sets differ. Zero-strength baseline answers
 are copied from the exact natural neutral responses; they are not regenerated.
 The full natural-delivery manifest is a separate `delivery/run_config.json`;
 old fitting configs, split hashes, checkpoint prefixes and completed500 answers
@@ -72,9 +76,11 @@ bash run_diffa_gsm_vanilla.sh --mode summary --emotions happy sad
 
 Artifacts live in `outputs/diffa-gsm-vanilla`: `split.json`, `delivery/results.jsonl`,
 and `<emotion>/{random,agreed}/style-vectors.pt`. `<emotion>/delivery-report`
-compares all1319 natural deliveries, and `<emotion>/heldout-delivery-report`
-compares the fixed500 subset; partial reports explicitly show the matched count.
-Each `<emotion>/<regime>/strength-1` contains held-out x+1 steering answers,
+compares all1319 natural deliveries; partial reports show the matched count.
+The default summary prints natural accuracy, a one-line progress count per vector,
+and steering accuracy when available. Add `--detailed` for fitting-set accuracy;
+it is not a separate evaluation experiment. No fixed500 accuracy block is printed.
+Each `<emotion>/<regime>/strength-1-unfitted` contains held-out x+1 steering answers,
 configuration, scored rows and accuracy/token-length summaries. The same summary
 command shows these as they run. Cached rows must match vector hashes,
 interventions, prompts, audio and decoding settings to be reused.
@@ -83,5 +89,6 @@ Tests are exploratory and unadjusted. Direct emotion comparisons require the raw
 delivery rows from both machines to be brought together later; they cannot be
 inferred from which neutral comparisons reach significance.
 
-This is a new split and prompt experiment. Compare random versus agreed vectors
-on this frozen evaluation set later, not against historical gains on other cohorts.
+This is a new prompt experiment. Compare vectors on common questions held out
+from both fits, not against historical gains on other cohorts. Earlier500-only
+steering artifacts, if present, are preserved in the old `strength-1` folders.

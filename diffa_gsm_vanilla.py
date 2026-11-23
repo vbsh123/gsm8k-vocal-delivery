@@ -264,16 +264,83 @@ def collect(plans, emotions, order, output, model, tokenizer, features):
         running.finalize(plan, output/k[0]/k[1], states[k])
 
 
-def steering_job(plan, folder):
+def generate_and_collect(plans, scoped, emotions, order, output, model, tokenizer, features):
+    """One question pass: save natural responses and observe pending fitting pairs together."""
+    import torch
+    import diffa_stream_collection as running
+    import src.fast_dllm.diffa_generate as decoder
+    reuse_collection_deliveries(plans, scoped, emotions, output, tokenizer)
+    natural = delivery_rows(scoped, output/'delivery', repair=True)
+    records = {(r['question_id'], r['condition']): r for e in emotions for r in scoped[e]['random']['recordings']}
+    jobs = {(e, r): plans[e][r] for e in emotions for r in REGIMES}
+    states = {k: running.load(p, output/k[0]/k[1], task.winners.digest(output/k[0]/k[1]/'run_config.json'))
+              for k, p in jobs.items()}
+    membership = {k: set(p['collection_ids']) for k, p in jobs.items()}
+    base = plans[emotions[0]]['random']
+    with (output/'delivery/results.jsonl').open('a') as stream:
+        def save(q, style, response, encoding):
+            key = q, style
+            if key in natural:
+                return
+            row = dict(records[key], response=response, prompt=PROMPT, **RECIPE, strength=0., interventions=[],
+                       audio_encoding=encoding, response_tokens=len(tokenizer.encode(response, add_special_tokens=False)))
+            stream.write(json.dumps(row)+'\n'); stream.flush()
+            natural[key] = row
+
+        for index, q in enumerate(order):
+            pending = [k for k in jobs if q in membership[k] and q not in states[k]['completed_ids']]
+            missing = [s for s in ('neutral', *emotions) if (q, s) not in natural]
+            if not pending and not missing:
+                continue
+            for k in pending:
+                if jobs[k]['collection_ids'][len(states[k]['completed_ids'])] != q:
+                    raise ValueError('Question traversal differs from the frozen collection checkpoint.')
+            print(f'GSM [{index+1}/{len(order)}] {q}: missing deliveries={missing}; capture for={pending}', flush=True)
+            n = None
+            if pending:
+                nr, ne, n = task.emotion.capture(model,
+                    lambda: task.generate(records[q, 'neutral'], base, PROMPT, model, tokenizer, features), decoder, 512)
+                save(q, 'neutral', nr, ne)
+            elif 'neutral' in missing:
+                response, encoding = task.generate(records[q, 'neutral'], base, PROMPT, model, tokenizer, features)
+                save(q, 'neutral', response, encoding)
+            for e in emotions:
+                keys = [k for k in pending if k[0] == e]
+                if keys:
+                    response, encoding, h = task.emotion.capture(model,
+                        lambda: task.generate(records[q, e], base, PROMPT, model, tokenizer, features), decoder, 512)
+                    save(q, e, response, encoding)
+                    nm, hm, delta, matched = task.average_pair(n, h, 'matched')
+                    saved = dict(question_id=q, neutral=nm, emotion=hm, difference=delta,
+                        neutral_response=nr, emotion_response=response, neutral_forwards=n.shape[1],
+                        emotion_forwards=h.shape[1], matched_forwards=matched, neutral_encoding=ne, emotion_encoding=encoding)
+                    for k in keys:
+                        running.append(states[k], saved)
+                        task.save_tensor(torch, states[k], output/k[0]/k[1]/'collection-stream.pt')
+                    del h, nm, hm, delta, saved
+                elif e in missing:
+                    response, encoding = task.generate(records[q, e], base, PROMPT, model, tokenizer, features)
+                    save(q, e, response, encoding)
+            del n
+    for k, plan in jobs.items():
+        running.finalize(plan, output/k[0]/k[1], states[k])
+
+
+def steering_job(plan, folder, all_deliveries=None):
     source = task.descriptor(plan, folder)
     source['primary_metric'] = 'flexible-numeric'
-    if set(plan['collection_ids']) & set(plan['test_ids']):
+    target = source
+    if all_deliveries is not None:
+        excluded = set(plan['collection_ids'])
+        records = [r for r in all_deliveries['target']['records'] if r['question_id'] not in excluded]
+        target = dict(source, records=records, bank={r['question_id']: plan['bank'][r['question_id']] for r in records})
+        if len(records) != len(plan['bank'])-len(excluded):
+            raise ValueError('Steering must include every question outside this vector collection.')
+    if set(plan['collection_ids']) & {r['question_id'] for r in target['records']}:
         raise ValueError('Fitting questions overlap steering evaluation.')
-    if [r['question_id'] for r in source['records']] != plan['test_ids']:
-        raise ValueError('Steering must use exactly the original fixed holdout.')
     return dict(protocol=PROTOCOL+'-steering-v1', kind='vanilla-heldout-steering',
                 split_sha256=plan['split_sha256'], emotion=plan['emotion'], regime=plan['regime'],
-                source=source, target=source, strengths=[0., 1.],
+                source=source, target=target, strengths=[0., 1.],
                 layer=31, group='answer', schedule='always', mode='fixed')
 
 
@@ -300,8 +367,8 @@ def steer(plans, scoped, emotions, output, model, tokenizer, features):
     for e in emotions:
         for regime in REGIMES:
             parent = output/e/regime
-            job = steering_job(plans[e][regime], parent)
-            folder = parent/'strength-1'
+            job = steering_job(plans[e][regime], parent, scoped[e][regime])
+            folder = parent/'strength-1-unfitted'
             folder.mkdir(exist_ok=True)
             task.winners.freeze(folder/'run_config.json', job)
             saved = steering_rows(job, folder, repair=True)
@@ -312,7 +379,7 @@ def steer(plans, scoped, emotions, output, model, tokenizer, features):
                         continue
                     row = natural.get((record['question_id'], 'neutral'))
                     if row is None:
-                        raise ValueError('Complete the fixed held-out neutral deliveries before steering.')
+                        raise ValueError('Complete natural neutral deliveries before steering.')
                     copied = dict(row, reused_from=str(output/'delivery'), vector_sha256=None)
                     stream.write(json.dumps(copied)+'\n')
                     stream.flush()
@@ -323,7 +390,7 @@ def steer(plans, scoped, emotions, output, model, tokenizer, features):
             task.report_steering(folder, tokenizer)
 
 
-def report(plans, output, emotions, tokenizer=None):
+def report(plans, output, emotions, tokenizer=None, detailed=False):
     from rescore_audio_steering import paired
     scoped = delivery_scope(plans, output)
     raw = list(delivery_rows(scoped, output/'delivery').values())
@@ -345,17 +412,16 @@ def report(plans, output, emotions, tokenizer=None):
         path = folder/'rescored.jsonl'
         if path.exists():
             scored_groups[e] = {r['question_id']: r for r in read_rows(path) if r['condition'] == e}
-        heldout = output/e/'heldout-delivery-report'
-        heldout.mkdir(parents=True, exist_ok=True)
-        wanted = set(plans[e]['random']['test_ids'])
-        print(f'{e}: FIXED {len(wanted)}-question held-out subset (for later steering comparisons)', flush=True)
-        task.report_delivery(plans[e]['random'], heldout, tokenizer,
-                             rows=[r for r in rows if r['question_id'] in wanted])
         for regime in REGIMES:
             folder = output/e/regime
-            print(f'{e}/{regime}: descriptive fitting results (not evaluation)', flush=True)
-            task.report_collection(plans[e][regime], folder, tokenizer)
-            steering = folder/'strength-1'
+            import diffa_stream_collection as running
+            state = running.load(plans[e][regime], folder, task.winners.digest(folder/'run_config.json'))
+            print(f'{e}/{regime}: vector collection {len(state["completed_ids"])}/{len(plans[e][regime]["collection_ids"])}.', flush=True)
+            if detailed:
+                task.report_collection(plans[e][regime], folder, tokenizer)
+            steering = folder/'strength-1-unfitted'
+            if not (steering/'run_config.json').exists():
+                steering = folder/'strength-1'  # Preserve access to earlier steering results.
             if (steering/'run_config.json').exists():
                 print(f'{e}/{regime}: HELD-OUT L31 answer x+1 steering', flush=True)
                 job = json.loads((steering/'run_config.json').read_text())
@@ -383,13 +449,14 @@ def main():
     parser.add_argument('--emotions', nargs='+', choices=EMOTIONS, default=list(EMOTIONS))
     parser.add_argument('--audio-root', type=Path, default=Path('.'))
     parser.add_argument('--output', type=Path, default=Path('outputs/diffa-gsm-vanilla'))
+    parser.add_argument('--detailed', action='store_true', help='Also print fitting-set accuracy diagnostics.')
     args = parser.parse_args()
     args.emotions = list(dict.fromkeys(args.emotions))
     if args.mode == 'summary':
         plans = {e: {r: json.loads((args.output/e/r/'run_config.json').read_text()) for r in REGIMES} for e in EMOTIONS}
         manifest = json.loads((args.output/'split.json').read_text())
         print('Vanilla split SHA256:', fingerprint(manifest), flush=True)
-        report(plans, args.output, args.emotions)
+        report(plans, args.output, args.emotions, detailed=args.detailed)
         return
     args.output.mkdir(parents=True, exist_ok=True)
     with (args.output/'runner.lock').open('a') as own:
@@ -419,14 +486,9 @@ def main():
                 runner_sha256=task.winners.digest(__file__), model_revisions=model_revisions(),
                 generator_sha256=task.winners.digest(Path(__file__).with_name('extract_vectors.py')),
                 model_config=model.config.to_dict()), indent=2, default=str)+'\n')
-            # Preserve old execution order, then fill the rest using fitting responses where possible.
-            deliver(scoped, args.emotions, args.output/'delivery', model, tokenizer, features,
-                    question_ids=set(manifest['test_ids']))
-            report(plans, args.output, args.emotions, tokenizer)
-            collect(plans, args.emotions, manifest['fitting_order'], args.output, model, tokenizer, features)
-            reuse_collection_deliveries(plans, scoped, args.emotions, args.output, tokenizer)
-            deliver(scoped, args.emotions, args.output/'delivery', model, tokenizer, features)
-            report(plans, args.output, args.emotions, tokenizer)
+            generate_and_collect(plans, scoped, args.emotions, manifest['test_ids']+manifest['fitting_order'],
+                                 args.output, model, tokenizer, features)
+            report(plans, args.output, args.emotions, tokenizer, detailed=args.detailed)
             steer(plans, scoped, args.emotions, args.output, model, tokenizer, features)
             print('DONE: all natural deliveries, both fitting regimes and both held-out x+1 steering runs.', flush=True)
 

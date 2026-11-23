@@ -164,7 +164,7 @@ class VanillaTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'cannot be reused'):
                     vanilla.reuse_collection_deliveries(plans, expanded, ['angry'], root, tokenizer)
 
-    def test_both_vectors_steer_only_fixed_holdout_and_reuse_baselines(self):
+    def test_both_vectors_steer_all_unfitted_questions_and_reuse_baselines(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             manifest, plans = self.prepare(root)
@@ -179,7 +179,7 @@ class VanillaTests(unittest.TestCase):
             def generate_job(job, folder, *args):
                 self.assertEqual(job['strengths'], [0., 1.])
                 saved = vanilla.steering_rows(job, folder)
-                self.assertEqual(sum(r['strength'] == 0. for r in saved.values()), 4)
+                self.assertEqual(sum(r['strength'] == 0. for r in saved.values()), 11)
                 with (folder/'results.jsonl').open('a') as stream:
                     for record in job['target']['records']:
                         key = record['question_id'], record['voice'], 'L31-answer-a1'
@@ -194,17 +194,51 @@ class VanillaTests(unittest.TestCase):
                     vanilla.task.winners, 'generate_job', side_effect=generate_job), patch.object(vanilla.task, 'report_steering'):
                 vanilla.steer(plans, expanded, ['angry'], root, None, tokenizer, None)
                 vanilla.steer(plans, expanded, ['angry'], root, None, tokenizer, None)
-            self.assertEqual(len(seen), 8)
+            self.assertEqual(len(seen), 22)
             for regime in vanilla.REGIMES:
-                self.assertEqual([q for r, q in seen if r == regime], manifest['test_ids'])
-                self.assertFalse(set(manifest['test_ids']) & set(plans['angry'][regime]['collection_ids']))
-            folder = root/'angry/random/strength-1'
+                expected = [r['question_id'] for r in expanded['angry'][regime]['target']['records']
+                            if r['question_id'] not in plans['angry'][regime]['collection_ids']]
+                self.assertEqual([q for r, q in seen if r == regime], expected)
+                self.assertFalse(set(expected) & set(plans['angry'][regime]['collection_ids']))
+            folder = root/'angry/random/strength-1-unfitted'
             job = json.loads((folder/'run_config.json').read_text())
             rows = list(vanilla.steering_rows(job, folder).values())
             rows[-1]['vector_sha256'] = 'changed-vector'
             (folder/'results.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rows))
             with self.assertRaisesRegex(ValueError, 'Steering cache differs'):
                 vanilla.steering_rows(job, folder)
+
+    def test_single_pass_generates_all_deliveries_and_collects_without_repeated_inference(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest, plans = self.prepare(root)
+            scoped = vanilla.prepare_deliveries(self.registry(), manifest, plans, root)
+            tokenizer = SimpleNamespace(encode=lambda *a, **kw: [1, 2])
+            seen = []
+            def generate(record, *args):
+                seen.append((record['question_id'], record['style']))
+                return record['style'], {}
+            def capture(model, fn, decoder, budget):
+                style, encoding = fn()
+                value = {'neutral': 1., 'happy': 5., 'sad': 0.}[style]
+                return style, encoding, torch.full((32, 2, 4, 3), value)
+            src = ModuleType('src'); src.__path__ = []
+            fast = ModuleType('src.fast_dllm'); fast.__path__ = []
+            decoder = ModuleType('src.fast_dllm.diffa_generate')
+            with patch.dict(sys.modules, {'src': src, 'src.fast_dllm': fast, 'src.fast_dllm.diffa_generate': decoder}), patch.object(
+                    vanilla.task, 'generate', side_effect=generate), patch.object(vanilla.task.emotion, 'capture', side_effect=capture):
+                order = manifest['test_ids']+manifest['fitting_order']
+                vanilla.generate_and_collect(plans, scoped, ['happy', 'sad'], order, root, None, tokenizer, None)
+                self.assertEqual(len(seen), 48)
+                self.assertEqual(len(set(seen)), 48)
+                vanilla.generate_and_collect(plans, scoped, ['happy', 'sad'], order, root, None, tokenizer, None)
+                self.assertEqual(len(seen), 48)
+            self.assertEqual(len(vanilla.delivery_rows(scoped, root/'delivery')), 48)
+            for e, delta in [('happy', 4.), ('sad', -1.)]:
+                for regime in vanilla.REGIMES:
+                    vector, info = vanilla.task.winners.read_vector(root/e/regime/'style-vectors.pt', e)
+                    torch.testing.assert_close(vector, torch.full((3,), delta))
+                    self.assertEqual(info['pairs'], 5)
 
 
 if __name__ == '__main__':
