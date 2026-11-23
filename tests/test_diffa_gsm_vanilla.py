@@ -123,6 +123,89 @@ class VanillaTests(unittest.TestCase):
                     self.assertEqual(info['pairs'], 5)
                     self.assertEqual(info['extraction_ids'], plans[e][regime]['collection_ids'])
 
+    def test_extending_finished_deliveries_keeps_existing_answers_and_frozen_collection(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest, plans = self.prepare(root)
+            frozen = {p: p.read_bytes() for p in root.glob('*/*/run_config.json')}
+            tokenizer = SimpleNamespace(encode=lambda *a, **kw: [1, 2])
+            with patch.object(vanilla.task, 'generate', return_value=('#### 2', {})) as generate:
+                vanilla.deliver(plans, ['angry'], root/'delivery', None, tokenizer, None)
+                original = (root/'delivery/results.jsonl').read_bytes()
+                self.assertEqual(generate.call_count, 8)
+                expanded = vanilla.prepare_deliveries(self.registry(), manifest, plans, root)
+                vanilla.deliver(expanded, ['angry'], root/'delivery', None, tokenizer, None)
+                self.assertEqual(generate.call_count, 32)  # only 12 remaining questions x two deliveries
+                self.assertTrue((root/'delivery/results.jsonl').read_bytes().startswith(original))
+                vanilla.deliver(expanded, ['angry'], root/'delivery', None, tokenizer, None)
+                self.assertEqual(generate.call_count, 32)
+            for p, data in frozen.items():
+                self.assertEqual(p.read_bytes(), data)
+            self.assertEqual(plans['angry']['random']['test_ids'], manifest['test_ids'])
+            self.assertEqual(len(vanilla.delivery_scope(plans, root)['angry']['random']['test_ids']), 16)
+
+    def test_fitting_answers_fill_full_deliveries_and_are_not_regenerated(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest, plans = self.prepare(root)
+            expanded = vanilla.prepare_deliveries(self.registry(), manifest, plans, root)
+            tokenizer = SimpleNamespace(encode=lambda *a, **kw: [1, 2])
+            q = plans['angry']['random']['collection_ids'][0]
+            row = next(r for r in expanded['angry']['random']['recordings'] if r['question_id'] == q and r['condition'] == 'angry')
+            saved = dict(row, **vanilla.RECIPE, prompt=vanilla.PROMPT, response='already saved', strength=0., interventions=[])
+            with patch('diffa_collection_report.collection_rows', return_value=[saved]):
+                vanilla.reuse_collection_deliveries(plans, expanded, ['angry'], root, tokenizer)
+                vanilla.reuse_collection_deliveries(plans, expanded, ['angry'], root, tokenizer)
+            with patch.object(vanilla.task, 'generate', return_value=('new', {})) as generate:
+                vanilla.deliver(expanded, ['angry'], root/'delivery', None, tokenizer, None)
+                self.assertEqual(generate.call_count, 31)
+            self.assertEqual(vanilla.delivery_rows(expanded, root/'delivery')[q, 'angry']['response'], 'already saved')
+            with patch('diffa_collection_report.collection_rows', return_value=[dict(saved, prompt='wrong prompt')]):
+                with self.assertRaisesRegex(ValueError, 'cannot be reused'):
+                    vanilla.reuse_collection_deliveries(plans, expanded, ['angry'], root, tokenizer)
+
+    def test_both_vectors_steer_only_fixed_holdout_and_reuse_baselines(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest, plans = self.prepare(root)
+            expanded = vanilla.prepare_deliveries(self.registry(), manifest, plans, root)
+            tokenizer = SimpleNamespace(encode=lambda *a, **kw: [1, 2])
+            with patch.object(vanilla.task, 'generate', return_value=('#### 2', {})):
+                vanilla.deliver(expanded, ['angry'], root/'delivery', None, tokenizer, None)
+            seen = []
+            def descriptor(plan, folder):
+                return dict(plan['target'], emotion=plan['emotion'], vector_sha256='vector-'+plan['regime'],
+                            vector=str(folder/'style-vectors.pt'), extraction_ids=plan['collection_ids'])
+            def generate_job(job, folder, *args):
+                self.assertEqual(job['strengths'], [0., 1.])
+                saved = vanilla.steering_rows(job, folder)
+                self.assertEqual(sum(r['strength'] == 0. for r in saved.values()), 4)
+                with (folder/'results.jsonl').open('a') as stream:
+                    for record in job['target']['records']:
+                        key = record['question_id'], record['voice'], 'L31-answer-a1'
+                        if key in saved:
+                            continue
+                        seen.append((job['regime'], record['question_id']))
+                        stream.write(json.dumps(dict(record, response='#### 2', **vanilla.RECIPE,
+                            prompt=vanilla.PROMPT, condition='L31-answer-a1', strength=1.,
+                            vector_sha256=job['source']['vector_sha256'],
+                            interventions=[dict(layer=31, group='answer', strength=1.)]))+'\n')
+            with patch.object(vanilla.task, 'descriptor', side_effect=descriptor), patch.object(
+                    vanilla.task.winners, 'generate_job', side_effect=generate_job), patch.object(vanilla.task, 'report_steering'):
+                vanilla.steer(plans, expanded, ['angry'], root, None, tokenizer, None)
+                vanilla.steer(plans, expanded, ['angry'], root, None, tokenizer, None)
+            self.assertEqual(len(seen), 8)
+            for regime in vanilla.REGIMES:
+                self.assertEqual([q for r, q in seen if r == regime], manifest['test_ids'])
+                self.assertFalse(set(manifest['test_ids']) & set(plans['angry'][regime]['collection_ids']))
+            folder = root/'angry/random/strength-1'
+            job = json.loads((folder/'run_config.json').read_text())
+            rows = list(vanilla.steering_rows(job, folder).values())
+            rows[-1]['vector_sha256'] = 'changed-vector'
+            (folder/'results.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rows))
+            with self.assertRaisesRegex(ValueError, 'Steering cache differs'):
+                vanilla.steering_rows(job, folder)
+
 
 if __name__ == '__main__':
     unittest.main()

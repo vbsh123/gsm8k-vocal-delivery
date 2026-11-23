@@ -1,4 +1,4 @@
-"""Frozen vanilla GSM delivery evaluation and random/agreed vector fitting. No steering."""
+"""Vanilla GSM natural deliveries, random/agreed fitting, then held-out x+1 steering."""
 import argparse
 import fcntl
 import hashlib
@@ -88,7 +88,7 @@ def prepare(registry, output, expected_pool=1319, test_count=500, fit_count=425)
     output.mkdir(parents=True, exist_ok=True)
     task.winners.freeze(output/'split.json', manifest)
     print(f'Vanilla split SHA256: {checksum}', flush=True)
-    print(f'{len(bank)} complete questions; {test_count} COMMON evaluation; {fit_count} random + {fit_count} agreed per emotion. NO STEERING.', flush=True)
+    print(f'{len(bank)} natural-delivery questions; {test_count} COMMON steering holdout; {fit_count} random + {fit_count} agreed per emotion.', flush=True)
     for e in EMOTIONS:
         fitting = set(split['fitting_order'])
         common = set(split['collections'][e]['random'])
@@ -114,6 +114,55 @@ def prepare(registry, output, expected_pool=1319, test_count=500, fit_count=425)
     return manifest, plans
 
 
+def prepare_deliveries(registry, manifest, plans, output):
+    """Extend natural deliveries using a separate manifest; never rewrite fitting configs."""
+    ids = manifest['test_ids'] + manifest['fitting_order']
+    records = []
+    for q in ids:
+        example = manifest['bank'][q]
+        for style in STYLES:
+            item = registry.choose('gsm8k', q, style, question=example['question'], answer=example['answer'],
+                                   expected=manifest['audio_sha256'][q][style])
+            if item is None:
+                raise ValueError(f'Missing pinned full-delivery audio: {q}/{style}.')
+            records.append(dict(item['record'], condition=style))
+    config = dict(protocol=PROTOCOL+'-all-deliveries-v1', split_sha256=fingerprint(manifest),
+                  prompt=PROMPT, **RECIPE, question_ids=ids, steering_holdout_ids=manifest['test_ids'],
+                  bank=manifest['bank'], recordings=records,
+                  note='All natural deliveries, including fitting questions. No steering or outcome-based selection.')
+    folder = output/'delivery'
+    folder.mkdir(exist_ok=True)
+    task.winners.freeze(folder/'run_config.json', config)
+    return delivery_scope(plans, output)
+
+
+def delivery_scope(plans, output):
+    path = output/'delivery'/'run_config.json'
+    if not path.exists():
+        return plans  # Read earlier 500-only runs before their next launch.
+    config = json.loads(path.read_text())
+    base = plans['angry']['random']
+    if (config['split_sha256'] != base['split_sha256'] or config['prompt'] != PROMPT
+            or any(config[k] != v for k, v in RECIPE.items())
+            or config['steering_holdout_ids'] != base['test_ids']
+            or set(config['question_ids']) != set(base['bank'])
+            or len(config['question_ids']) != len(set(config['question_ids']))):
+        raise ValueError('Full-delivery manifest differs from the frozen vanilla split.')
+    expected = {(q, s) for q in config['question_ids'] for s in STYLES}
+    actual = {(r['question_id'], r['condition']) for r in config['recordings']}
+    if actual != expected or len(actual) != len(config['recordings']):
+        raise ValueError('Full-delivery manifest must contain each question/style exactly once.')
+    result = {}
+    for e in EMOTIONS:
+        result[e] = {}
+        for regime, plan in plans[e].items():
+            result[e][regime] = dict(plan, test_ids=config['question_ids'],
+                target=dict(plan['target'], bank=config['bank'],
+                            records=[r for r in config['recordings'] if r['condition'] == 'neutral']),
+                recordings=[r for r in config['recordings'] if r['condition'] in ('neutral', e)])
+    return result
+
+
 def delivery_rows(plans, folder, repair=False):
     expected = {(r['question_id'], r['condition']): r for p in plans.values() for r in p['random']['recordings']}
     result = {}
@@ -127,12 +176,14 @@ def delivery_rows(plans, folder, repair=False):
     return result
 
 
-def deliver(plans, emotions, folder, model, tokenizer, features):
+def deliver(plans, emotions, folder, model, tokenizer, features, question_ids=None):
     folder.mkdir(exist_ok=True)
     done = delivery_rows(plans, folder, repair=True)
     records = {}
     for e in emotions:
         for r in plans[e]['random']['recordings']:
+            if question_ids is not None and r['question_id'] not in question_ids:
+                continue
             records[r['question_id'], r['condition']] = r
     with (folder/'results.jsonl').open('a') as stream:
         for key, record in records.items():
@@ -145,6 +196,33 @@ def deliver(plans, emotions, folder, model, tokenizer, features):
             stream.write(json.dumps(row)+'\n')
             stream.flush()
             done[key] = row
+
+
+def reuse_collection_deliveries(plans, scoped, emotions, output, tokenizer):
+    """Collection only observes native generation; reuse those exact natural answers."""
+    from diffa_collection_report import collection_rows
+    folder = output/'delivery'
+    done = delivery_rows(scoped, folder, repair=True)
+    expected = {(r['question_id'], r['condition']): r for e in emotions for r in scoped[e]['random']['recordings']}
+    copied = 0
+    with (folder/'results.jsonl').open('a') as stream:
+        for e in emotions:
+            for regime in REGIMES:
+                source = output/e/regime
+                for row in collection_rows(plans[e][regime], source):
+                    key = row['question_id'], row['condition']
+                    if (key not in expected or row.get('strength') != 0. or row.get('interventions') != []
+                            or not task.winners.reusable(row, {}, expected[key], scoped[e]['random']['target'])):
+                        raise ValueError('Collection answer cannot be reused as the same vanilla natural delivery.')
+                    if key in done:
+                        continue
+                    row = dict(row, response_tokens=len(tokenizer.encode(row['response'], add_special_tokens=False)),
+                               reused_from=str(source), split='all-natural-deliveries')
+                    stream.write(json.dumps(row)+'\n')
+                    stream.flush()
+                    done[key] = row
+                    copied += 1
+    print(f'Reused {copied} already-generated collection deliveries; no inference repeated.', flush=True)
 
 
 def collect(plans, emotions, order, output, model, tokenizer, features):
@@ -186,30 +264,105 @@ def collect(plans, emotions, order, output, model, tokenizer, features):
         running.finalize(plan, output/k[0]/k[1], states[k])
 
 
+def steering_job(plan, folder):
+    source = task.descriptor(plan, folder)
+    source['primary_metric'] = 'flexible-numeric'
+    if set(plan['collection_ids']) & set(plan['test_ids']):
+        raise ValueError('Fitting questions overlap steering evaluation.')
+    if [r['question_id'] for r in source['records']] != plan['test_ids']:
+        raise ValueError('Steering must use exactly the original fixed holdout.')
+    return dict(protocol=PROTOCOL+'-steering-v1', kind='vanilla-heldout-steering',
+                split_sha256=plan['split_sha256'], emotion=plan['emotion'], regime=plan['regime'],
+                source=source, target=source, strengths=[0., 1.],
+                layer=31, group='answer', schedule='always', mode='fixed')
+
+
+def steering_rows(job, folder, repair=False):
+    expected = {(r['question_id'], r['voice']): r for r in job['target']['records']}
+    result = {}
+    for row in read_rows(folder/'results.jsonl', repair=repair):
+        strength = row.get('strength')
+        key = row['question_id'], row['voice'], row['condition']
+        record = expected.get(key[:2])
+        interventions = [dict(layer=31, group='answer', strength=1.)] if strength == 1. else []
+        if (record is None or strength not in (0., 1.) or key in result
+                or row['condition'] != task.winners.condition(strength)
+                or row.get('interventions') != interventions
+                or row.get('vector_sha256') != (job['source']['vector_sha256'] if strength == 1. else None)
+                or not task.winners.reusable(row, {}, record, job['target'])):
+            raise ValueError('Steering cache differs from the exact holdout, vector, prompt or strength.')
+        result[key] = row
+    return result
+
+
+def steer(plans, scoped, emotions, output, model, tokenizer, features):
+    natural = delivery_rows(scoped, output/'delivery')
+    for e in emotions:
+        for regime in REGIMES:
+            parent = output/e/regime
+            job = steering_job(plans[e][regime], parent)
+            folder = parent/'strength-1'
+            folder.mkdir(exist_ok=True)
+            task.winners.freeze(folder/'run_config.json', job)
+            saved = steering_rows(job, folder, repair=True)
+            with (folder/'results.jsonl').open('a') as stream:
+                for record in job['target']['records']:
+                    key = record['question_id'], record['voice'], 'neutral'
+                    if key in saved:
+                        continue
+                    row = natural.get((record['question_id'], 'neutral'))
+                    if row is None:
+                        raise ValueError('Complete the fixed held-out neutral deliveries before steering.')
+                    copied = dict(row, reused_from=str(output/'delivery'), vector_sha256=None)
+                    stream.write(json.dumps(copied)+'\n')
+                    stream.flush()
+            # All x0 baselines are present, so generate_job only runs x+1 interventions.
+            print(f'{e}/{regime}: L31 answer x+1, {len(job["target"]["records"])} held-out neutrals.', flush=True)
+            task.winners.generate_job(job, folder, model, tokenizer, features)
+            steering_rows(job, folder)
+            task.report_steering(folder, tokenizer)
+
+
 def report(plans, output, emotions, tokenizer=None):
     from rescore_audio_steering import paired
-    raw = list(delivery_rows(plans, output/'delivery').values())
+    scoped = delivery_scope(plans, output)
+    raw = list(delivery_rows(scoped, output/'delivery').values())
     scored_groups = {}
     for e in emotions:
-        plan = plans[e]['random']
+        plan = scoped[e]['random']
         folder = output/e/'delivery-report'
         folder.mkdir(parents=True, exist_ok=True)
         rows = [r for r in raw if r['condition'] in ('neutral', e)]
-        task.report_delivery(plan, folder, tokenizer, rows=rows)
+        print(f'{e}: ALL natural deliveries ({len(plan["test_ids"])} questions; includes fitting questions)', flush=True)
+        task.report_delivery(plan, folder, tokenizer, rows=rows, cohort='all natural deliveries')
         summary = folder/'summary.json'
         if summary.exists():
             data = json.loads(summary.read_text())
             data.update(split_sha256=plan['split_sha256'],
-                        note='New frozen vanilla GSM evaluation cohort; no historical answers or steering. '
+                        note='All natural vanilla GSM deliveries, including fitting questions; no historical answers or steering. '
                              'Exploratory unadjusted paired tests. Collection responses are reported separately.')
             task.winners.atomic_text(summary, json.dumps(data, indent=2)+'\n')
         path = folder/'rescored.jsonl'
         if path.exists():
             scored_groups[e] = {r['question_id']: r for r in read_rows(path) if r['condition'] == e}
+        heldout = output/e/'heldout-delivery-report'
+        heldout.mkdir(parents=True, exist_ok=True)
+        wanted = set(plans[e]['random']['test_ids'])
+        print(f'{e}: FIXED {len(wanted)}-question held-out subset (for later steering comparisons)', flush=True)
+        task.report_delivery(plans[e]['random'], heldout, tokenizer,
+                             rows=[r for r in rows if r['question_id'] in wanted])
         for regime in REGIMES:
             folder = output/e/regime
             print(f'{e}/{regime}: descriptive fitting results (not evaluation)', flush=True)
             task.report_collection(plans[e][regime], folder, tokenizer)
+            steering = folder/'strength-1'
+            if (steering/'run_config.json').exists():
+                print(f'{e}/{regime}: HELD-OUT L31 answer x+1 steering', flush=True)
+                job = json.loads((steering/'run_config.json').read_text())
+                steering_rows(job, steering)
+                task.report_steering(steering, tokenizer)
+            else:
+                print(f'{e}/{regime}: x+1 steering not started yet.', flush=True)
     comparisons = []
     for i, a in enumerate(emotions):
         for b in emotions[i+1:]:
@@ -219,7 +372,7 @@ def report(plans, output, emotions, tokenizer=None):
                 continue
             for metric in left[keys[0]]['metrics']:
                 result = paired([(left[q]['metrics'][metric], right[q]['metrics'][metric]) for q in keys])
-                comparisons.append(dict(reference=a, test=b, metric=metric, **result))
+                comparisons.append(dict(reference=a, test=b, metric=metric, cohort='all natural deliveries', **result))
                 print(f'{b} vs {a} / {metric}: N={len(keys)}; gain={result["gain_pp"]:+.2f} pp; p={result["mcnemar_exact_p"]:.4g}', flush=True)
     task.winners.atomic_text(output/'emotion-comparisons.json', json.dumps(comparisons, indent=2)+'\n')
 
@@ -240,9 +393,12 @@ def main():
         return
     args.output.mkdir(parents=True, exist_ok=True)
     with (args.output/'runner.lock').open('a') as own:
-        fcntl.flock(own, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        print('Waiting for any existing vanilla runner to finish; completed work will be reused.', flush=True)
+        fcntl.flock(own, fcntl.LOCK_EX)
         print('CPU preflight: verify Jenny audio and saved e2v labels; no regeneration/classification.', flush=True)
-        manifest, plans = prepare(Registry(args.audio_root), args.output)
+        registry = Registry(args.audio_root)
+        manifest, plans = prepare(registry, args.output)
+        scoped = prepare_deliveries(registry, manifest, plans, args.output)
         if args.mode == 'prepare':
             return
         # Resolve scoring dependencies before spending GPU time on generation.
@@ -263,11 +419,16 @@ def main():
                 runner_sha256=task.winners.digest(__file__), model_revisions=model_revisions(),
                 generator_sha256=task.winners.digest(Path(__file__).with_name('extract_vectors.py')),
                 model_config=model.config.to_dict()), indent=2, default=str)+'\n')
-            deliver(plans, args.emotions, args.output/'delivery', model, tokenizer, features)
+            # Preserve old execution order, then fill the rest using fitting responses where possible.
+            deliver(scoped, args.emotions, args.output/'delivery', model, tokenizer, features,
+                    question_ids=set(manifest['test_ids']))
             report(plans, args.output, args.emotions, tokenizer)
             collect(plans, args.emotions, manifest['fitting_order'], args.output, model, tokenizer, features)
+            reuse_collection_deliveries(plans, scoped, args.emotions, args.output, tokenizer)
+            deliver(scoped, args.emotions, args.output/'delivery', model, tokenizer, features)
             report(plans, args.output, args.emotions, tokenizer)
-            print('DONE: vanilla delivery evaluation + both fitting regimes. No steering started.', flush=True)
+            steer(plans, scoped, args.emotions, args.output, model, tokenizer, features)
+            print('DONE: all natural deliveries, both fitting regimes and both held-out x+1 steering runs.', flush=True)
 
 
 if __name__ == '__main__':
