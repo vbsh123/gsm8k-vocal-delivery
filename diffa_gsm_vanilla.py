@@ -88,7 +88,7 @@ def prepare(registry, output, expected_pool=1319, test_count=500, fit_count=425)
     output.mkdir(parents=True, exist_ok=True)
     task.winners.freeze(output/'split.json', manifest)
     print(f'Vanilla split SHA256: {checksum}', flush=True)
-    print(f'{len(bank)} natural-delivery questions; {test_count} COMMON steering holdout; {fit_count} random + {fit_count} agreed per emotion.', flush=True)
+    print(f'{len(bank)} natural-delivery questions; {fit_count} random + {fit_count} agreed fitting questions per emotion.', flush=True)
     for e in EMOTIONS:
         fitting = set(split['fitting_order'])
         common = set(split['collections'][e]['random'])
@@ -116,18 +116,21 @@ def prepare(registry, output, expected_pool=1319, test_count=500, fit_count=425)
 
 def prepare_deliveries(registry, manifest, plans, output):
     """Extend natural deliveries using a separate manifest; never rewrite fitting configs."""
-    ids = manifest['test_ids'] + manifest['fitting_order']
+    ids = manifest.get('delivery_ids', manifest.get('test_ids', []) + manifest['fitting_order'])
+    base = plans['angry']['random']
+    prompt = base['prompt']
+    recipe = {k: base[k] for k in RECIPE}
     records = []
     for q in ids:
         example = manifest['bank'][q]
         for style in STYLES:
-            item = registry.choose('gsm8k', q, style, question=example['question'], answer=example['answer'],
+            item = registry.choose(base['name'], q, style, question=example['question'], answer=example['answer'],
                                    expected=manifest['audio_sha256'][q][style])
             if item is None:
                 raise ValueError(f'Missing pinned full-delivery audio: {q}/{style}.')
             records.append(dict(item['record'], condition=style))
-    config = dict(protocol=PROTOCOL+'-all-deliveries-v1', split_sha256=fingerprint(manifest),
-                  prompt=PROMPT, **RECIPE, question_ids=ids, steering_holdout_ids=manifest['test_ids'],
+    config = dict(protocol=manifest['protocol']+'-all-deliveries-v1', split_sha256=fingerprint(manifest),
+                  prompt=prompt, **recipe, question_ids=ids, steering_holdout_ids=manifest.get('test_ids', []),
                   bank=manifest['bank'], recordings=records,
                   note='All natural deliveries, including fitting questions. No steering or outcome-based selection.')
     folder = output/'delivery'
@@ -142,8 +145,8 @@ def delivery_scope(plans, output):
         return plans  # Read earlier 500-only runs before their next launch.
     config = json.loads(path.read_text())
     base = plans['angry']['random']
-    if (config['split_sha256'] != base['split_sha256'] or config['prompt'] != PROMPT
-            or any(config[k] != v for k, v in RECIPE.items())
+    if (config['split_sha256'] != base['split_sha256'] or config['prompt'] != base['prompt']
+            or any(config[k] != base[k] for k in RECIPE)
             or config['steering_holdout_ids'] != base['test_ids']
             or set(config['question_ids']) != set(base['bank'])
             or len(config['question_ids']) != len(set(config['question_ids']))):
@@ -179,6 +182,8 @@ def delivery_rows(plans, folder, repair=False):
 def deliver(plans, emotions, folder, model, tokenizer, features, question_ids=None):
     folder.mkdir(exist_ok=True)
     done = delivery_rows(plans, folder, repair=True)
+    base = plans['angry']['random']
+    recipe = {k: base[k] for k in RECIPE}
     records = {}
     for e in emotions:
         for r in plans[e]['random']['recordings']:
@@ -190,8 +195,8 @@ def deliver(plans, emotions, folder, model, tokenizer, features, question_ids=No
             if key in done:
                 continue
             print(f'Vanilla delivery {key[1]} {key[0]} [{len(done)+1}]', flush=True)
-            response, encoding = task.generate(record, plans['angry']['random'], PROMPT, model, tokenizer, features)
-            row = dict(record, response=response, prompt=PROMPT, **RECIPE, strength=0., interventions=[],
+            response, encoding = task.generate(record, base, base['prompt'], model, tokenizer, features)
+            row = dict(record, response=response, prompt=base['prompt'], **recipe, strength=0., interventions=[],
                        audio_encoding=encoding, response_tokens=len(tokenizer.encode(response, add_special_tokens=False)))
             stream.write(json.dumps(row)+'\n')
             stream.flush()
@@ -277,12 +282,15 @@ def generate_and_collect(plans, scoped, emotions, order, output, model, tokenize
               for k, p in jobs.items()}
     membership = {k: set(p['collection_ids']) for k, p in jobs.items()}
     base = plans[emotions[0]]['random']
+    prompt = base['prompt']
+    recipe = {k: base[k] for k in RECIPE}
+    budget = base['max_new_tokens']
     with (output/'delivery/results.jsonl').open('a') as stream:
         def save(q, style, response, encoding):
             key = q, style
             if key in natural:
                 return
-            row = dict(records[key], response=response, prompt=PROMPT, **RECIPE, strength=0., interventions=[],
+            row = dict(records[key], response=response, prompt=prompt, **recipe, strength=0., interventions=[],
                        audio_encoding=encoding, response_tokens=len(tokenizer.encode(response, add_special_tokens=False)))
             stream.write(json.dumps(row)+'\n'); stream.flush()
             natural[key] = row
@@ -295,20 +303,20 @@ def generate_and_collect(plans, scoped, emotions, order, output, model, tokenize
             for k in pending:
                 if jobs[k]['collection_ids'][len(states[k]['completed_ids'])] != q:
                     raise ValueError('Question traversal differs from the frozen collection checkpoint.')
-            print(f'GSM [{index+1}/{len(order)}] {q}: missing deliveries={missing}; capture for={pending}', flush=True)
+            print(f'{base["name"]} [{index+1}/{len(order)}] {q}: missing deliveries={missing}; capture for={pending}', flush=True)
             n = None
             if pending:
                 nr, ne, n = task.emotion.capture(model,
-                    lambda: task.generate(records[q, 'neutral'], base, PROMPT, model, tokenizer, features), decoder, 512)
+                    lambda: task.generate(records[q, 'neutral'], base, prompt, model, tokenizer, features), decoder, budget)
                 save(q, 'neutral', nr, ne)
             elif 'neutral' in missing:
-                response, encoding = task.generate(records[q, 'neutral'], base, PROMPT, model, tokenizer, features)
+                response, encoding = task.generate(records[q, 'neutral'], base, prompt, model, tokenizer, features)
                 save(q, 'neutral', response, encoding)
             for e in emotions:
                 keys = [k for k in pending if k[0] == e]
                 if keys:
                     response, encoding, h = task.emotion.capture(model,
-                        lambda: task.generate(records[q, e], base, PROMPT, model, tokenizer, features), decoder, 512)
+                        lambda: task.generate(records[q, e], base, prompt, model, tokenizer, features), decoder, budget)
                     save(q, e, response, encoding)
                     nm, hm, delta, matched = task.average_pair(n, h, 'matched')
                     saved = dict(question_id=q, neutral=nm, emotion=hm, difference=delta,
@@ -319,7 +327,7 @@ def generate_and_collect(plans, scoped, emotions, order, output, model, tokenize
                         task.save_tensor(torch, states[k], output/k[0]/k[1]/'collection-stream.pt')
                     del h, nm, hm, delta, saved
                 elif e in missing:
-                    response, encoding = task.generate(records[q, e], base, PROMPT, model, tokenizer, features)
+                    response, encoding = task.generate(records[q, e], base, prompt, model, tokenizer, features)
                     save(q, e, response, encoding)
             del n
     for k, plan in jobs.items():
@@ -328,7 +336,7 @@ def generate_and_collect(plans, scoped, emotions, order, output, model, tokenize
 
 def steering_job(plan, folder, all_deliveries=None):
     source = task.descriptor(plan, folder)
-    source['primary_metric'] = 'flexible-numeric'
+    source.setdefault('primary_metric', 'flexible-numeric')
     target = source
     if all_deliveries is not None:
         excluded = set(plan['collection_ids'])
@@ -406,7 +414,7 @@ def report(plans, output, emotions, tokenizer=None, detailed=False):
         if summary.exists():
             data = json.loads(summary.read_text())
             data.update(split_sha256=plan['split_sha256'],
-                        note='All natural vanilla GSM deliveries, including fitting questions; no historical answers or steering. '
+                        note='All natural vanilla deliveries, including fitting questions; no historical answers or steering. '
                              'Exploratory unadjusted paired tests. Collection responses are reported separately.')
             task.winners.atomic_text(summary, json.dumps(data, indent=2)+'\n')
         path = folder/'rescored.jsonl'
