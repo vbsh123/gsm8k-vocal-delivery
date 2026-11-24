@@ -41,6 +41,22 @@ class FailureSampleTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Metric'):
             cases(config, rows, metric='absent')
 
+    def test_strength_two_pairs_with_neutral_and_all_keeps_wins_and_losses(self):
+        config, rows = self.fixture()
+        rows += [dict(r, strength=2., response='Response at x2', response_tokens=100) for r in rows if r['strength']==1.]
+        sample, count = cases(config, rows, kind='all', strength=2.)
+        self.assertEqual(count, 4)
+        self.assertEqual(len(sample), 4)
+        self.assertTrue(all(r['steered_response']=='Response at x2' for r in sample))
+        self.assertTrue(all(r['strength']==2. for r in sample))
+        lengths(sample)
+        text = render(sample, 'Longest')
+        self.assertIn('STEERED x+2:', text)
+        self.assertNotIn('STEERED x+1:', text)
+        self.assertEqual(len(cases(config, rows, kind='losses', strength=2.)[0]), 1)
+        for invalid in (0., float('nan'), float('inf')):
+            with self.assertRaises(ValueError): cases(config, rows, strength=invalid)
+
 
 if __name__ == '__main__':
     unittest.main()
