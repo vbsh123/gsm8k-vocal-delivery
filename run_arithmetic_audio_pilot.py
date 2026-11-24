@@ -1,4 +1,4 @@
-"""50 BBH arithmetic questions: neutral bare/reasoning and angry bare, no steering."""
+"""50 BBH arithmetic questions: neutral/angry × bare/supply reasoning, no steering."""
 import argparse
 import ast
 import fcntl
@@ -22,14 +22,14 @@ SCORER = 'bbh_cot_zeroshot_'+TASK
 REVISION = '9ee07bd481feebf959a6b59d61ea57bdcf30964d'
 SOURCE_BLOB = '5d961d60f818c2df15342f4d20a3f07cf60caba1'
 SOURCE_URL = f'https://raw.githubusercontent.com/suzgunmirac/BIG-Bench-Hard/{REVISION}/bbh/{TASK}.json'
-PROTOCOL = 'diffa-bbh-arithmetic-audio-three-conditions-n50-v1'
+PROTOCOL = 'diffa-bbh-arithmetic-audio-four-conditions-n50-v2'
 COUNT = 50
 STYLES = ('neutral', 'angry')
-CONDITIONS = ('neutral', 'neutral-reasoning', 'angry')
+CONDITIONS = ('neutral', 'angry', 'neutral-reasoning', 'angry-reasoning')
 BARE_PROMPT = base.BARE_PROMPT
 REASONING_SENTENCE = 'Supply reasoning before the final answer.'
 REASONING_PROMPT = BARE_PROMPT.replace('audio. ', 'audio. '+REASONING_SENTENCE+' ', 1)
-PROMPTS = {c: REASONING_PROMPT if c == 'neutral-reasoning' else BARE_PROMPT for c in CONDITIONS}
+PROMPTS = {c: REASONING_PROMPT if c.endswith('-reasoning') else BARE_PROMPT for c in CONDITIONS}
 winners = base.winners
 
 
@@ -117,8 +117,8 @@ def prepare(source, output):
         adaptation='Custom spoken adaptation of BBH multistep_arithmetic_two: fixed seed42 sample of50/250, '
             'no filtering. Every parenthesis spoken explicitly; unary minus spoken as negative, subtraction as minus; '
             'single-digit operands spoken as English words, addition as plus, multiplication as times. '
-            'The same spoken question in Jenny neutral and angry; identical neutral WAV reused for the reasoning '
-            'condition. Supply reasoning sentence only in neutral-reasoning. No examples, classification, '
+            'The same spoken question in Jenny neutral and angry; each WAV reused for its bare and reasoning '
+            'conditions. Supply reasoning sentence in both reasoning conditions. No examples, classification, '
             'fitting or steering. Upstream saved-answer filters and exact-match scoring, not an official generation prompt.')
     winners.freeze(output/'selection.json', selection)
     winners.atomic_text(output/'prompt-bare.txt', BARE_PROMPT+'\n')
@@ -137,7 +137,7 @@ def synthesize(source, prepare_only=False):
 
 def plan_for(selection, source):
     records = source_records(source, selection['bank'], STYLES)
-    return dict(selection, records=[dict(records[q, 'neutral' if c == 'neutral-reasoning' else c],
+    return dict(selection, records=[dict(records[q, c.removesuffix('-reasoning')],
         condition=c, reference_answer=selection['bank'][q]['answer'])
         for q in selection['question_order'] for c in CONDITIONS])
 
@@ -178,7 +178,7 @@ def report(output):
     scored = [dict(r, metrics={m:v[i]['correct'] for m,v in values.items()},
         predictions={m:v[i]['prediction'] for m,v in values.items()}) for i,r in enumerate(rows)]
     groups = {c:{r['question_id']:r for r in scored if r['condition']==c} for c in CONDITIONS}
-    print(f'\nBBH Arithmetic: {len(rows)}/{len(plan["records"])} answers; 50 questions, three conditions.', flush=True)
+    print(f'\nBBH Arithmetic: {len(rows)}/{len(plan["records"])} answers; 50 questions, four conditions.', flush=True)
     accuracy, lengths, comparisons = [], {}, []
     for c, group in groups.items():
         if not group: continue
@@ -189,16 +189,19 @@ def report(output):
             correct = sum(r['metrics'][metric] for r in group.values())
             accuracy.append(dict(condition=c, metric=metric, n=len(group), correct=correct))
             print(f'  {metric}: {correct}/{len(group)} ({correct/len(group):.1%})', flush=True)
-    for test in ('neutral-reasoning', 'angry'):
-        ids = sorted(groups['neutral'].keys() & groups[test].keys())
+    contrasts = [('neutral', c) for c in CONDITIONS if c != 'neutral']
+    contrasts.append(('neutral-reasoning', 'angry-reasoning'))
+    for reference, test in contrasts:
+        ids = sorted(groups[reference].keys() & groups[test].keys())
         if not ids: continue
         matched_lengths = {c:dict(mean_tokens=mean(groups[c][q]['response_tokens'] for q in ids),
-            median_tokens=median(groups[c][q]['response_tokens'] for q in ids)) for c in ('neutral', test)}
-        print(f'{test} vs neutral-bare: matched token means '
-            f'{matched_lengths["neutral"]["mean_tokens"]:.1f} -> {matched_lengths[test]["mean_tokens"]:.1f}', flush=True)
+            median_tokens=median(groups[c][q]['response_tokens'] for q in ids)) for c in (reference, test)}
+        label = 'neutral-bare' if reference == 'neutral' else reference
+        print(f'{test} vs {label}: matched token means '
+            f'{matched_lengths[reference]["mean_tokens"]:.1f} -> {matched_lengths[test]["mean_tokens"]:.1f}', flush=True)
         for metric in values:
-            stats = paired([(groups['neutral'][q]['metrics'][metric], groups[test][q]['metrics'][metric]) for q in ids])
-            comparisons.append(dict(reference='neutral', test=test, metric=metric, matched_lengths=matched_lengths, **stats))
+            stats = paired([(groups[reference][q]['metrics'][metric], groups[test][q]['metrics'][metric]) for q in ids])
+            comparisons.append(dict(reference=reference, test=test, metric=metric, matched_lengths=matched_lengths, **stats))
             print(f'  {metric}: N={len(ids)}; gain={stats["gain_pp"]:+.2f} pp; '
                 f'p={stats["mcnemar_exact_p"]:.4g}; CI={stats["ci95_gain_pp"]}', flush=True)
     winners.atomic_text(output/'delivery-rescored.jsonl', ''.join(json.dumps(r)+'\n' for r in scored))
@@ -227,8 +230,8 @@ def main():
         scoring_preflight(args.output)
         if args.mode in ('run', 'prepare'):
             selection = prepare(args.source, args.output)
-            print('BBH Arithmetic: 50 questions, neutral + angry; 100 clips, 150 answers. No steering.', flush=True)
-            print('Bare prompt:\n'+BARE_PROMPT+'\nNeutral reasoning prompt:\n'+REASONING_PROMPT, flush=True)
+            print('BBH Arithmetic: 50 questions, neutral/angry x bare/supply reasoning; 100 clips, 200 answers. No steering.', flush=True)
+            print('Bare prompt (neutral + angry):\n'+BARE_PROMPT+'\nReasoning prompt (neutral + angry):\n'+REASONING_PROMPT, flush=True)
             first = selection['bank'][selection['question_order'][0]]
             print('First source expression: '+first['original_input']+'\nSpoken: '+first['question'], flush=True)
             synthesize(args.source, prepare_only=args.mode == 'prepare')

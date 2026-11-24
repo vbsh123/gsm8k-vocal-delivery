@@ -14,8 +14,9 @@ The sample is the first 50 questions after a seed42 shuffle of the authors' 250
 integer-expression interpreter before selection. There is no outcome filtering.
 
 We synthesize 100 Jenny clips (neutral and angry for each question) and generate
-150 answers: neutral bare, neutral reasoning, angry bare. The neutral clip is
-identical in both neutral conditions. No happy/sad, demonstrations, fitting,
+200 answers: neutral bare, angry bare, neutral supply reasoning, angry supply
+reasoning. Each recording is identical in its bare and reasoning conditions.
+No happy/sad, demonstrations, fitting,
 emotion classification or steering. Native DIFFA decoding uses the existing
 recipe, seed42, temperature0 and a 512-token response budget for every condition.
 
@@ -26,7 +27,7 @@ Answer the question in the audio. End your response with a final answer line in 
 The answer is <number>.
 ```
 
-Neutral reasoning prompt:
+Reasoning prompt (neutral and angry):
 
 ```text
 Answer the question in the audio. Supply reasoning before the final answer. End your response with a final answer line in the format:

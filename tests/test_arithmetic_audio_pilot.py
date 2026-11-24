@@ -63,7 +63,7 @@ class ArithmeticPilotTests(unittest.TestCase):
         with patch.object(run, 'SOURCE_BLOB', bad_digest), self.assertRaisesRegex(ValueError, 'target mismatch'):
             run.source_questions(bad)
 
-    def test_three_conditions100_wavs150_answers_and_neutral_reuse(self):
+    def test_four_conditions100_wavs200_answers_and_both_styles_reused(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory); source, selection = self.prepared(root)
             records = {(q, s):dict(question_id=q, style=s, voice=run.base.VOICE,
@@ -71,14 +71,17 @@ class ArithmeticPilotTests(unittest.TestCase):
                 for q in selection['question_order'] for s in run.STYLES}
             with patch.object(run, 'source_records', return_value=records):
                 plan = run.plan_for(selection, source)
-            self.assertEqual(len(plan['records']), 150)
+            self.assertEqual(len(plan['records']), 200)
             self.assertEqual(len({r['audio_file'] for r in plan['records']}), 100)
             self.assertEqual(set(r['style'] for r in plan['records']), {'neutral','angry'})
             for i in range(50):
-                neutral, reasoning, angry = plan['records'][i*3:i*3+3]
+                neutral, angry, reasoning, angry_reasoning = plan['records'][i*4:i*4+4]
                 self.assertEqual(neutral['audio_file'], reasoning['audio_file'])
                 self.assertEqual(neutral['audio_sha256'], reasoning['audio_sha256'])
                 self.assertEqual(angry['style'], 'angry')
+                self.assertEqual(angry['audio_file'], angry_reasoning['audio_file'])
+                self.assertEqual(angry['audio_sha256'], angry_reasoning['audio_sha256'])
+                self.assertEqual(run.PROMPTS[angry_reasoning['condition']], run.REASONING_PROMPT)
             self.assertEqual(run.REASONING_PROMPT.replace(run.REASONING_SENTENCE+' ', ''), run.BARE_PROMPT)
 
     def test_tts_only_requested_styles_and_prepare_without_paid_calls(self):
@@ -93,7 +96,7 @@ class ArithmeticPilotTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory, redirect_stdout(io.StringIO()):
             root = Path(directory); source, selection = self.prepared(root)
             q = selection['question_order'][0]
-            records = [dict(question_id=q, condition=c, style='neutral' if c=='neutral-reasoning' else c,
+            records = [dict(question_id=q, condition=c, style=c.removesuffix('-reasoning'),
                 voice=run.base.VOICE, audio_file='test.wav', audio_sha256=c,
                 reference_answer=selection['bank'][q]['answer']) for c in run.CONDITIONS]
             # Represent another neutral answer without its test conditions yet.
@@ -112,18 +115,18 @@ class ArithmeticPilotTests(unittest.TestCase):
             self_case = self
             original = Backend.generate
             def interrupted(self, record, scoped, capture=False):
-                if record['condition']=='angry': raise KeyboardInterrupt
+                if record['condition']=='angry-reasoning': raise KeyboardInterrupt
                 return original(self, record, scoped, capture)
             with patch.object(Backend, 'generate', interrupted):
                 with self.assertRaises(KeyboardInterrupt): run.generate(plan, output, Backend())
             run.report(output)
             summary = json.loads((output/'delivery-summary.json').read_text())
-            self.assertEqual(len(summary['comparisons']), 2)
+            self.assertEqual(len(summary['comparisons']), 4)
             run.generate(plan, output, Backend()); run.generate(plan, output, Backend())
-            self.assertEqual(len(calls), 4)
+            self.assertEqual(len(calls), 5)
             run.report(output)
             summary = json.loads((output/'delivery-summary.json').read_text())
-            self.assertEqual(len(summary['comparisons']), 4)
+            self.assertEqual(len(summary['comparisons']), 8)
             self.assertTrue(all(c['pairs']==1 and c['gain_pp']==0 for c in summary['comparisons']))
             self.assertEqual(summary['lengths']['neutral']['n'], 2)
             self.assertEqual(summary['scorer']['task'], run.SCORER)
