@@ -11,6 +11,27 @@ from tests.test_emotion_block_followups import FollowupTests
 
 
 class BBH3AngryX2Tests(unittest.TestCase):
+    def test_bbh5_uses_its_own_bare_vector_prompt_and_holdout(self):
+        with tempfile.TemporaryDirectory() as directory, redirect_stdout(io.StringIO()):
+            root = Path(directory)
+            primary = FollowupTests().make_cases(root, ('bbh5',))
+            task = primary/'diffa/bbh5'
+            for emotion in ('happy', 'sad'): shutil.rmtree(task/emotion)
+            old = json.loads((task/'angry/L31-answer-a1/run_config.json').read_text())
+            output = root/'x2'
+            job = run.prepare(primary, output, 'bbh5')
+            self.assertEqual(job['source']['name'], 'bbh5')
+            self.assertEqual(job['source']['vector_sha256'], old['source']['vector_sha256'])
+            self.assertEqual(job['target']['records'], old['target']['records'])
+            self.assertEqual(job['target']['prompt'], run.follow.night.catalog.prompt_for('bbh5'))
+            self.assertEqual(job['strengths'], [0.,1.,2.])
+            done = run.follow.validate(job, output)
+            self.assertEqual(len(done), 22)
+            self.assertEqual({r['strength'] for r in done.values()}, {0.,1.})
+            self.assertEqual(run.prepare(primary, output, 'bbh5'), job)
+            with self.assertRaisesRegex(ValueError, 'Expected BBH3 or BBH5'):
+                run.prepare(primary, output, 'svamp')
+
     def test_only_angry_existing_vector_and_same_holdout_with_zero_and_one_reuse(self):
         with tempfile.TemporaryDirectory() as directory, redirect_stdout(io.StringIO()):
             root = Path(directory)
