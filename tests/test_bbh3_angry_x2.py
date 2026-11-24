@@ -35,6 +35,19 @@ class BBH3AngryX2Tests(unittest.TestCase):
             self.assertEqual(x4['target'], job['target'])
             self.assertEqual(len(run.follow.validate(x4, root/'x4')), 22)
             self.assertEqual(run.prepare(primary, root/'x4', 'bbh5', 4.), x4)
+            x25 = run.prepare(primary, root/'x2.5', 'bbh5', 2.5)
+            self.assertEqual(x25['strengths'], [0.,1.,2.5])
+            self.assertEqual(x25['source'], job['source'])
+            self.assertEqual(x25['target'], job['target'])
+            existing = run.follow.validate(x25, root/'x2.5')
+            self.assertEqual(len(existing), 22)
+            self.assertEqual(run.prepare(primary, root/'x2.5', 'bbh5', 2.5), x25)
+            with (root/'x2.5/results.jsonl').open('a') as stream:
+                for row in existing.values():
+                    if row['strength'] != 1.: continue
+                    stream.write(json.dumps(dict(row, strength=2.5, condition='L31-answer-a2.5',
+                        interventions=[dict(layer=31,group='answer',strength=2.5)]))+'\n')
+            self.assertEqual(len(run.follow.validate(x25, root/'x2.5')), 33)
             self.assertEqual(json.loads((output/'run_config.json').read_text())['strengths'], [0.,1.,2.])
             with self.assertRaisesRegex(ValueError, 'Expected BBH3 or BBH5'):
                 run.prepare(primary, output, 'svamp')
