@@ -52,3 +52,15 @@ are saved together, avoiding ambiguity between source IDs and WAV batch numbers.
 Audio, source and `listen.html` are under `outputs/azure-bbh-arithmetic50/`.
 Answers, frozen prompts/configuration, decoder/model receipts and summaries are
 under `outputs/diffa-bbh-arithmetic50/`. Other experiments are untouched.
+
+Inspect three randomly sampled questions side by side in all four conditions
+(12 saved responses, no scoring or generation):
+
+```bash
+python3 show_arithmetic_audio_outputs.py --count 3
+```
+
+The preview prints original expressions, the actual spoken questions, gold
+answers, token counts and exact WAV paths. Selection uses completed matched
+questions without filtering by accuracy or length. Use `--question-id
+bbh_arithmetic_044` to inspect a specific source ID, including pending answers.
