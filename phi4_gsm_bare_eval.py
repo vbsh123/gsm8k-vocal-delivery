@@ -1,4 +1,4 @@
-"""Phi GSM8K neutral/angry bare-prompt evaluation only; existing Jenny audio, all1319."""
+"""Phi GSM8K neutral/angry bare-prompt evaluation only; fixed100 existing Jenny questions."""
 import argparse
 import fcntl
 from importlib.metadata import version
@@ -34,7 +34,7 @@ def registry_root(explicit=None):
     raise FileNotFoundError('No existing GSM audio plan/inventory found. Supply --source CONFIG or --audio-root JENNY_DIRECTORY.')
 
 
-def select(source=None, audio_root=None):
+def select(source=None, audio_root=None, num_questions=None):
     source = source or next((p for p in SOURCES if p.exists()), None)
     if source is not None:
         parent = json.loads(source.read_text())
@@ -52,6 +52,10 @@ def select(source=None, audio_root=None):
             records[key] = dict(r, condition=key[1])
         if set(records) != {(q,s) for q in order for s in STYLES}:
             raise ValueError('Source must contain neutral and angry for every question.')
+        if num_questions is not None:
+            order = order[:num_questions]
+            bank = {q:bank[q] for q in order}
+            records = {key:r for key,r in records.items() if key[0] in bank}
         if audio_root is not None or any(not Path(r['audio_file']).is_file() for r in records.values()):
             registry = Registry(registry_root(audio_root))
             records = {k:dict(registry.relocate(r), condition=k[1]) for k,r in records.items()}
@@ -59,7 +63,11 @@ def select(source=None, audio_root=None):
     else:
         registry = Registry(registry_root(audio_root))
         bank, records = {}, {}
-        for q in registry.neutral_ids('gsm8k'):
+        order = registry.neutral_ids('gsm8k')
+        if len(order) != TOTAL: raise ValueError(f'Expected the1319-question GSM inventory; found {len(order)}.')
+        order = sorted(order); random.Random(42).shuffle(order)
+        if num_questions is not None: order = order[:num_questions]
+        for q in order:
             neutral = registry.choose('gsm8k', q, 'neutral')
             bank[q] = dict(question_id=q, question=neutral['question'], answer=neutral['answer'])
             for s in STYLES:
@@ -68,8 +76,6 @@ def select(source=None, audio_root=None):
                 if len({x['record']['audio_sha256'] for x in options}) != 1:
                     raise ValueError(f'Missing or ambiguous {q}/{s}; restore the same Jenny audio.')
                 records[q,s] = dict(options[0]['record'], condition=s)
-        if len(bank) != TOTAL: raise ValueError(f'Expected all1319 GSM questions; found {len(bank)}.')
-        order = sorted(bank); random.Random(42).shuffle(order)
         receipt = dict(audio_root=str(registry.root))
     selected = [records[q,s] for q in order for s in STYLES]
     for r in selected:
@@ -79,19 +85,23 @@ def select(source=None, audio_root=None):
     return bank, order, selected, receipt
 
 
-def prepare(output, source=None, audio_root=None):
+def prepare(output, source=None, audio_root=None, num_questions=100):
+    if not 1 <= num_questions <= TOTAL: raise ValueError('Question count must be between1 and1319.')
     output.mkdir(parents=True, exist_ok=True)
     config = output/'run_config.json'
     if config.exists():
         plan = json.loads(config.read_text()); validate_plan(plan)
+        if len(plan['question_order']) != num_questions:
+            raise ValueError('Frozen question count differs; use a separate output folder.')
         if source is not None and plan.get('source_config') != str(source.absolute()):
             raise ValueError('Source changed; use the original command or another output folder.')
         return plan
-    bank, order, recordings, receipt = select(source, audio_root)
+    bank, order, recordings, receipt = select(source, audio_root, num_questions)
     plan = dict(protocol=PROTOCOL, task='gsm8k', model='phi', recipe=RECIPE, prompt=PROMPT,
         seed=42, max_new_tokens=512, question_order=order, bank=bank, recordings=recordings,
-        styles=list(STYLES), interventions=[], strength=0., **receipt,
-        selection='All1319 existing Jenny GSM questions, neutral and angry; no reserved/fitting questions, '
+        styles=list(STYLES), interventions=[], strength=0., num_questions=num_questions, **receipt,
+        selection='First N questions of the existing1319-question seed42 night order, neutral and angry; '
+            'subset fixed before inspecting this run\'s outcomes. No reserved/fitting questions, '
             'emotion-classifier, outcome or duration filtering. No TTS, activation capture or steering.',
         scoring='Installed upstream GSM8K strict/flexible filters and exact-match on saved answers; '
             'numeric equivalence and format compliance additional. Custom bare audio prompt, not full text-harness prompting.')
@@ -137,7 +147,7 @@ def reuse_night(output, plan, source=PARENT):
     with (output/'results.jsonl').open('a') as stream:
         for row in read_rows(source.parent/'deliveries.jsonl'):
             key = row['question_id'],row['condition']
-            if key[1] not in STYLES: continue
+            if key[1] not in STYLES or key not in wanted: continue
             record = wanted.get(key)
             if (key in seen or record is None or row.get('run_config_sha256') != parent_hash
                     or row.get('model') != 'phi' or row.get('prompt') != PROMPT or row.get('seed') != 42
@@ -153,6 +163,29 @@ def reuse_night(output, plan, source=PARENT):
                 prompt=PROMPT, seed=42, max_new_tokens=512, model=RECIPE['model'], revision=RECIPE['revision'],
                 interventions=[], strength=0., run_config_sha256=checksum,
                 reused_from=str(source.parent/'deliveries.jsonl'), source_config_sha256=parent_hash)
+            stream.write(json.dumps(saved)+'\n'); stream.flush(); imported += 1
+    return imported
+
+
+def reuse_larger_eval(output, plan, parent=Path('outputs/phi4-gsm-bare-eval')):
+    """Reuse the selected prefix if the earlier1319 evaluation was already started."""
+    if parent.resolve() == output.resolve() or not (parent/'run_config.json').exists(): return 0
+    previous = json.loads((parent/'run_config.json').read_text())
+    validate_plan(previous)
+    wanted = {(r['question_id'],r['condition']):r for r in plan['recordings']}
+    done = answers(output, plan, repair=True); checksum = sha(output/'run_config.json'); imported = 0
+    with (output/'results.jsonl').open('a') as stream:
+        for key,row in answers(parent, previous).items():
+            if key not in wanted: continue
+            record = wanted[key]
+            if any(row[k] != record[k] for k in ('voice','style','audio_sha256','reference_answer')):
+                raise ValueError('Earlier Phi bare evaluation used different audio/reference.')
+            if key in done:
+                if done[key]['response'] != row['response']: raise ValueError('Conflicting matching Phi bare response.')
+                continue
+            saved = dict(row, **record)
+            saved.update(run_config_sha256=checksum, reused_from=str(parent/'results.jsonl'),
+                source_config_sha256=sha(parent/'run_config.json'))
             stream.write(json.dumps(saved)+'\n'); stream.flush(); imported += 1
     return imported
 
@@ -207,7 +240,8 @@ def main():
     parser.add_argument('--mode', choices=('prepare','run','summary'), default='run')
     parser.add_argument('--source', type=Path, help='Existing complete GSM night run_config.json (optional).')
     parser.add_argument('--audio-root', type=Path, help='Existing extracted Jenny ZIP; no new audio is synthesized.')
-    parser.add_argument('--output', type=Path, default=Path('outputs/phi4-gsm-bare-eval'))
+    parser.add_argument('--num-questions', type=int, default=100, help='Fixed prefix of the seed42 order; default100.')
+    parser.add_argument('--output', type=Path, default=Path('outputs/phi4-gsm-bare-eval100'))
     args = parser.parse_args()
     config = args.output/'run_config.json'
     if args.mode == 'summary':
@@ -218,12 +252,13 @@ def main():
     with (args.output/'runner.lock').open('a') as own:
         try: fcntl.flock(own, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError: raise SystemExit('Phi bare evaluation already active; use --mode summary.')
-        plan = prepare(args.output, args.source, args.audio_root)
+        plan = prepare(args.output, args.source, args.audio_root, args.num_questions)
         print(f'Phi bare GSM: {len(plan["question_order"])} questions × neutral/angry. Evaluation only.\n'+PROMPT, flush=True)
         if args.mode == 'prepare':
             winners.score_rows(dict(target=dict(task='gsm8k',bank=plan['bank'])), [], args.output/'scoring-preflight')
             print('Prepared; no generation, collection, classifier selection or steering.', flush=True); return
-        print('Reused matching prior Phi bare answers:', reuse_night(args.output, plan), flush=True)
+        print('Reused from earlier large evaluation:', reuse_larger_eval(args.output, plan), flush=True)
+        print('Reused matching prior Phi night answers:', reuse_night(args.output, plan), flush=True)
         done = answers(args.output, plan, repair=True)
         if len(done) < len(plan['recordings']):
             for r in plan['recordings']:

@@ -22,7 +22,7 @@ class PhiBareEvalTests(unittest.TestCase):
         parent = dict(task='gsm8k',model='phi',prompt=run.PROMPT,seed=42,max_new_tokens=512,
             recipe=run.RECIPE,question_order=list(bank),bank=bank,records=records)
         source.write_text(json.dumps(parent))
-        with patch.object(run, 'TOTAL', 3): plan = run.prepare(root/'out', source)
+        with patch.object(run, 'TOTAL', 3): plan = run.prepare(root/'out', source, num_questions=3)
         return source, parent, plan
 
     def test_exact_diffa_prompt_full_bank_only_two_deliveries_no_fitting(self):
@@ -49,6 +49,28 @@ class PhiBareEvalTests(unittest.TestCase):
                 run.select(source)
             plan['prompt'] = 'Supply reasoning.'
             with self.assertRaisesRegex(ValueError, 'settings differ'): run.validate_plan(plan)
+
+    def test_fixed_prefix_and_reuse_larger_run_without_extra_generations(self):
+        with tempfile.TemporaryDirectory() as tmp, redirect_stdout(io.StringIO()):
+            root = Path(tmp); source, parent, large = self.fixture(root)
+            with patch.object(run, 'TOTAL', 3): small = run.prepare(root/'small', source, num_questions=2)
+            self.assertEqual(small['question_order'], large['question_order'][:2])
+            self.assertEqual(len(small['recordings']), 4)
+            with patch('phi4_all_layer_diagnostic.generate', side_effect=lambda native,r,prompt,**kwargs:
+                    dict(response='#### '+r['reference_answer'],response_tokens=4,generation_seconds=.1)):
+                run.generate(root/'out', large, None)
+            self.assertEqual(run.reuse_larger_eval(root/'small', small, root/'out'), 4)
+            self.assertEqual(run.reuse_larger_eval(root/'small', small, root/'out'), 0)
+            with patch('phi4_all_layer_diagnostic.generate') as generate:
+                run.generate(root/'small', small, None)
+                generate.assert_not_called()
+            with patch.object(run, 'TOTAL', 3), self.assertRaisesRegex(ValueError, 'count differs'):
+                run.prepare(root/'small', source, num_questions=3)
+            rows = [dict(r,response='#### '+r['reference_answer'],response_tokens=4,
+                model='phi',prompt=run.PROMPT,seed=42,max_new_tokens=512,strength=0.,interventions=[],
+                run_config_sha256=run.sha(source)) for r in parent['records']]
+            (source.parent/'deliveries.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rows))
+            self.assertEqual(run.reuse_night(root/'small', small, source), 0)
 
     def test_inventory_selection_needs_neither_other_emotions_nor_agreement(self):
         with tempfile.TemporaryDirectory() as tmp:
