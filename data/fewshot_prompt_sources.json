@@ -1,0 +1,17 @@
+{
+  "bbh3": {
+    "url": "https://raw.githubusercontent.com/suzgunmirac/BIG-Bench-Hard/9ee07bd481feebf959a6b59d61ea57bdcf30964d/cot-prompts/logical_deduction_three_objects.txt",
+    "sha256": "4ed65246c0c1c4b0b4053d784181892b842bce19cf4358c976f34b1a434ef034",
+    "examples": 3
+  },
+  "bbh5": {
+    "url": "https://raw.githubusercontent.com/suzgunmirac/BIG-Bench-Hard/9ee07bd481feebf959a6b59d61ea57bdcf30964d/cot-prompts/logical_deduction_five_objects.txt",
+    "sha256": "4ed65246c0c1c4b0b4053d784181892b842bce19cf4358c976f34b1a434ef034",
+    "examples": 3
+  },
+  "gsm8k": {
+    "url": "https://raw.githubusercontent.com/EleutherAI/lm-evaluation-harness/d6de81643928d653435c431bae19945d41d32520/lm_eval/tasks/gsm8k/gsm8k-cot.yaml",
+    "sha256": "7c9dd2561fe334a55f62bdc6a876f045e6dc7f53714c7a9db506b89c6de6bc96",
+    "examples": 8
+  }
+}

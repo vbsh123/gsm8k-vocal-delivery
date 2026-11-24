@@ -38,8 +38,9 @@ class HarnessTaskScorer:
         import lm_eval
         from lm_eval.tasks._yaml_loader import load_yaml
         root = Path(lm_eval.__file__).parent
-        if task_name == 'gsm8k':
-            config_path = root/'tasks/gsm8k/gsm8k.yaml'
+        if task_name in ('gsm8k', 'gsm8k_cot'):
+            filename = 'gsm8k-cot.yaml' if task_name == 'gsm8k_cot' else 'gsm8k.yaml'
+            config_path = root/'tasks/gsm8k'/filename
         elif task_name in ('bbh_cot_zeroshot_web_of_lies', 'bbh_cot_zeroshot_tracking_shuffled_objects_three_objects'):
             name = task_name.removeprefix('bbh_cot_zeroshot_')
             config_path = root/f'tasks/bbh/cot_zeroshot/{name}.yaml'
@@ -58,7 +59,7 @@ class HarnessTaskScorer:
             files={str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
                    for p in [config_path, root/'api/task.py', root/'api/metrics.py', root/'filters/extraction.py']},
             adaptation='Saved audio-generated responses supplied as task instances; official filters and exact-match metric unchanged. No new model inference or retrospective response truncation. Few-shot prompting is not rerun.')
-        if task_name != 'gsm8k':
+        if task_name not in ('gsm8k', 'gsm8k_cot'):
             for name in ('_cot_zeroshot_template_yaml', 'utils.py'):
                 p = config_path.parent/name
                 self.provenance['files'][str(p.relative_to(root))] = hashlib.sha256(p.read_bytes()).hexdigest()
