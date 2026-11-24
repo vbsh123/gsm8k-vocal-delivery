@@ -26,7 +26,7 @@ PROMPTS = dict(
                 '#### <number>'))
 
 
-def select(task, count=100, source=None, audio_root=None):
+def select(task, count=100, source=None, audio_root=None, *, sample_seed=None):
     if task not in TOTALS or not 1 <= count <= TOTALS[task]: raise ValueError('Invalid task/question count.')
     if source is None:
         source = next((p for p in (Path('outputs/emotion-block-night')/model/task/'run_config.json'
@@ -37,7 +37,8 @@ def select(task, count=100, source=None, audio_root=None):
             raise ValueError(f'Use the complete {task} night plan, not a fitting/held-out subset.')
         order = sorted(bank); random.Random(42).shuffle(order)
         if parent['question_order'] != order: raise ValueError('Source order differs from the fixed seed42 night order.')
-        order = order[:count]; bank = {q:bank[q] for q in order}; records = {}
+        order = order[:count] if sample_seed is None else random.Random(sample_seed).sample(sorted(bank), count)
+        bank = {q:bank[q] for q in order}; records = {}
         for row in parent['records']:
             key = row['question_id'],row.get('condition',row.get('style'))
             if key[0] not in bank or key[1] not in STYLES: continue
@@ -52,7 +53,11 @@ def select(task, count=100, source=None, audio_root=None):
         registry = Registry(registry_root(audio_root))
         order = sorted(registry.neutral_ids(task))
         if len(order) != TOTALS[task]: raise ValueError(f'Expected {TOTALS[task]} {task} questions; found {len(order)}.')
-        random.Random(42).shuffle(order); order = order[:count]
+        if sample_seed is None:
+            random.Random(42).shuffle(order)
+            order = order[:count]
+        else:
+            order = random.Random(sample_seed).sample(order, count)
         bank, records = {}, {}
         for q in order:
             neutral = registry.choose(task,q,'neutral')

@@ -84,3 +84,36 @@ class MultiArithSupplyTests(GsmSupplyTests):
     def test_wrong_parent_is_rejected(self):
         with self.assertRaisesRegex(ValueError, 'GSM8K'):
             run.prepare(self.parent, self.output, 'gsm8k')
+
+    def test_supply_only_from_audio_without_bare_responses(self):
+        from unittest.mock import Mock
+        registry = Mock()
+        bank = self.original['bank']
+        registry.root = self.parent
+        registry.neutral_ids.return_value = list(bank)
+        registry.options = {}
+        audio = self.parent/'clip.wav'
+        audio.write_bytes(b'fixture')
+        for row in self.original['records']:
+            item = dict(record=dict(row, audio_file=str(audio), audio_sha256=run.winners.digest(audio)),
+                        **bank[row['question_id']])
+            registry.options['multiarith',row['question_id'],row['style']] = [item]
+        registry.choose.side_effect = lambda *key: registry.options[key][0]
+        with patch('phi4_more_bare_eval.Registry', return_value=registry):
+            plan = run.prepare_supply_only(self.output, audio_root=self.parent)
+        self.assertEqual(plan['question_order'], self.ids)
+        self.assertNotIn('bare_answers', plan)
+        backend = Mock()
+        backend.generate.return_value = dict(response='#### 2', response_tokens=3, audio_encoding={})
+        with redirect_stdout(io.StringIO()):
+            run.evaluation.generate_dataset(self.output, plan, plan['records'][:3], backend)
+            run.evaluation.generate_dataset(self.output, plan, plan['records'][:3], backend)
+            run.report(self.output, plan)
+        self.assertEqual(backend.generate.call_count, 3)
+        summary = json.loads((self.output/'summary.json').read_text())
+        self.assertEqual(summary['matched'], 1)
+        self.assertEqual(summary['interactions'], [])
+        self.assertEqual(set(summary['lengths']), {'neutral-reasoning', 'angry-reasoning'})
+        self.assertEqual(len(summary['comparisons']), 4)
+        self.assertTrue(all(c['prompt'] == 'supply' and c['baseline_correct'] == c['steered_correct'] == 1
+                            for c in summary['comparisons']))
