@@ -33,8 +33,9 @@ def main():
     parser.add_argument('--supply-run',type=Path,default=Path('outputs/diffa-object-counting-supply-reasoning'))
     parser.add_argument('--count',type=int,default=3)
     parser.add_argument('--seed',type=int,default=42)
-    parser.add_argument('--longest',action='store_true',help='Inspect longest neutral-reasoning answers instead of a random sample.')
+    parser.add_argument('--longest',action='store_true',help='Inspect longest reasoning answers among the selected conditions instead of a random sample.')
     parser.add_argument('--question-id',help='Show a particular question, including pending conditions.')
+    parser.add_argument('--conditions',nargs='+',help='Show only these conditions; random samples require all selected answers.')
     args=parser.parse_args()
     if args.count<1:parser.error('--count must be positive')
     plan,checksum,answers=load(args.run)
@@ -48,20 +49,27 @@ def main():
         if set(extra_conditions)&set(conditions):raise ValueError('Duplicate condition names across runs.')
         answers.update(other)
         conditions.extend(extra_conditions)
+    if args.conditions:
+        unknown=set(args.conditions)-set(conditions)
+        if unknown:parser.error('Conditions not prepared: '+', '.join(sorted(unknown)))
+        if len(set(args.conditions))!=len(args.conditions):parser.error('Duplicate selected conditions')
+        conditions=args.conditions
+    required=conditions if args.conditions else plan['conditions']
     if args.question_id:
         if args.question_id not in plan['bank']:parser.error('Question ID absent from this run')
         selected=[args.question_id]
         print('Selected question ID; missing answers shown as pending.')
     else:
-        eligible=[q for q in plan['question_order'] if all((q,c) in answers for c in plan['conditions'])]
+        eligible=[q for q in plan['question_order'] if all((q,c) in answers for c in required)]
         if args.longest:
-            selected=sorted(eligible,key=lambda q:(-answers[q,'neutral-reasoning']['response_tokens'],q))[:args.count]
-            print('Selected by longest neutral-reasoning output; diagnostic examples, not a representative sample.')
+            rank=next((c for c in ('neutral-reasoning','neutral-supply-reasoning') if c in conditions),conditions[0])
+            selected=sorted(eligible,key=lambda q:(-answers[q,rank]['response_tokens'],q))[:args.count]
+            print(f'Selected by longest {rank} output; diagnostic examples, not a representative sample.')
         else:
             selected=random.Random(args.seed).sample(eligible,min(args.count,len(eligible)))
-            print(f'Random sample, seed={args.seed}; requires all five original answers; no accuracy filtering.')
+            print(f'Random sample, seed={args.seed}; requires completed selected conditions; no accuracy filtering.')
     if not selected:
-        print('No questions completed in all five original conditions yet.')
+        print('No questions completed in the required conditions yet.')
     for q in selected:
         item=plan['bank'][q]
         print('\n'+'='*72+'\n'+q+'\nQUESTION: '+item['question']+'\nGOLD: '+item['original_target'])

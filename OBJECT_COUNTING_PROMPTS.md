@@ -152,3 +152,16 @@ condition vs its same-audio bare baseline, and comparisons to the earlier reason
 wording when available. All comparisons use matching completed IDs, strict/flexible
 scores, p-values, CIs and mean/median tokens. The saved-output preview includes
 these two conditions automatically when this run is prepared.
+
+To compare both Supply reasoning conditions specifically with **neutral-bare**:
+
+```bash
+.venv-diffa/bin/python compare_object_counting_supply_bare.py
+```
+
+To print three examples with only neutral-bare, neutral-supply and angry-supply,
+requiring all three answers to be complete:
+
+```bash
+python3 show_object_counting_outputs.py --count 3 --conditions neutral neutral-supply-reasoning angry-supply-reasoning
+```
