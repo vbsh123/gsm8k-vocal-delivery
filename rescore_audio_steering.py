@@ -41,7 +41,8 @@ class HarnessTaskScorer:
         if task_name in ('gsm8k', 'gsm8k_cot'):
             filename = 'gsm8k-cot.yaml' if task_name == 'gsm8k_cot' else 'gsm8k.yaml'
             config_path = root/'tasks/gsm8k'/filename
-        elif task_name in ('bbh_cot_zeroshot_web_of_lies', 'bbh_cot_zeroshot_tracking_shuffled_objects_three_objects'):
+        elif task_name in ('bbh_cot_zeroshot_web_of_lies', 'bbh_cot_zeroshot_tracking_shuffled_objects_three_objects',
+                           'bbh_cot_zeroshot_object_counting'):
             name = task_name.removeprefix('bbh_cot_zeroshot_')
             config_path = root/f'tasks/bbh/cot_zeroshot/{name}.yaml'
         else:
