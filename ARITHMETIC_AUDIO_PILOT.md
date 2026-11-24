@@ -94,3 +94,14 @@ uses the BBH arithmetic task's own upstream filters, not GSM8K filters.
 Output: `outputs/diffa-bbh-arithmetic-steering/`, with `collection/` holding the
 checkpoint and vector and `L31-answer-a2/` holding paired responses and scores.
 `--mode prepare` freezes metadata and checks scoring without GPU inference.
+
+For x+3 using that exact same block vector and25-question holdout:
+
+```bash
+bash run_arithmetic_strength.sh --strength 3
+bash run_arithmetic_strength.sh --strength 3 --mode summary
+```
+
+This waits for the original collection/vector and baseline if needed, then waits
+for the shared GPU lock. It does not recollect or alter x+2 artifacts. Results
+are saved separately under `outputs/diffa-bbh-arithmetic-steering/L31-answer-a3/`.

@@ -7,6 +7,7 @@ import unittest
 
 import torch
 import run_arithmetic_steering as run
+import run_arithmetic_strength as strengths
 
 
 def parent_fixture(root):
@@ -78,6 +79,11 @@ class ArithmeticSteeringTests(unittest.TestCase):
             self.assertEqual(len(baseline),25)
             run.steering_job(experiment,p,old,rows,output)
             self.assertEqual(len(run.follow.validate(job,folder)),25)
+            (output/'runtime.json').write_text(json.dumps(dict(model_revisions={},packages={})))
+            # x3 can prepare as soon as the vector/baseline exist, before any x2 answers.
+            self.assertTrue(strengths.ready(output))
+            early=strengths.prepare(output,output/'L31-answer-a3',3.)
+            self.assertEqual(len(run.follow.validate(early,output/'L31-answer-a3')),25)
             with (folder/'results.jsonl').open('a') as stream:
                 for i,row in enumerate(baseline.values()):
                     stream.write(json.dumps(dict(row,strength=2.,condition='L31-answer-a2',
@@ -90,6 +96,19 @@ class ArithmeticSteeringTests(unittest.TestCase):
             self.assertEqual({r['metric'] for r in paired},{'strict-match','flexible-extract'})
             self.assertTrue(all(r['pairs']==25 and r['baseline_correct']==25 and r['steered_correct']==12 for r in paired))
             self.assertEqual(summary['lengths']['L31-answer-a2']['n'],25)
+            self.assertTrue(strengths.ready(output))
+            vector_hash=run.winners.digest(output/'collection/style-vectors.pt')
+            capture_calls=len(backend.calls)
+            followup=output/'L31-answer-a3'
+            follow_job=strengths.prepare(output,followup,3.)
+            self.assertEqual(follow_job['strengths'],[0.,3.])
+            self.assertEqual(follow_job['target']['records'],job['target']['records'])
+            self.assertEqual(follow_job['source']['vector_sha256'],job['source']['vector_sha256'])
+            self.assertEqual(follow_job['target']['prompt'],run.pilot.BARE_PROMPT)
+            self.assertEqual(len(run.follow.validate(follow_job,followup)),25)
+            self.assertEqual(strengths.prepare(output,followup,3.),follow_job)
+            self.assertEqual(run.winners.digest(output/'collection/style-vectors.pt'),vector_hash)
+            self.assertEqual(len(backend.calls),capture_calls)
             self.assertEqual((parent/'deliveries.jsonl').read_bytes(),original)
 
     def test_changed_replay_is_not_committed(self):
