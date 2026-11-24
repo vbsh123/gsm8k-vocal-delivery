@@ -25,6 +25,27 @@ class TTSRetryTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,'401'):request_audio('https://example.test',b'body',{})
             self.assertEqual(call.call_count,1)
 
+    def test_rate_limit_retains_explanation_redacts_key_and_honors_retry_after(self):
+        errors=[HTTPError('https://example.test',429,'busy',{'Retry-After':'12'},
+                         io.BytesIO(b'Voice capacity unavailable; secret-key-value')) for _ in range(3)]
+        output=io.StringIO()
+        with patch('cloud_tts_smoke.urlopen',side_effect=errors),\
+             patch('cloud_tts_smoke.time.sleep') as sleep,redirect_stdout(output):
+            with self.assertRaisesRegex(TransientTTSError,'Voice capacity unavailable') as caught:
+                request_audio('https://example.test',b'body',{'Ocp-Apim-Subscription-Key':'secret-key-value'})
+        self.assertNotIn('secret-key-value',str(caught.exception)+output.getvalue())
+        self.assertIn('[REDACTED]',output.getvalue())
+        self.assertEqual([c.args[0] for c in sleep.call_args_list],[12,12])
+
+    def test_long_rate_limit_wait_is_reported_without_immediate_retries(self):
+        error=HTTPError('https://example.test',429,'quota',{'Retry-After':'120'},io.BytesIO(b'Quota exhausted'))
+        with patch('cloud_tts_smoke.urlopen',side_effect=error) as call,\
+             patch('cloud_tts_smoke.time.sleep') as sleep,redirect_stdout(io.StringIO()):
+            with self.assertRaisesRegex(TransientTTSError,'retry later'):
+                request_audio('https://example.test',b'body',{})
+            self.assertEqual(call.call_count,1)
+            sleep.assert_not_called()
+
     def test_resume_preserves_saved_clip_and_revisits_failed_clip_after_others(self):
         with tempfile.TemporaryDirectory() as d,redirect_stdout(io.StringIO()):
             root=Path(d)

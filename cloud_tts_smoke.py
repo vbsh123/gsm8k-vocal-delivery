@@ -44,20 +44,39 @@ def eleven_text(text, style):
 def request_audio(url, body, headers):
     request = Request(url, data=body, headers=headers, method="POST")
     for attempt in range(3):
+        delay = 2 ** (attempt + 1)
         try:
             with urlopen(request, timeout=180) as response:
                 return response.read()
         except HTTPError as error:
+            detail = error.read().decode(errors='replace')
+            # Report Azure's explanation, never credentials echoed by a server.
+            for name, value in headers.items():
+                if value and name.lower() in ('ocp-apim-subscription-key', 'xi-api-key', 'authorization'):
+                    detail = detail.replace(value, '[REDACTED]')
+            detail = detail[:2000].strip() or '(empty response body)'
+            retry_after = error.headers.get('Retry-After') if error.headers else None
+            message = f'TTS HTTP {error.code}: {detail}'
+            if retry_after:
+                message += f'; Retry-After={retry_after}'
             if error.code not in (429, 500, 502, 503, 504):
-                raise RuntimeError(f"TTS HTTP {error.code}: {error.read().decode(errors='replace')}") from None
-            message=f'TTS HTTP {error.code}'
+                error.close()
+                raise RuntimeError(message) from None
             error.close()
+            print(message, flush=True)
             if attempt == 2:
                 raise TransientTTSError(message) from None
+            if retry_after:
+                try:
+                    seconds = float(retry_after)
+                except ValueError:
+                    seconds = 0
+                if seconds > 60:
+                    raise TransientTTSError(message+'; retry later rather than repeatedly calling the service') from None
+                delay = max(delay, seconds)
         except (IncompleteRead, URLError, TimeoutError, ConnectionError):
             if attempt == 2:
                 raise TransientTTSError('TTS connection interrupted after three attempts') from None
-        delay = 2 ** (attempt + 1)
         print(f"TTS download interrupted or service busy; retry {attempt + 1}/2 in {delay}s.", flush=True)
         time.sleep(delay)
 
