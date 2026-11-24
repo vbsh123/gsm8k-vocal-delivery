@@ -66,7 +66,7 @@ def main():
             if row is None:
                 print('\n'+c+': pending')
             else:
-                print(f'\n{c} | tokens={row["response_tokens"]}\n{row["response"]}')
+                print(f'\n{c} | tokens={row["response_tokens"]}\nAUDIO: {row["audio_file"]}\n{row["response"]}')
 
 
 if __name__=='__main__':main()

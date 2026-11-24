@@ -124,3 +124,6 @@ python3 show_object_counting_outputs.py --longest --count 3
 
 The second command deliberately selects the longest neutral-reasoning outputs to
 inspect whether any intermediate steps appear; it is not a representative sample.
+The preview prints each saved audio path. Question IDs use the original dataset
+index, while `qNNNNN-azure-*.wav` filenames use the seed42 shuffled batch position;
+these numbers differ. For example, `bbh_object_counting_095` uses `q00031` audio.
