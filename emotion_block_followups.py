@@ -105,7 +105,7 @@ def restore(archives,repo,root):
         print(f'Imported exact primary artifacts: {path}',flush=True)
 
 
-def complete_case(root,name):
+def complete_case(root,name,emotions=None):
     folder=root/'diffa'/name
     plan=json.loads((folder/'run_config.json').read_text())
     if plan['protocol']!=night.PROTOCOL or plan['model']!='diffa':
@@ -115,7 +115,7 @@ def complete_case(root,name):
         raise ValueError(f'{name}: finish all four natural deliveries first.')
     runtime=json.loads((folder/'runtime.json').read_text())
     result={}
-    for e in night.EMOTIONS:
+    for e in night.EMOTIONS if emotions is None else emotions:
         p=json.loads((folder/e/'run_config.json').read_text())
         state=night.load_state(p,folder/e)
         if state['completed_ids']!=p['collection_ids']:
