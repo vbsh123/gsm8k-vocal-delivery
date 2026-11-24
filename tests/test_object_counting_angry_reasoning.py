@@ -11,6 +11,13 @@ from tests import test_object_counting_prompts as fixtures
 
 
 class AngryReasoningTests(unittest.TestCase):
+    def setUp(self):
+        # The synthetic parent has its own valid fixture-source receipt.
+        _,digest=fixtures.fixture_source()
+        source=patch.object(run.base,'SOURCE_BLOB',digest)
+        source.start()
+        self.addCleanup(source.stop)
+
     def parent(self,root):
         source,selection=fixtures.ObjectCountingTests().selection(root)
         records={}
@@ -78,6 +85,7 @@ class AngryReasoningTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory,redirect_stdout(io.StringIO()):
             root=Path(directory);parent,old=self.parent(root)
             plan=run.prepare(parent,root/'extra')
+            old=json.loads((parent/'run_config.json').read_text())
             old['prompts']['neutral-reasoning']='A different prompt'
             (parent/'run_config.json').write_text(json.dumps(old))
             with self.assertRaisesRegex(ValueError,'source configuration'):run.prepare(parent,root/'other')
