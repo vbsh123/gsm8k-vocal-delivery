@@ -11,6 +11,32 @@ import phi4_more_bare_eval as run
 
 
 class MorePhiBareTests(unittest.TestCase):
+    def test_parallel_dataset_locks_allow_different_tasks_but_reject_duplicate_writer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            with run.dataset_locks(root,['bbh5'],True):
+                with run.dataset_locks(root,['multiarith'],True):
+                    with self.assertRaisesRegex(SystemExit,'bbh5.*already active'):
+                        with run.dataset_locks(root,['bbh5'],True): pass
+                    with self.assertRaisesRegex(SystemExit,'combined queue'):
+                        with run.dataset_locks(root,['multiarith'],False): pass
+            with run.dataset_locks(root,['bbh5','multiarith'],False): pass
+
+    def test_concurrent_gpu_startup_bypasses_idle_queue_and_checks_memory_before_load(self):
+        with patch('evaluate_bbh_candidates.concurrent_budget_now') as budget, \
+                patch('steer_phi4_gsm_reverse.NativePhi') as native, \
+                patch.object(run.subprocess,'check_output') as gpu_query:
+            with run.model_session(True,15.) as model:
+                self.assertIs(model,native.return_value)
+                budget.assert_called_once_with(15.)
+                native.assert_called_once_with(11)
+            gpu_query.assert_not_called()
+        with patch('evaluate_bbh_candidates.concurrent_budget_now',side_effect=RuntimeError('insufficient memory')), \
+                patch('steer_phi4_gsm_reverse.NativePhi') as native:
+            with self.assertRaisesRegex(RuntimeError,'insufficient memory'):
+                with run.model_session(True,15.): pass
+            native.assert_not_called()
+
     def fixture(self, root, task):
         audio = root/task; audio.mkdir()
         bank, records = {}, []

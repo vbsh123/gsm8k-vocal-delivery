@@ -1,6 +1,8 @@
 """Phi BBH5 and MultiArith: fixed100 questions each, neutral/angry, evaluation only."""
 import argparse
+from contextlib import contextmanager, ExitStack
 import fcntl
+import hashlib
 from importlib.metadata import version
 import json
 import os
@@ -166,6 +168,43 @@ def summarize_child(task,output):
     subprocess.run([cpu,'-u',__file__,'--mode','summary','--datasets',task,'--output',str(output)],check=True)
 
 
+@contextmanager
+def dataset_locks(root,tasks,concurrent=False):
+    root.mkdir(parents=True,exist_ok=True)
+    with ExitStack() as locks:
+        own = locks.enter_context((root/'runner.lock').open('a'))
+        try: fcntl.flock(own,(fcntl.LOCK_SH if concurrent else fcntl.LOCK_EX) | fcntl.LOCK_NB)
+        except BlockingIOError: raise SystemExit('Phi bare task queue already active; stop the old combined queue before concurrent workers.')
+        for task in sorted(tasks):
+            folder = root/task; folder.mkdir(parents=True,exist_ok=True)
+            lock = locks.enter_context((folder/'runner.lock').open('a'))
+            try: fcntl.flock(lock,fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError: raise SystemExit(f'Phi {task} bare evaluation already active.')
+        yield
+
+
+@contextmanager
+def model_session(concurrent=False, budget=15.):
+    """Concurrent workers serialize startup only, then generate independently."""
+    from steer_phi4_gsm_reverse import NativePhi
+    Path('outputs').mkdir(exist_ok=True)
+    if concurrent:
+        from evaluate_bbh_candidates import concurrent_budget_now
+        # Recheck free memory after the other worker has loaded its weights.
+        with Path('outputs/phi4-concurrent-startup.lock').open('a') as startup:
+            fcntl.flock(startup,fcntl.LOCK_EX)
+            concurrent_budget_now(budget)
+            native = NativePhi(11)
+        yield native
+    else:
+        with Path('outputs/jenny-task-vectors.lock').open('a') as gpu:
+            print('Waiting for shared GPU lock and idle GPU; GSM may finish first.',flush=True)
+            fcntl.flock(gpu,fcntl.LOCK_EX)
+            while subprocess.check_output(['nvidia-smi','--query-compute-apps=pid','--format=csv,noheader'],text=True).strip():
+                time.sleep(30)
+            yield NativePhi(11)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--datasets',nargs='+',choices=tuple(TOTALS),default=list(TOTALS))
@@ -174,7 +213,10 @@ def main():
     parser.add_argument('--source',type=Path,help='Complete night config, when selecting one dataset.')
     parser.add_argument('--audio-root',type=Path)
     parser.add_argument('--output',type=Path,default=Path('outputs/phi4-bare-eval100'))
+    parser.add_argument('--concurrent',action='store_true',help='Share the GPU with another Phi worker; bypass the idle-GPU queue.')
+    parser.add_argument('--gpu-budget-gib',type=float,default=15.,help='Concurrent per-worker PyTorch allocator cap; default15 GiB.')
     args = parser.parse_args()
+    if args.gpu_budget_gib <= 0: parser.error('GPU budget must be positive.')
     if len(set(args.datasets)) != len(args.datasets): parser.error('Select each dataset once.')
     if args.source and len(args.datasets) != 1: parser.error('--source requires exactly one dataset.')
     if args.mode == 'summary':
@@ -183,10 +225,7 @@ def main():
             if (folder/'run_config.json').exists(): report(folder,json.loads((folder/'run_config.json').read_text()))
             else: print(f'Phi {task} bare not prepared yet.',flush=True)
         return
-    args.output.mkdir(parents=True,exist_ok=True)
-    with (args.output/'runner.lock').open('a') as own:
-        try: fcntl.flock(own,fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError: raise SystemExit('Phi bare task queue already active; use --mode summary.')
+    with dataset_locks(args.output,args.datasets,args.concurrent):
         jobs = [(args.output/task,prepare(task,args.output/task,args.num_questions,args.source,args.audio_root)) for task in args.datasets]
         for folder,plan in jobs:
             print(f'Phi {plan["task"]}: {len(plan["question_order"])} fixed questions × neutral/angry; evaluation only.\n'+plan['prompt'],flush=True)
@@ -198,18 +237,17 @@ def main():
             for folder,plan in pending:
                 for row in plan['recordings']:
                     if sha(row['audio_file']) != row['audio_sha256']: raise ValueError('Frozen audio missing/changed.')
-            Path('outputs').mkdir(exist_ok=True)
-            with Path('outputs/jenny-task-vectors.lock').open('a') as gpu:
-                print('Waiting for shared GPU lock and idle GPU; GSM may finish first.',flush=True)
-                fcntl.flock(gpu,fcntl.LOCK_EX)
-                while subprocess.check_output(['nvidia-smi','--query-compute-apps=pid','--format=csv,noheader'],text=True).strip():
-                    time.sleep(30)
-                from steer_phi4_gsm_reverse import NativePhi
-                native = NativePhi(11)
+            with model_session(args.concurrent,args.gpu_budget_gib) as native:
                 for folder,plan in jobs:
                     if len(answers(folder,plan)) < len(plan['recordings']):
-                        winners.freeze(folder/'runtime.json',dict(recipe=RECIPE,runner_sha256=sha(__file__),
-                            packages={k:version(k) for k in ('torch','transformers')},model_config=native.model.config.to_dict()))
+                        runtime = dict(recipe=RECIPE,runner_sha256=sha(__file__),
+                            packages={k:version(k) for k in ('torch','transformers')},model_config=native.model.config.to_dict(),
+                            resource_policy=dict(mode='concurrent' if args.concurrent else 'exclusive',
+                                gpu_budget_gib=args.gpu_budget_gib if args.concurrent else None,
+                                note='Shared-GPU timings are not comparable to isolated runs.'))
+                        key = hashlib.sha256(json.dumps(runtime,sort_keys=True).encode()).hexdigest()[:16]
+                        winners.freeze(folder/'runtime-receipts'/f'{key}.json',runtime)
+                        if not (folder/'runtime.json').exists(): winners.freeze(folder/'runtime.json',runtime)
                         generate(folder,plan,native)
                     summarize_child(plan['task'],args.output)
         else:

@@ -67,3 +67,33 @@ Results: `outputs/phi4-bare-eval100/bbh5/` and
 `outputs/phi4-bare-eval100/multiarith/`. These are separate from the GSM run.
 `--mode prepare` validates inputs and evaluator availability without inference.
 The wrapper uses `.venv-diffa` for scoring and `.venv-bbh-phi4` for inference.
+
+## Separate concurrent workers
+
+To run both models concurrently on the same GPU, use one process per dataset
+with `--concurrent`. Different datasets use independent locks and files under
+the same result root; the same dataset cannot be generated twice concurrently.
+The idle-GPU queue is bypassed. Each worker has a15 GiB PyTorch allocator cap;
+startup checks for that amount plus2 GiB headroom. Weight-loading startup is
+serialized briefly so the second worker checks memory after the first loads.
+If insufficient memory remains, the second exits with a clear error, preserving
+completed answers and leaving the other worker running. No existing job is killed.
+
+Stop the old combined queue first if you already started it:
+
+```bash
+pkill -TERM -f '[p]hi4_more_bare_eval.py --mode run' || true
+git pull --ff-only
+```
+
+Then launch each worker:
+
+```bash
+nohup bash run_phi4_more_bare_eval.sh --datasets bbh5 --concurrent > outputs/phi4-bbh5-bare100.log 2>&1 < /dev/null &
+nohup bash run_phi4_more_bare_eval.sh --datasets multiarith --concurrent > outputs/phi4-multiarith-bare100.log 2>&1 < /dev/null &
+```
+
+The prompts, selected IDs and outputs are unchanged, and completed answers from
+the combined queue are reused. Old runtime receipts remain intact; each resource
+configuration gets its own receipt. Shared-GPU timings are not comparable to
+isolated timings. The same summary commands above still work.
