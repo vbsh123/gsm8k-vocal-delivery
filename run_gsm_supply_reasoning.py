@@ -1,4 +1,4 @@
-"""Compare angry vs neutral on matched GSM8K audio with and without a reasoning request."""
+"""Compare angry vs neutral on matched GSM8K or MultiArith audio with and without a reasoning request."""
 import argparse
 import fcntl
 from importlib.metadata import version
@@ -23,13 +23,19 @@ OUTPUT = Path('outputs/diffa-gsm-supply-reasoning200')
 PRIMARY = 'flexible-numeric'
 
 
-def prepare(parent, output):
+DATASETS = {'gsm8k': ('GSM8K', PARENT, OUTPUT),
+           'multiarith': ('MultiArith', PARENT.with_name('multiarith'), Path('outputs/diffa-multiarith-supply-reasoning200'))}
+# Existing GSM8K receipts were created by the original single-dataset runner.
+GSM_RUNNER_V1 = '56ec9ee6a46836af46d015f05aaaed72d36e876c14a6bafe35e586f6d5e28b26'
+
+
+def prepare(parent, output, dataset='gsm8k'):
     config = parent/'run_config.json'
     original = json.loads(config.read_text())
-    if (original['protocol'] != night.PROTOCOL or original['task'] != 'gsm8k' or original['model'] != 'diffa'
+    if (original['protocol'] != night.PROTOCOL or original['task'] != dataset or original['model'] != 'diffa'
             or original['prompt'] != night.vanilla.PROMPT or original['recipe'] != night.vanilla.RECIPE
-            or original['max_new_tokens'] != 512 or original['seed'] != 42 or len(original['bank']) != 1319):
-        raise ValueError('Expected the full DIFFA GSM8K bare-task night run.')
+            or original['max_new_tokens'] != 512 or original['seed'] != 42 or len(original['bank']) != night.SPECS[dataset][0]):
+        raise ValueError(f'Expected the full DIFFA {DATASETS[dataset][0]} bare-task night run.')
     # Choose question IDs before accessing any saved responses.
     ids = random.Random(42).sample(sorted(original['bank']), 200)
     bare = evaluation.raw_rows(parent, original)
@@ -46,7 +52,7 @@ def prepare(parent, output):
                 raise ValueError(f'Unexpected style, voice or saved token count for {key}.')
             selected.append(record)
             baselines.append(row)
-    plan = dict(protocol='diffa-gsm8k-supply-reasoning200-v1', task='gsm8k', name='gsm8k', model='diffa',
+    plan = dict(protocol=f'diffa-{dataset}-supply-reasoning200-v1', task=dataset, name=dataset, model='diffa',
                 seed=42, max_new_tokens=512, recipe=original['recipe'], question_order=ids,
                 bank={q:original['bank'][q] for q in ids}, records=selected, bare_answers=baselines,
                 prompt=PROMPT, bare_prompt=original['prompt'], parent_config_sha256=winners.digest(config),
@@ -58,7 +64,7 @@ def prepare(parent, output):
 def report(output, plan):
     new = evaluation.raw_rows(output,plan)
     ids = [q for q in plan['question_order'] if all((q,s) in new for s in STYLES)]
-    print(f'GSM8K: {len(new)}/400 new answers; {len(ids)}/200 questions complete in all four conditions.')
+    print(f'{DATASETS[plan["task"]][0]}: {len(new)}/400 new answers; {len(ids)}/200 questions complete in all four conditions.')
     if not ids:
         return
     bare = {(r['question_id'],r['style']):r for r in plan['bare_answers']}
@@ -96,25 +102,31 @@ def report(output, plan):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mode',choices=('run','prepare','summary'),default='run')
-    parser.add_argument('--parent',type=Path,default=PARENT)
-    parser.add_argument('--output',type=Path,default=OUTPUT)
+    parser.add_argument('--dataset', choices=DATASETS, default='gsm8k')
+    parser.add_argument('--parent',type=Path)
+    parser.add_argument('--output',type=Path)
     args = parser.parse_args()
-    output = args.output
+    label, default_parent, default_output = DATASETS[args.dataset]
+    parent = args.parent or default_parent
+    output = args.output or default_output
     if args.mode == 'summary':
         config = output/'run_config.json'
         if config.exists():
-            report(output,json.loads(config.read_text()))
+            plan = json.loads(config.read_text())
+            if plan['task'] != args.dataset:
+                raise ValueError(f'Expected {label} results in {output}.')
+            report(output,plan)
         else:
-            print('GSM8K supply-reasoning run has not been prepared yet.')
+            print(f'{label} supply-reasoning run has not been prepared yet.')
         return
     output.mkdir(parents=True,exist_ok=True)
     with (output/'runner.lock').open('a') as own:
         try:
             fcntl.flock(own,fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
-            raise SystemExit('GSM8K supply-reasoning run is already active.')
-        plan = prepare(args.parent,output)
-        print('200 GSM8K questions, neutral and angry. Generation prompt:\n'+PROMPT,flush=True)
+            raise SystemExit(f'{label} supply-reasoning run is already active.')
+        plan = prepare(parent,output,args.dataset)
+        print(f'200 {label} questions, neutral and angry. Generation prompt:\n'+PROMPT,flush=True)
         winners.score_rows(dict(target=plan),[],output/'scoring')
         done = evaluation.raw_rows(output,plan,repair=True)
         pending = [r for r in plan['records'] if (r['question_id'],r['condition']) not in done]
@@ -137,7 +149,7 @@ def main():
                 from src.dataloader import build_chat_prompt
                 packages = {k:version(k) for k in ('torch','transformers')}
                 revisions = model_revisions()
-                parent_runtime = args.parent/'runtime.json'
+                parent_runtime = parent/'runtime.json'
                 if parent_runtime.exists():
                     old = json.loads(parent_runtime.read_text())
                     if old['packages'] != packages or old['model_revisions'] != revisions:
@@ -145,9 +157,18 @@ def main():
                 backend = night.DiffaBackend()
                 text, count = evaluation.context_guard(backend.tokenizer,PROMPT,build_chat_prompt)
                 winners.atomic_text(output/'native-chat-prompt.txt',text)
-                winners.freeze(output/'runtime.json',dict(packages=packages,model_revisions=revisions,
+                runtime_path = output/'runtime.json'
+                runner_digest = winners.digest(__file__)
+                receipt = dict(packages=packages,model_revisions=revisions,
                     model_config=backend.model.config.to_dict(),native_prompt_tokens=count,
-                    runner_sha256=winners.digest(__file__)))
+                    runner_sha256=runner_digest)
+                if args.dataset == 'gsm8k' and runtime_path.exists():
+                    prior = json.loads(runtime_path.read_text())
+                    if prior.get('runner_sha256') == GSM_RUNNER_V1:
+                        # Preserve and validate the original receipt when resuming a legacy run.
+                        winners.freeze(runtime_path, dict(receipt, runner_sha256=GSM_RUNNER_V1))
+                        runtime_path = output/'runtime-resumed.json'
+                winners.freeze(runtime_path, receipt)
                 evaluation.generate_dataset(output,plan,pending,backend)
         report(output,plan)
 

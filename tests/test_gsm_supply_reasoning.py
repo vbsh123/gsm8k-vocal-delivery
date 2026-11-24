@@ -11,17 +11,20 @@ import run_gsm_supply_reasoning as run
 
 
 class GsmSupplyTests(unittest.TestCase):
+    dataset = 'gsm8k'
+    pool_size = 1319
+
     def setUp(self):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
         self.parent = Path(temp.name)/'parent'
         self.output = Path(temp.name)/'out'
-        bank = {f'q{i}':dict(question='One plus one?',answer='2') for i in range(1319)}
+        bank = {f'q{i}':dict(question='One plus one?',answer='2') for i in range(self.pool_size)}
         self.ids = random.Random(42).sample(sorted(bank),200)
         records = [dict(question_id=q,voice='en-US-JennyNeural',style=s,condition=s,
                         audio_sha256=q+s,audio_file='fixture.wav',reference_answer='2')
                    for q in bank for s in run.STYLES]
-        self.original = dict(protocol=run.night.PROTOCOL,model='diffa',task='gsm8k',bank=bank,
+        self.original = dict(protocol=run.night.PROTOCOL,model='diffa',task=self.dataset,bank=bank,
             prompt=run.night.vanilla.PROMPT,seed=42,max_new_tokens=512,recipe=run.night.vanilla.RECIPE,records=records)
         config = self.parent/'run_config.json'
         run.winners.freeze(config,self.original)
@@ -35,7 +38,8 @@ class GsmSupplyTests(unittest.TestCase):
         (self.parent/'deliveries.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in self.rows))
 
     def test_sample_same_clips_prompt_and_resume(self):
-        plan = run.prepare(self.parent,self.output)
+        plan = run.prepare(self.parent,self.output,self.dataset)
+        self.assertEqual(plan['task'], self.dataset)
         self.assertEqual(plan['question_order'],self.ids)
         self.assertEqual(len(set(self.ids)),200)
         self.assertEqual(len(plan['records']),400)
@@ -66,8 +70,17 @@ class GsmSupplyTests(unittest.TestCase):
         self.rows.pop()
         self.write_rows()
         with self.assertRaisesRegex(ValueError,'Missing saved bare'):
-            run.prepare(self.parent,self.output)
+            run.prepare(self.parent,self.output,self.dataset)
         self.rows[0]['audio_sha256']='wrong'
         self.write_rows()
         with self.assertRaisesRegex(ValueError,'cache differs'):
-            run.prepare(self.parent,self.output)
+            run.prepare(self.parent,self.output,self.dataset)
+
+
+class MultiArithSupplyTests(GsmSupplyTests):
+    dataset = 'multiarith'
+    pool_size = 580
+
+    def test_wrong_parent_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, 'GSM8K'):
+            run.prepare(self.parent, self.output, 'gsm8k')
