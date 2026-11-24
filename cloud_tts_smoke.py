@@ -22,12 +22,17 @@ class TransientTTSError(RuntimeError):
 
 def azure_ssml(text, style, voice, intensity):
     content = escape(text)
+    mai = ':MAI-Voice-' in voice
     if style != "neutral":
-        azure_style = "cheerful" if style == "happy" else style
-        content = (f'<mstts:express-as style="{azure_style}" styledegree="{intensity}">'
+        # MAI voices use "happy" directly, unlike Jenny's "cheerful".
+        # Keep the documented MAI SSML form without a styledegree override.
+        azure_style = style if mai else "cheerful" if style == "happy" else style
+        degree = '' if mai else f' styledegree="{intensity}"'
+        content = (f'<mstts:express-as style="{azure_style}"{degree}>'
                    f'{content}</mstts:express-as>')
+    namespace = 'http://www.w3.org/2001/mstts' if mai else 'https://www.w3.org/2001/mstts'
     return ('<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" '
-            'xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="en-US">'
+            f'xmlns:mstts="{namespace}" xml:lang="en-US">'
             f'<voice name="{escape(voice, quote=True)}">{content}</voice></speak>')
 
 
