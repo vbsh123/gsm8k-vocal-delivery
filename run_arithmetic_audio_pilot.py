@@ -1,4 +1,4 @@
-"""50 BBH arithmetic questions: neutral/angry × bare/supply reasoning, no steering."""
+"""BBH arithmetic pilot or disjoint replication: neutral/angry × bare/supply reasoning, no steering."""
 import argparse
 import ast
 import fcntl
@@ -23,7 +23,9 @@ REVISION = '9ee07bd481feebf959a6b59d61ea57bdcf30964d'
 SOURCE_BLOB = '5d961d60f818c2df15342f4d20a3f07cf60caba1'
 SOURCE_URL = f'https://raw.githubusercontent.com/suzgunmirac/BIG-Bench-Hard/{REVISION}/bbh/{TASK}.json'
 PROTOCOL = 'diffa-bbh-arithmetic-audio-four-conditions-n50-v2'
+REPLICATION = 'diffa-bbh-arithmetic-audio-four-conditions-remaining200-v1'
 COUNT = 50
+TOTAL = 250
 STYLES = ('neutral', 'angry')
 CONDITIONS = ('neutral', 'angry', 'neutral-reasoning', 'angry-reasoning')
 BARE_PROMPT = base.BARE_PROMPT
@@ -81,12 +83,12 @@ def spoken_question(expression):
     return 'What is the value of: '+spoken+'?'
 
 
-def source_questions(data):
+def source_questions(data, remaining=False):
     digest = hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
     if digest != SOURCE_BLOB:
         raise ValueError('Arithmetic source differs from the pinned authors\' Git blob.')
     examples = json.loads(data)['examples']
-    if len(examples) != 250:
+    if len(examples) != TOTAL:
         raise ValueError('Expected 250 official BBH arithmetic questions.')
     # Check every source target and transcription before selecting, without filtering.
     questions = []
@@ -97,39 +99,45 @@ def source_questions(data):
         questions.append(dict(question_id=f'bbh_arithmetic_{i:03d}', source_index=i,
             original_input=x['input'], original_target=x['target'], question=spoken, answer=x['target']))
     random.Random(42).shuffle(questions)
-    return questions[:COUNT]
+    return questions[COUNT:] if remaining else questions[:COUNT]
 
 
-def prepare(source, output):
+def prepare(source, output, remaining=False):
     source.mkdir(parents=True, exist_ok=True); output.mkdir(parents=True, exist_ok=True)
     path = source/'bbh-source.json'
-    data = path.read_bytes() if path.exists() else download(SOURCE_URL)
-    questions = source_questions(data)
+    cached = Path('outputs/azure-bbh-arithmetic50/bbh-source.json')
+    source_path = cached if remaining and not path.exists() and cached.exists() else path
+    data = source_path.read_bytes() if source_path.exists() else download(SOURCE_URL)
+    questions = source_questions(data, remaining)
     if not path.exists(): path.write_bytes(data)
     bank_file(source/'questions.jsonl', questions)
-    selection = dict(protocol=PROTOCOL, name=TASK, model='diffa', task=TASK,
-        label='BBH arithmetic audio pilot', prompt=BARE_PROMPT, prompts=PROMPTS,
+    cohort = ('remaining 200/250 after the first 50 of the same seed42 shuffle'
+              if remaining else 'fixed seed42 sample of50/250')
+    selection = dict(protocol=REPLICATION if remaining else PROTOCOL, name=TASK, model='diffa', task=TASK,
+        label='BBH arithmetic audio replication' if remaining else 'BBH arithmetic audio pilot', prompt=BARE_PROMPT, prompts=PROMPTS,
         source_url=SOURCE_URL, source_git_blob=SOURCE_BLOB, source_sha256=hashlib.sha256(data).hexdigest(),
         bank={q['question_id']:q for q in questions}, question_order=[q['question_id'] for q in questions],
         styles=list(STYLES), conditions=list(CONDITIONS), voice=base.VOICE, azure_intensity=1.5,
         recipe=dict(base.evaluation.night.vanilla.RECIPE), seed=42, max_new_tokens=512,
         primary_metric='flexible-extract',
-        adaptation='Custom spoken adaptation of BBH multistep_arithmetic_two: fixed seed42 sample of50/250, '
+        adaptation=f'Custom spoken adaptation of BBH multistep_arithmetic_two: {cohort}, '
             'no filtering. Every parenthesis spoken explicitly; unary minus spoken as negative, subtraction as minus; '
             'single-digit operands spoken as English words, addition as plus, multiplication as times. '
             'The same spoken question in Jenny neutral and angry; each WAV reused for its bare and reasoning '
             'conditions. Supply reasoning sentence in both reasoning conditions. No examples, classification, '
             'fitting or steering. Upstream saved-answer filters and exact-match scoring, not an official generation prompt.')
+    if remaining:
+        selection['primary_contrast'] = '(angry-reasoning - neutral-reasoning) - (angry - neutral)'
     winners.freeze(output/'selection.json', selection)
     winners.atomic_text(output/'prompt-bare.txt', BARE_PROMPT+'\n')
     winners.atomic_text(output/'prompt-reasoning.txt', REASONING_PROMPT+'\n')
     return selection
 
 
-def synthesize(source, prepare_only=False):
+def synthesize(source, prepare_only=False, count=COUNT):
     command = [sys.executable, '-u', 'cloud_tts_smoke.py', '--provider', 'azure',
         '--azure-voice', base.VOICE, '--azure-intensity', '1.5',
-        '--input-jsonl', str(source/'questions.jsonl'), '--num-examples', str(COUNT),
+        '--input-jsonl', str(source/'questions.jsonl'), '--num-examples', str(count),
         '--styles', *STYLES, '--output', str(source), '--resume']
     if prepare_only: command.append('--prepare-only')
     subprocess.run(command, check=True)
@@ -166,6 +174,29 @@ def generate(plan, output, backend):
                 audio_encoding=trace['audio_encoding'], model='diffa', strength=0., interventions=[],
                 run_config_sha256=checksum, **plan['recipe'])
             stream.write(json.dumps(row)+'\n'); stream.flush(); done[key] = row
+            print(f'Saved tokens={row["response_tokens"]}', flush=True)
+
+
+def accuracy_interaction(groups, metric):
+    from scipy.stats import t
+    from statistics import stdev
+
+    ids = sorted(set.intersection(*(set(group) for group in groups.values())))
+    if not ids:
+        return None
+    def correct(q, condition):
+        return int(groups[condition][q]['metrics'][metric])
+    differences = [(correct(q, 'angry-reasoning') - correct(q, 'neutral-reasoning'))
+                   - (correct(q, 'angry') - correct(q, 'neutral')) for q in ids]
+    estimate = 100 * mean(differences)
+    result = dict(metric=metric, pairs=len(ids), interaction_pp=estimate, ci95_pp=None, p=None)
+    if len(ids) > 1 and len(set(differences)) > 1:
+        se = 100 * stdev(differences) / len(ids)**0.5
+        df = len(ids) - 1
+        margin = float(t.ppf(0.975, df)) * se
+        result.update(ci95_pp=[estimate-margin, estimate+margin],
+                      p=float(2*t.sf(abs(estimate)/se, df)))
+    return result
 
 
 def report(output):
@@ -174,11 +205,14 @@ def report(output):
     rows = list(base.raw_rows(output, plan).values())
     docs = [dict(input=plan['bank'][r['question_id']]['original_input'],
         target=plan['bank'][r['question_id']]['original_target']) for r in rows]
+    if not rows:
+        print('BBH Arithmetic: awaiting the first saved answer.', flush=True)
+        return
     values = scorer.score([r['response'] for r in rows], docs)
     scored = [dict(r, metrics={m:v[i]['correct'] for m,v in values.items()},
         predictions={m:v[i]['prediction'] for m,v in values.items()}) for i,r in enumerate(rows)]
     groups = {c:{r['question_id']:r for r in scored if r['condition']==c} for c in CONDITIONS}
-    print(f'\nBBH Arithmetic: {len(rows)}/{len(plan["records"])} answers; 50 questions, four conditions.', flush=True)
+    print(f'\nBBH Arithmetic: {len(rows)}/{len(plan["records"])} answers; {len(plan["question_order"])} questions, four conditions.', flush=True)
     accuracy, lengths, comparisons = [], {}, []
     for c, group in groups.items():
         if not group: continue
@@ -204,8 +238,20 @@ def report(output):
             comparisons.append(dict(reference=reference, test=test, metric=metric, matched_lengths=matched_lengths, **stats))
             print(f'  {metric}: N={len(ids)}; gain={stats["gain_pp"]:+.2f} pp; '
                 f'p={stats["mcnemar_exact_p"]:.4g}; CI={stats["ci95_gain_pp"]}', flush=True)
+    extra = {}
+    if plan['protocol'] == REPLICATION:
+        result = accuracy_interaction(groups, plan['primary_metric'])
+        extra.update(primary_contrast=plan['primary_contrast'], interaction=result,
+                     interaction_method='Paired question-level mean contrast, two-sided t approximation.')
+        if result:
+            inference = 'CI and p unavailable at zero or undefined sample variance'
+            if result['p'] is not None:
+                lo, hi = result['ci95_pp']
+                inference = f'95% CI [{lo:.2f}, {hi:.2f}]; p={result["p"]:.4g}'
+            print(f'Angry effect with reasoning minus angry effect when bare / {result["metric"]}: '
+                  f'N={result["pairs"]}; {result["interaction_pp"]:+.2f} pp; {inference}', flush=True)
     winners.atomic_text(output/'delivery-rescored.jsonl', ''.join(json.dumps(r)+'\n' for r in scored))
-    winners.atomic_text(output/'delivery-summary.json', json.dumps(dict(protocol=PROTOCOL, accuracy=accuracy,
+    winners.atomic_text(output/'delivery-summary.json', json.dumps(dict(protocol=plan['protocol'], accuracy=accuracy, **extra,
         lengths=lengths, comparisons=comparisons, scorer=scorer.provenance, adaptation=plan['adaptation'],
         statistics='Exact paired McNemar p, paired bootstrap95% CI; unadjusted, matched completed IDs.'), indent=2)+'\n')
 
@@ -213,15 +259,23 @@ def report(output):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mode', choices=('run', 'prepare', 'evaluate', 'summary'), default='run')
-    parser.add_argument('--source', type=Path, default=Path('outputs/azure-bbh-arithmetic50'))
-    parser.add_argument('--output', type=Path, default=Path('outputs/diffa-bbh-arithmetic50'))
+    parser.add_argument('--remaining', action='store_true', help='Run the 200 questions outside the original 50.')
+    parser.add_argument('--source', type=Path)
+    parser.add_argument('--output', type=Path)
     args = parser.parse_args()
+    count = TOTAL - COUNT if args.remaining else COUNT
+    suffix = 'remaining200' if args.remaining else '50'
+    args.source = args.source or Path('outputs/azure-bbh-arithmetic'+suffix)
+    args.output = args.output or Path('outputs/diffa-bbh-arithmetic'+suffix)
+    protocol = REPLICATION if args.remaining else PROTOCOL
     config = args.output/'run_config.json'
+    if config.exists() and json.loads(config.read_text())['protocol'] != protocol:
+        parser.error('Selected cohort differs from the saved run configuration.')
     if args.mode == 'summary':
         if config.exists(): report(args.output)
         else:
             clips = [p for p in args.source.glob('*.wav') if p.stat().st_size > 44]
-            print(f'BBH Arithmetic: audio {len(clips)}/100 clips; evaluation not prepared yet.', flush=True)
+            print(f'BBH Arithmetic: audio {len(clips)}/{2*count} clips; evaluation not prepared yet.', flush=True)
         return
     args.output.mkdir(parents=True, exist_ok=True)
     with (args.output/'runner.lock').open('a') as own:
@@ -229,19 +283,19 @@ def main():
         except BlockingIOError: raise SystemExit('Arithmetic pilot already active; use --mode summary.')
         scoring_preflight(args.output)
         if args.mode in ('run', 'prepare'):
-            selection = prepare(args.source, args.output)
-            print('BBH Arithmetic: 50 questions, neutral/angry x bare/supply reasoning; 100 clips, 200 answers. No steering.', flush=True)
+            selection = prepare(args.source, args.output, args.remaining)
+            print(f'BBH Arithmetic: {count} questions, neutral/angry x bare/supply reasoning; {2*count} clips, {4*count} answers. No steering.', flush=True)
             print('Bare prompt (neutral + angry):\n'+BARE_PROMPT+'\nReasoning prompt (neutral + angry):\n'+REASONING_PROMPT, flush=True)
             first = selection['bank'][selection['question_order'][0]]
             print('First source expression: '+first['original_input']+'\nSpoken: '+first['question'], flush=True)
-            synthesize(args.source, prepare_only=args.mode == 'prepare')
+            synthesize(args.source, prepare_only=args.mode == 'prepare', count=count)
             if args.mode == 'prepare':
                 print('Prepared only; no cloud synthesis or GPU inference.', flush=True); return
             plan = plan_for(selection, args.source)
             winners.freeze(config, plan)
         else:
             plan = json.loads(config.read_text())
-            if plan['protocol'] != PROTOCOL or plan['prompts'] != PROMPTS:
+            if plan['protocol'] != protocol or plan['prompts'] != PROMPTS:
                 raise ValueError('Frozen arithmetic protocol differs.')
         done = base.raw_rows(args.output, plan)
         if len(done) < len(plan['records']):
@@ -259,10 +313,17 @@ def main():
                 for label, prompt in (('bare', BARE_PROMPT), ('reasoning', REASONING_PROMPT)):
                     text, count = base.evaluation.context_guard(backend.tokenizer, prompt, build_chat_prompt)
                     winners.atomic_text(args.output/f'native-chat-prompt-{label}.txt', text); contexts[label] = count
-                winners.freeze(args.output/'runtime.json', dict(model_revisions=model_revisions(),
+                runtime = dict(model_revisions=model_revisions(),
                     packages={k:version(k) for k in ('torch', 'transformers')},
                     model_config=backend.model.config.to_dict(), native_prompt_tokens=contexts,
-                    runner_sha256=winners.digest(__file__)))
+                    runner_sha256=winners.digest(__file__))
+                receipt = args.output/'runtime.json'
+                if receipt.exists() and not args.remaining:
+                    previous = json.loads(receipt.read_text())
+                    # Keep the original pilot receipt referenced by its steering jobs.
+                    if previous == dict(runtime, runner_sha256='9ce9f9fef71fcba5c561573e52c76f7214609601375e1cb5c07d5219ca73ae12'):
+                        receipt = args.output/'runtime-resumed.json'
+                winners.freeze(receipt, runtime)
                 generate(plan, args.output, backend)
         report(args.output)
 

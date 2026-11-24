@@ -65,6 +65,23 @@ answers, token counts and exact WAV paths. Selection uses completed matched
 questions without filtering by accuracy or length. Use `--question-id
 bbh_arithmetic_044` to inspect a specific source ID, including pending answers.
 
+## Replication on the remaining 200 questions
+
+```bash
+bash run_arithmetic_audio_pilot.sh --remaining
+bash run_arithmetic_audio_pilot.sh --remaining --mode summary
+```
+
+This runs the last 200 entries of the pilot’s original shuffled list. It uses
+400 Jenny recordings for 800 DIFFA responses across the same four conditions.
+Audio and answers resume under `outputs/azure-bbh-arithmeticremaining200/` and
+`outputs/diffa-bbh-arithmeticremaining200/`, respectively. The primary comparison
+is the angry-minus-neutral difference under the reasoning prompt minus that
+difference under the bare prompt, using flexible-extract accuracy. Each question
+with all four responses contributes one contrast. Its mean, approximate
+two-sided t-test and 95% t interval are reported alongside the original paired
+comparisons. Use the completed 200-question summary for inference.
+
 ## Bare angry-minus-neutral steering pilot
 
 ```bash

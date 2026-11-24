@@ -63,6 +63,37 @@ class ArithmeticPilotTests(unittest.TestCase):
         with patch.object(run, 'SOURCE_BLOB', bad_digest), self.assertRaisesRegex(ValueError, 'target mismatch'):
             run.source_questions(bad)
 
+    def test_remaining_is_exact_complement_and_keeps_pilot_recipe(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            audio, pilot = self.prepared(root)
+            replica_audio = root/'replica-audio'
+            replica_audio.mkdir()
+            data, digest = source_fixture()
+            (replica_audio/'bbh-source.json').write_bytes(data)
+            with patch.object(run, 'SOURCE_BLOB', digest):
+                replica = run.prepare(replica_audio, root/'replica', remaining=True)
+            first, rest = set(pilot['bank']), set(replica['question_order'])
+            self.assertEqual((len(first), len(rest), len(first & rest)), (50, 200, 0))
+            self.assertEqual(first | rest, {f'bbh_arithmetic_{i:03d}' for i in range(250)})
+            self.assertEqual(replica['protocol'], run.REPLICATION)
+            for key in ('source_git_blob', 'prompts', 'conditions', 'styles', 'voice', 'azure_intensity',
+                        'recipe', 'max_new_tokens', 'primary_metric'):
+                self.assertEqual(pilot[key], replica[key])
+
+    def test_interaction_is_question_paired_and_uses_complete_quartets(self):
+        def result(x):
+            return {'metrics': {'flexible-extract': x}}
+        # Per-question contrasts are +1, -1 and +2. A fourth incomplete row is ignored.
+        groups = {c: {i: result(x) for i, x in enumerate(xs)}
+                  for c, xs in zip(run.CONDITIONS, [[0,0,1,1], [0,1,0], [0,0,0], [1,0,1]])}
+        stats = run.accuracy_interaction(groups, 'flexible-extract')
+        self.assertEqual(stats['pairs'], 3)
+        self.assertAlmostEqual(stats['interaction_pp'], 200/3)
+        self.assertLess(stats['ci95_pp'][0], stats['interaction_pp'])
+        self.assertGreater(stats['ci95_pp'][1], stats['interaction_pp'])
+        self.assertTrue(0 < stats['p'] < 1)
+
     def test_four_conditions100_wavs200_answers_and_both_styles_reused(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory); source, selection = self.prepared(root)
