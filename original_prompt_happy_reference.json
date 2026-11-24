@@ -1,0 +1,565 @@
+{
+  "schema": "original-prompt-happy-reference-v1",
+  "note": "Original DIFFA happy prompt runs only. Per-run matched neutral baselines. No emotion-to-emotion tests. Non-downloaded values preserve console rounding; no p-value inferred to be zero.",
+  "runs": [
+    {
+      "task": "gsm8k",
+      "mode": "delivery",
+      "n": 718,
+      "scope": "held-out",
+      "neutral_tokens": [
+        83.1016713091922,
+        83.0
+      ],
+      "happy_tokens": [
+        106.94011142061281,
+        99.0
+      ],
+      "provenance": "User-pasted summary, cross-checked against downloaded original happy delivery summary.",
+      "metrics": [
+        {
+          "metric": "strict-match",
+          "neutral_correct": 429,
+          "happy_correct": 470,
+          "p": 0.004870281449636701,
+          "ci95_gain_pp": [
+            1.8105849582172702,
+            9.610027855153204
+          ]
+        },
+        {
+          "metric": "flexible-extract",
+          "neutral_correct": 458,
+          "happy_correct": 492,
+          "p": 0.012138156118372994,
+          "ci95_gain_pp": [
+            1.1142061281337048,
+            8.356545961002785
+          ]
+        },
+        {
+          "metric": "flexible-numeric",
+          "neutral_correct": 466,
+          "happy_correct": 504,
+          "p": 0.0044029708764894765,
+          "ci95_gain_pp": [
+            1.6713091922005572,
+            8.774373259052926
+          ]
+        },
+        {
+          "metric": "format-compliant",
+          "neutral_correct": 644,
+          "happy_correct": 662,
+          "p": 0.10143273504110499,
+          "ci95_gain_pp": [
+            -0.2785515320334262,
+            5.2924791086350975
+          ]
+        }
+      ],
+      "archive_receipt": {
+        "archive": "diffa-agreed-runs-20261122T213249Z.zip",
+        "archive_sha256": "2debc01deaaa44f5bde1fdf8664d098853cfe3c729c12d723ba604b2f1b1f8ca",
+        "member": "outputs/diffa-happy-winners/gsm8k/delivery/summary.json",
+        "member_sha256": "9fc04522a62473384a79f7dee5c07502e01261ced99694972598803ebd2a2416"
+      }
+    },
+    {
+      "task": "svamp",
+      "mode": "delivery",
+      "n": 500,
+      "scope": "held-out",
+      "neutral_tokens": [
+        36.35,
+        10.0
+      ],
+      "happy_tokens": [
+        52.144,
+        43.5
+      ],
+      "provenance": "User-pasted summary, cross-checked against downloaded original happy delivery summary.",
+      "metrics": [
+        {
+          "metric": "strict-match",
+          "neutral_correct": 284,
+          "happy_correct": 320,
+          "p": 0.003393884063573226,
+          "ci95_gain_pp": [
+            2.6,
+            11.8
+          ]
+        },
+        {
+          "metric": "flexible-extract",
+          "neutral_correct": 367,
+          "happy_correct": 377,
+          "p": 0.3533280324715825,
+          "ci95_gain_pp": [
+            -1.8,
+            5.8
+          ]
+        },
+        {
+          "metric": "flexible-numeric",
+          "neutral_correct": 367,
+          "happy_correct": 377,
+          "p": 0.3533280324715825,
+          "ci95_gain_pp": [
+            -1.8,
+            5.8
+          ]
+        },
+        {
+          "metric": "format-compliant",
+          "neutral_correct": 382,
+          "happy_correct": 422,
+          "p": 0.0001982369985545843,
+          "ci95_gain_pp": [
+            4.0,
+            12.0
+          ]
+        },
+        {
+          "metric": "author-tolerance",
+          "neutral_correct": 367,
+          "happy_correct": 377,
+          "p": 0.3533280324715825,
+          "ci95_gain_pp": [
+            -1.8,
+            5.8
+          ]
+        }
+      ],
+      "archive_receipt": {
+        "archive": "diffa-agreed-runs-20261122T213249Z.zip",
+        "archive_sha256": "2debc01deaaa44f5bde1fdf8664d098853cfe3c729c12d723ba604b2f1b1f8ca",
+        "member": "outputs/diffa-happy-winners/svamp/delivery/summary.json",
+        "member_sha256": "96d4a743b2fd6d82003b7575a4d22e7a806347cb36fb9a569ffc30baab00844a"
+      }
+    },
+    {
+      "task": "multiarith",
+      "mode": "delivery",
+      "n": 290,
+      "scope": "held-out",
+      "neutral_tokens": [
+        41.5,
+        46.5
+      ],
+      "happy_tokens": [
+        61.6,
+        60
+      ],
+      "provenance": "User-pasted run_diffa_happy_nightly.sh --mode summary; original prompt and original cohort.",
+      "metrics": [
+        {
+          "metric": "strict-match",
+          "neutral_correct": 216,
+          "happy_correct": 242,
+          "p": 0.002943,
+          "ci95_gain_pp": [
+            3.4482758620689653,
+            14.482758620689655
+          ]
+        },
+        {
+          "metric": "flexible-extract",
+          "neutral_correct": 246,
+          "happy_correct": 254,
+          "p": 0.3222,
+          "ci95_gain_pp": [
+            -2.0689655172413794,
+            7.586206896551724
+          ]
+        },
+        {
+          "metric": "flexible-numeric",
+          "neutral_correct": 246,
+          "happy_correct": 254,
+          "p": 0.3222,
+          "ci95_gain_pp": [
+            -2.0689655172413794,
+            7.586206896551724
+          ]
+        },
+        {
+          "metric": "format-compliant",
+          "neutral_correct": 242,
+          "happy_correct": 271,
+          "p": 8.963e-06,
+          "ci95_gain_pp": [
+            5.862068965517241,
+            14.482758620689655
+          ]
+        }
+      ]
+    },
+    {
+      "task": "bbh3",
+      "mode": "delivery",
+      "n": 125,
+      "scope": "held-out",
+      "neutral_tokens": [
+        13.7,
+        6
+      ],
+      "happy_tokens": [
+        119,
+        99
+      ],
+      "provenance": "User-pasted run_diffa_happy_nightly.sh --mode summary; original prompt and original cohort.",
+      "metrics": [
+        {
+          "metric": "flexible-extract",
+          "neutral_correct": 64,
+          "happy_correct": 72,
+          "p": 0.2682,
+          "ci95_gain_pp": [
+            -3.2,
+            16
+          ]
+        },
+        {
+          "metric": "strict-match",
+          "neutral_correct": 64,
+          "happy_correct": 70,
+          "p": 0.4296,
+          "ci95_gain_pp": [
+            -4.8,
+            14.4
+          ]
+        }
+      ]
+    },
+    {
+      "task": "bbh5",
+      "mode": "delivery",
+      "n": 125,
+      "scope": "held-out",
+      "neutral_tokens": [
+        342.6,
+        334
+      ],
+      "happy_tokens": [
+        386.3,
+        385
+      ],
+      "provenance": "User-pasted run_diffa_happy_nightly.sh --mode summary; original prompt and original cohort.",
+      "metrics": [
+        {
+          "metric": "flexible-extract",
+          "neutral_correct": 42,
+          "happy_correct": 57,
+          "p": 0.03154,
+          "ci95_gain_pp": [
+            1.6,
+            22.4
+          ]
+        },
+        {
+          "metric": "strict-match",
+          "neutral_correct": 40,
+          "happy_correct": 49,
+          "p": 0.1755,
+          "ci95_gain_pp": [
+            -1.6,
+            16.8
+          ]
+        }
+      ]
+    },
+    {
+      "task": "ifeval",
+      "mode": "delivery",
+      "n": 226,
+      "scope": "collection",
+      "neutral_tokens": [
+        224.7,
+        77.5
+      ],
+      "happy_tokens": [
+        199.6,
+        78.5
+      ],
+      "provenance": "User-pasted run_diffa_happy_nightly.sh --mode summary; original prompt and original cohort.",
+      "metrics": [
+        {
+          "metric": "strict_prompt",
+          "neutral_correct": 65,
+          "happy_correct": 67,
+          "p": 0.8746,
+          "ci95_gain_pp": [
+            -4.424778761061947,
+            6.1946902654867255
+          ]
+        },
+        {
+          "metric": "loose_prompt",
+          "neutral_correct": 70,
+          "happy_correct": 71,
+          "p": 1,
+          "ci95_gain_pp": [
+            -5.3097345132743365,
+            6.1946902654867255
+          ]
+        }
+      ]
+    },
+    {
+      "task": "gsm8k",
+      "mode": "steering",
+      "n": 718,
+      "scope": "held-out",
+      "neutral_tokens": [
+        83.1,
+        83
+      ],
+      "happy_tokens": [
+        95.8,
+        88
+      ],
+      "provenance": "User-pasted run_diffa_happy_nightly.sh --mode summary; original prompt and original cohort.",
+      "metrics": [
+        {
+          "metric": "strict-match",
+          "neutral_correct": 429,
+          "happy_correct": 470,
+          "p": 0.0008,
+          "ci95_gain_pp": [
+            2.5069637883008355,
+            8.913649025069638
+          ]
+        },
+        {
+          "metric": "flexible-extract",
+          "neutral_correct": 458,
+          "happy_correct": 493,
+          "p": 0.0022,
+          "ci95_gain_pp": [
+            1.8105849582172702,
+            7.938718662952646
+          ]
+        },
+        {
+          "metric": "flexible-numeric",
+          "neutral_correct": 466,
+          "happy_correct": 506,
+          "p": 0.0004,
+          "ci95_gain_pp": [
+            2.6462395543175488,
+            8.635097493036211
+          ]
+        },
+        {
+          "metric": "format-compliant",
+          "neutral_correct": 644,
+          "happy_correct": 663,
+          "p": 0.0448,
+          "ci95_gain_pp": [
+            0.1392757660167131,
+            5.153203342618385
+          ]
+        }
+      ]
+    },
+    {
+      "task": "svamp",
+      "mode": "steering",
+      "n": 500,
+      "scope": "held-out",
+      "neutral_tokens": [
+        36.4,
+        10
+      ],
+      "happy_tokens": [
+        47.9,
+        42.5
+      ],
+      "provenance": "User-pasted run_diffa_happy_nightly.sh --mode summary; original prompt and original cohort.",
+      "metrics": [
+        {
+          "metric": "strict-match",
+          "neutral_correct": 284,
+          "happy_correct": 300,
+          "p": 0.2015,
+          "ci95_gain_pp": [
+            -1.4,
+            7.8
+          ]
+        },
+        {
+          "metric": "flexible-extract",
+          "neutral_correct": 367,
+          "happy_correct": 363,
+          "p": 0.7376,
+          "ci95_gain_pp": [
+            -4.4,
+            2.6
+          ]
+        },
+        {
+          "metric": "flexible-numeric",
+          "neutral_correct": 367,
+          "happy_correct": 363,
+          "p": 0.7376,
+          "ci95_gain_pp": [
+            -4.4,
+            2.6
+          ]
+        },
+        {
+          "metric": "format-compliant",
+          "neutral_correct": 382,
+          "happy_correct": 410,
+          "p": 0.0193,
+          "ci95_gain_pp": [
+            1,
+            10.2
+          ]
+        },
+        {
+          "metric": "author-tolerance",
+          "neutral_correct": 367,
+          "happy_correct": 363,
+          "p": 0.7376,
+          "ci95_gain_pp": [
+            -4.4,
+            2.6
+          ]
+        }
+      ]
+    },
+    {
+      "task": "multiarith",
+      "mode": "steering",
+      "n": 290,
+      "scope": "held-out",
+      "neutral_tokens": [
+        41.5,
+        46.5
+      ],
+      "happy_tokens": [
+        55.4,
+        56
+      ],
+      "provenance": "User-pasted run_diffa_happy_nightly.sh --mode summary; original prompt and original cohort.",
+      "metrics": [
+        {
+          "metric": "strict-match",
+          "neutral_correct": 216,
+          "happy_correct": 247,
+          "p": 0.0003,
+          "ci95_gain_pp": [
+            5.172413793103448,
+            16.20689655172414
+          ]
+        },
+        {
+          "metric": "flexible-extract",
+          "neutral_correct": 246,
+          "happy_correct": 258,
+          "p": 0.1114,
+          "ci95_gain_pp": [
+            -0.3448275862068966,
+            8.96551724137931
+          ]
+        },
+        {
+          "metric": "flexible-numeric",
+          "neutral_correct": 246,
+          "happy_correct": 258,
+          "p": 0.1114,
+          "ci95_gain_pp": [
+            -0.3448275862068966,
+            8.96551724137931
+          ]
+        },
+        {
+          "metric": "format-compliant",
+          "neutral_correct": 242,
+          "happy_correct": 271,
+          "p": 0.0001,
+          "ci95_gain_pp": [
+            5.172413793103448,
+            14.827586206896552
+          ]
+        }
+      ]
+    },
+    {
+      "task": "bbh3",
+      "mode": "steering",
+      "n": 125,
+      "scope": "held-out",
+      "neutral_tokens": [
+        13.7,
+        6
+      ],
+      "happy_tokens": [
+        76.6,
+        6
+      ],
+      "provenance": "User-pasted run_diffa_happy_nightly.sh --mode summary; original prompt and original cohort.",
+      "metrics": [
+        {
+          "metric": "flexible-extract",
+          "neutral_correct": 64,
+          "happy_correct": 71,
+          "p": 0.2478,
+          "ci95_gain_pp": [
+            -2.4,
+            13.6
+          ]
+        },
+        {
+          "metric": "strict-match",
+          "neutral_correct": 64,
+          "happy_correct": 69,
+          "p": 0.4421,
+          "ci95_gain_pp": [
+            -4,
+            12
+          ]
+        }
+      ]
+    },
+    {
+      "task": "bbh5",
+      "mode": "steering",
+      "n": 125,
+      "scope": "held-out",
+      "neutral_tokens": [
+        342.6,
+        334
+      ],
+      "happy_tokens": [
+        375.6,
+        382
+      ],
+      "provenance": "User-pasted run_diffa_happy_nightly.sh --mode summary; original prompt and original cohort.",
+      "metrics": [
+        {
+          "metric": "flexible-extract",
+          "neutral_correct": 42,
+          "happy_correct": 49,
+          "p": 0.2962,
+          "ci95_gain_pp": [
+            -3.2,
+            14.4
+          ]
+        },
+        {
+          "metric": "strict-match",
+          "neutral_correct": 40,
+          "happy_correct": 46,
+          "p": 0.3771,
+          "ci95_gain_pp": [
+            -4,
+            13.6
+          ]
+        }
+      ]
+    }
+  ]
+}
