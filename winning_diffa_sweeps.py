@@ -326,6 +326,8 @@ def generate_job(plan, folder, model, tokenizer, features):
                 generation_seconds=time.monotonic()-started, reused_from=None,
                 response_tokens=len(tokenizer.encode(response,add_special_tokens=False)) if tokenizer is not None else None)
             stream.write(json.dumps(saved)+'\n'); stream.flush()
+            print(f'  Saved {record["question_id"]} x{a:g}: tokens={saved["response_tokens"]}; '
+                  f'elapsed={saved["generation_seconds"]:.1f}s', flush=True)
 
 
 def score_rows(plan, rows, folder):
