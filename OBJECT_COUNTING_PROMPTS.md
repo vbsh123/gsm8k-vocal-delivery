@@ -109,3 +109,18 @@ bash run_object_counting_angry_reasoning.sh --mode summary
 Reports compare angry-reasoning with neutral-reasoning (same prompt), angry-bare
 (same audio), and neutral-bare. Each includes strict/flexible accuracy, mean/median
 response tokens, matched N, paired gain, exact McNemar p and bootstrap95% CI.
+
+## Inspect saved answers
+
+Print three randomly sampled questions completed in all five original conditions,
+with gold answers, full saved response text and token counts. Angry-reasoning is
+included when prepared, with pending answers marked explicitly. CPU only; no
+generation, scoring, outcome filtering or source-file changes:
+
+```bash
+python3 show_object_counting_outputs.py --count 3
+python3 show_object_counting_outputs.py --longest --count 3
+```
+
+The second command deliberately selects the longest neutral-reasoning outputs to
+inspect whether any intermediate steps appear; it is not a representative sample.
