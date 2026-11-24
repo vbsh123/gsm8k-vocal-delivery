@@ -29,6 +29,13 @@ class BBH3AngryX2Tests(unittest.TestCase):
             self.assertEqual(len(done), 22)
             self.assertEqual({r['strength'] for r in done.values()}, {0.,1.})
             self.assertEqual(run.prepare(primary, output, 'bbh5'), job)
+            x4 = run.prepare(primary, root/'x4', 'bbh5', 4.)
+            self.assertEqual(x4['strengths'], [0.,1.,4.])
+            self.assertEqual(x4['source'], job['source'])
+            self.assertEqual(x4['target'], job['target'])
+            self.assertEqual(len(run.follow.validate(x4, root/'x4')), 22)
+            self.assertEqual(run.prepare(primary, root/'x4', 'bbh5', 4.), x4)
+            self.assertEqual(json.loads((output/'run_config.json').read_text())['strengths'], [0.,1.,2.])
             with self.assertRaisesRegex(ValueError, 'Expected BBH3 or BBH5'):
                 run.prepare(primary, output, 'svamp')
 
