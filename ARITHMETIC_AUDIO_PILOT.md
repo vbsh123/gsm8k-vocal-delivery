@@ -64,3 +64,33 @@ The preview prints original expressions, the actual spoken questions, gold
 answers, token counts and exact WAV paths. Selection uses completed matched
 questions without filtering by accuracy or length. Use `--question-id
 bbh_arithmetic_044` to inspect a specific source ID, including pending answers.
+
+## Bare angry-minus-neutral steering pilot
+
+```bash
+bash run_arithmetic_steering.sh
+bash run_arithmetic_steering.sh --mode summary
+```
+
+This uses the existing 50-question pilot and its audio, with a seed44 random
+25-question fitting set and the remaining25 held out for steering. Neither
+accuracy nor E2V labels select fitting questions. The pilot has no E2V labels.
+The bare prompt is used for both neutral and angry fitting generations and all
+steered evaluations. No Supply reasoning responses enter the vector or baseline.
+
+Fresh fitting forwards capture current32-token answer-block means, matching the
+existing block-collection method: matched chronological forward prefixes within
+each pair, then equal weight per question. Saved bare responses are checked
+against the fresh capture before committing each pair. Collection checkpoints
+resume per completed pair, save layer-level aggregates and drift diagnostics,
+and leave the original pilot intact.
+
+The intervention is the raw L31 answer mean angry-minus-neutral vector at x+2,
+applied to the answer buffer on the25 disjoint neutral evaluation recordings.
+The existing neutral answers are reused after a neutral replay check. No TTS,
+classifier, normalization, demonstrations or new prompt is introduced. Reporting
+uses the BBH arithmetic task's own upstream filters, not GSM8K filters.
+
+Output: `outputs/diffa-bbh-arithmetic-steering/`, with `collection/` holding the
+checkpoint and vector and `L31-answer-a2/` holding paired responses and scores.
+`--mode prepare` freezes metadata and checks scoring without GPU inference.

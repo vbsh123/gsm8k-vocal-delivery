@@ -48,6 +48,11 @@ class BBH3AngryX2Tests(unittest.TestCase):
                     stream.write(json.dumps(dict(row, strength=2.5, condition='L31-answer-a2.5',
                         interventions=[dict(layer=31,group='answer',strength=2.5)]))+'\n')
             self.assertEqual(len(run.follow.validate(x25, root/'x2.5')), 33)
+            x3 = run.prepare(primary, root/'x3', 'bbh5', 3.)
+            self.assertEqual(x3['strengths'], [0.,1.,3.])
+            self.assertEqual(x3['source'], job['source'])
+            self.assertEqual(x3['target'], job['target'])
+            self.assertEqual(len(run.follow.validate(x3, root/'x3')), 22)
             self.assertEqual(json.loads((output/'run_config.json').read_text())['strengths'], [0.,1.,2.])
             with self.assertRaisesRegex(ValueError, 'Expected BBH3 or BBH5'):
                 run.prepare(primary, output, 'svamp')

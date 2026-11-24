@@ -346,6 +346,9 @@ def score_rows(plan, rows, folder):
         from score_bbh_harness import HarnessScorer
         scorer = HarnessScorer(folder/'harness/upstream', objects='three' if task == 'bbh3' else 'five')
         docs = [dict(input=bank[r['question_id']]['original_input'], target=bank[r['question_id']]['original_target']) for r in rows]
+    elif task == 'multistep_arithmetic_two':
+        scorer = HarnessTaskScorer('bbh_cot_zeroshot_multistep_arithmetic_two', folder/'harness/upstream')
+        docs = [dict(input=bank[r['question_id']]['original_input'], target=bank[r['question_id']]['original_target']) for r in rows]
     else:
         scorer = HarnessTaskScorer('gsm8k', folder/'harness/upstream')
         docs = [dict(question='Saved spoken math question', answer=r['reference_answer']) for r in rows]
@@ -354,7 +357,7 @@ def score_rows(plan, rows, folder):
     for i, r in enumerate(rows):
         metrics = {m: v[i]['correct'] for m, v in values.items()}
         predictions = {m: v[i]['prediction'] for m, v in values.items()}
-        if task not in ('bbh3', 'bbh5'):
+        if task not in ('bbh3', 'bbh5', 'multistep_arithmetic_two'):
             metrics['flexible-numeric'] = numeric_equal(predictions['flexible-extract'], r['reference_answer'])
             metrics['format-compliant'] = predictions['strict-match'] != '[invalid]'
             if task == 'svamp':

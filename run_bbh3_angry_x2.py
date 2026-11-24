@@ -14,8 +14,8 @@ winners = follow.winners
 def prepare(root, output, name='bbh3', strength=2.):
     if name not in ('bbh3', 'bbh5'):
         raise ValueError('Expected BBH3 or BBH5.')
-    if strength not in (2., 2.5, 4.):
-        raise ValueError('Expected steering strength x2, x2.5 or x4.')
+    if strength not in (2., 2.5, 3., 4.):
+        raise ValueError('Expected steering strength x2, x2.5, x3 or x4.')
     case = follow.complete_case(root, name, emotions=('angry',))['angry']
     target = case['descriptor']
     if target['prompt'] != follow.night.catalog.prompt_for(name):
