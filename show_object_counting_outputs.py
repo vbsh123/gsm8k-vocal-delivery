@@ -30,6 +30,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run',type=Path,default=Path('outputs/diffa-object-counting-prompts'))
     parser.add_argument('--extra',type=Path,default=Path('outputs/diffa-object-counting-angry-reasoning'))
+    parser.add_argument('--supply-run',type=Path,default=Path('outputs/diffa-object-counting-supply-reasoning'))
     parser.add_argument('--count',type=int,default=3)
     parser.add_argument('--seed',type=int,default=42)
     parser.add_argument('--longest',action='store_true',help='Inspect longest neutral-reasoning answers instead of a random sample.')
@@ -38,12 +39,15 @@ def main():
     if args.count<1:parser.error('--count must be positive')
     plan,checksum,answers=load(args.run)
     conditions=list(plan['conditions'])
-    if (args.extra/'run_config.json').exists():
-        extra,_,other=load(args.extra)
+    for folder in (args.extra,args.supply_run):
+        if not (folder/'run_config.json').exists():continue
+        extra,_,other=load(folder)
         if extra.get('parent_config_sha256')!=checksum:
-            raise ValueError('Extra angry-reasoning run refers to a different original configuration.')
+            raise ValueError(f'Extra reasoning run refers to a different original configuration: {folder}')
+        extra_conditions=list(dict.fromkeys(r['condition'] for r in extra['records']))
+        if set(extra_conditions)&set(conditions):raise ValueError('Duplicate condition names across runs.')
         answers.update(other)
-        conditions.append('angry-reasoning')
+        conditions.extend(extra_conditions)
     if args.question_id:
         if args.question_id not in plan['bank']:parser.error('Question ID absent from this run')
         selected=[args.question_id]

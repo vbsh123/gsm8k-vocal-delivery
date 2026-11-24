@@ -127,3 +127,28 @@ inspect whether any intermediate steps appear; it is not a representative sample
 The preview prints each saved audio path. Question IDs use the original dataset
 index, while `qNNNNN-azure-*.wav` filenames use the seed42 shuffled batch position;
 these numbers differ. For example, `bbh_object_counting_095` uses `q00031` audio.
+
+## Neutral and angry with the Supply reasoning wording
+
+Two separate additional conditions reuse the same250 neutral and250 angry clips:
+`neutral-supply-reasoning` and `angry-supply-reasoning`. There are500 new model
+generations and no cloud synthesis. Both receive exactly this approved prompt:
+
+```text
+Answer the question in the audio. Supply reasoning before the final answer. End your response with a final answer line in the format:
+The answer is <number>.
+```
+
+```bash
+git pull --ff-only
+nohup bash run_object_counting_supply_reasoning.sh > outputs/object-counting-supply-reasoning.log 2>&1 </dev/null &
+bash run_object_counting_supply_reasoning.sh --mode summary
+```
+
+The shared GPU lock queues this work behind active inference. Results live in
+`outputs/diffa-object-counting-supply-reasoning/`; the previous runs are read only.
+The summary reports angry vs neutral under this same new prompt, each new
+condition vs its same-audio bare baseline, and comparisons to the earlier reasoning
+wording when available. All comparisons use matching completed IDs, strict/flexible
+scores, p-values, CIs and mean/median tokens. The saved-output preview includes
+these two conditions automatically when this run is prepared.
