@@ -90,3 +90,22 @@ bash run_object_counting_prompts.sh --mode prepare
 
 Audio/listening page: `outputs/azure-object-counting250/`.
 Answers/summaries/prompts: `outputs/diffa-object-counting-prompts/`.
+
+## Additional angry + reasoning condition
+
+Use the exact existing `neutral-reasoning` prompt with all250 existing angry
+recordings, in `outputs/diffa-object-counting-angry-reasoning/`. This adds250
+generations without TTS, examples or steering, and does not alter the original
+five-condition configuration or answers. It can be prepared while those answers
+are still incomplete; comparisons use only matching completed question IDs.
+The shared GPU lock queues this run after any active worker.
+
+```bash
+git pull --ff-only
+nohup bash run_object_counting_angry_reasoning.sh > outputs/object-counting-angry-reasoning.log 2>&1 </dev/null &
+bash run_object_counting_angry_reasoning.sh --mode summary
+```
+
+Reports compare angry-reasoning with neutral-reasoning (same prompt), angry-bare
+(same audio), and neutral-bare. Each includes strict/flexible accuracy, mean/median
+response tokens, matched N, paired gain, exact McNemar p and bootstrap95% CI.
