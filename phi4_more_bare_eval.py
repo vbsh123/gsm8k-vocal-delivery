@@ -81,6 +81,13 @@ def select(task, count=100, source=None, audio_root=None, *, sample_seed=None):
 
 def validate(plan):
     task = plan.get('task')
+    if task == 'multistep_arithmetic_two':
+        from run_arithmetic_audio_pilot import BARE_PROMPT, REASONING_PROMPT
+        if (plan.get('protocol') != 'phi4-bbh-arithmetic50-v1' or plan.get('recipe') != RECIPE
+                or plan.get('prompt') not in (BARE_PROMPT, REASONING_PROMPT) or plan.get('seed') != 42
+                or plan.get('max_new_tokens') != 512 or plan.get('strength') != 0. or plan.get('interventions') != []):
+            raise ValueError('Frozen Phi BBH arithmetic settings differ.')
+        return
     if (task not in TOTALS or plan.get('protocol') != PROTOCOL or plan.get('recipe') != RECIPE
             or plan.get('prompt') != PROMPTS[task] or plan.get('seed') != 42 or plan.get('max_new_tokens') != 512
             or plan.get('strength') != 0. or plan.get('interventions') != []):
@@ -131,7 +138,7 @@ def generate(output,plan,native):
         for record in plan['recordings']:
             key = record['question_id'],record['condition']
             if key in done: continue
-            print(f'Phi {plan["task"]} bare [{len(done)+1}/{len(plan["recordings"])}] {key[0]}/{key[1]}',flush=True)
+            print(f'Phi {plan["task"]} {plan.get("prompt_label","bare")} [{len(done)+1}/{len(plan["recordings"])}] {key[0]}/{key[1]}',flush=True)
             trace = hooks.generate(native,record,plan['prompt'],collect=False,interventions=[],max_new_tokens=512)
             row = dict(record,**trace,task=plan['task'],prompt=plan['prompt'],seed=42,max_new_tokens=512,
                 model=RECIPE['model'],revision=RECIPE['revision'],strength=0.,interventions=[],run_config_sha256=checksum)
@@ -145,7 +152,7 @@ def report(output,plan):
     scored, provenance = winners.score_rows(dict(target=dict(task=plan['task'],bank=plan['bank'])),raw,output/'scoring')
     groups = {s:{r['question_id']:r for r in scored if r['condition'] == s} for s in STYLES}
     ids = sorted(groups['neutral'].keys() & groups['angry'].keys()); lengths,comparisons = {},[]
-    print(f'\nPhi {plan["task"]} bare: {len(raw)}/{len(plan["recordings"])} answers; '
+    print(f'\nPhi {plan["task"]} {plan.get("prompt_label","bare")}: {len(raw)}/{len(plan["recordings"])} answers; '
         f'{len(ids)}/{len(plan["question_order"])} matched neutral/angry pairs.',flush=True)
     for s in STYLES:
         if not ids: continue
@@ -162,9 +169,9 @@ def report(output,plan):
             print(f'angry vs neutral / {metric}: N={len(ids)}; gain={stats["gain_pp"]:+.2f} pp; '
                 f'p={stats["mcnemar_exact_p"]:.4g}; CI={stats["ci95_gain_pp"]}',flush=True)
     winners.atomic_text(output/'rescored.jsonl',''.join(json.dumps(r)+'\n' for r in scored))
-    winners.atomic_text(output/'summary.json',json.dumps(dict(protocol=PROTOCOL,task=plan['task'],prompt=plan['prompt'],
+    winners.atomic_text(output/'summary.json',json.dumps(dict(protocol=plan['protocol'],task=plan['task'],prompt=plan['prompt'],
         matched_questions=len(ids),expected_questions=len(plan['question_order']),lengths=lengths,paired=comparisons,
-        scorer=provenance,note='Custom bare audio prompting; existing upstream saved-answer evaluators. '
+        scorer=provenance,note='Custom audio prompting; existing upstream saved-answer evaluators. '
             'Exact paired McNemar p and bootstrap95% CI, unadjusted. Evaluation only; no collection or steering.'),indent=2)+'\n')
 
 
