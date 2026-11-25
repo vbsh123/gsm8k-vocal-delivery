@@ -17,9 +17,12 @@ def summarize(rows, model="emotion2vec"):
     for style in dict.fromkeys(row["requested_style"] for row in rows):
         counts = Counter(row["emotion"] for row in rows if row["requested_style"] == style)
         n = sum(counts.values())
-        match = f'{counts[style]/n:.1%}' if style in supported else "n/a"
+        target = "fearful" if model == "emotion2vec" and style == "terrified" else style
+        match = f'{counts[target]/n:.1%}' if target in supported else "n/a"
         print(f'{style:12} {n:6}' + ''.join(f'{counts[label]:12}' for label in labels) + f'{match:>10}')
-    print("Cells are clip counts; match means predicted emotion equals requested style.")
+    print("Cells are clip counts. Match is the percentage predicted as the target label.")
+    if model == "emotion2vec" and any(r["requested_style"] == "terrified" for r in rows):
+        print("The E2V target for Azure terrified is fearful.")
 
 
 def main():

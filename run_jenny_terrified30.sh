@@ -4,8 +4,9 @@ cd "$(dirname "$0")"
 
 out=outputs/jenny-terrified-gsm30
 case "${1:-run}" in
+  score) exec .venv-emotion/bin/python -u classify_cloud_smoke.py --device cpu --path "$out" ;;
   run|prepare) ;;
-  *) echo "Usage: bash run_jenny_terrified30.sh [run|prepare]" >&2; exit 2 ;;
+  *) echo "Usage: bash run_jenny_terrified30.sh [run|prepare|score]" >&2; exit 2 ;;
 esac
 
 mkdir -p "$out"
