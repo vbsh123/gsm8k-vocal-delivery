@@ -1,0 +1,4066 @@
+{
+ "scores_sha256": "115106c95a1281657ebdf67c9bdc4c0ba285b6f81f0f3e3fcdc629121cdf85cd",
+ "checks_sha256": "81ffe5a4395848c20e9bd100b27867873fc7da558e272d9d7f665b7a502e7826",
+ "questions": {
+  "multiarith_095": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_346": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_047": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_007": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_382": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_598": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_325": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_396": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_236": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_038": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_392": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_246": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_508": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_103": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_329": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_529": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_239": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_522": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_334": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_108": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_559": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_065": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_438": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_216": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_031": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_060": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_583": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_473": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_220": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_391": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_191": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_570": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_049": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_048": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_107": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_218": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_447": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_134": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_252": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_305": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_302": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_077": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_439": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_119": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_403": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_594": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_131": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_273": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_365": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_179": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_516": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_034": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_574": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_588": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_333": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_036": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_003": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_480": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_371": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_518": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_457": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_311": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_010": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_183": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_464": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_125": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_492": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_071": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_241": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_274": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_234": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_424": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_342": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_363": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_482": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_571": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_385": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_112": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_373": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_421": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_503": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_466": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_320": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_459": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_494": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_094": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_597": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_253": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_347": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_075": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_074": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_282": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_035": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_258": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_394": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_043": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_040": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_507": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_133": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_029": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_132": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_167": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_481": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_445": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_009": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_535": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_175": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_316": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_000": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_281": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_418": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_531": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_092": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_435": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_201": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_471": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_111": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_321": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_433": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_528": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_162": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_330": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_064": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_269": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_101": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_410": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_266": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_498": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_388": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_454": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_001": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_242": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_557": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_232": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_160": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_067": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_184": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_338": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_521": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_146": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_404": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_284": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_369": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_068": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_389": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_467": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_005": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_293": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_138": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_562": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_249": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_465": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_205": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_207": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_589": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_315": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_226": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_573": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_425": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_549": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_331": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_088": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_066": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_460": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_024": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_406": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_552": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_262": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_270": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_080": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_525": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_195": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_214": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_308": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_581": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_229": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_309": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_402": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_144": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_285": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_297": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_401": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_136": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_553": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_145": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_584": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_244": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_339": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_488": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_472": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_212": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_265": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_345": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_510": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_514": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_564": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_468": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_300": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_502": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_487": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_118": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_033": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_147": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_215": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_171": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_432": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_016": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_440": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_127": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_028": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_417": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_413": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_451": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_542": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_370": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_122": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_295": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_563": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_337": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_533": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_526": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_286": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_408": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_493": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_177": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_596": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_185": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_083": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_283": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_224": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_383": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_399": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_176": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_393": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_484": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_572": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_566": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_113": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_585": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_091": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_306": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_243": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_046": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_081": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_206": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_390": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_310": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_090": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_407": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_137": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_490": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_044": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_280": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_372": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_387": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_109": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_409": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_104": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_593": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_364": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_230": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_169": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_577": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_368": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_590": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_173": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_006": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_294": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_479": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_235": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_449": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_592": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_213": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_027": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_537": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_248": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_233": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_105": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_030": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_032": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_452": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_099": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_578": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_114": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_152": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_238": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_260": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": false,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_291": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_025": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": false,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  },
+  "multiarith_124": {
+   "neutral": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   },
+   "angry": {
+    "ready-opening": false,
+    "written-operation": true,
+    "exact-final-line": true,
+    "all-three-observed": false
+   }
+  }
+ }
+}

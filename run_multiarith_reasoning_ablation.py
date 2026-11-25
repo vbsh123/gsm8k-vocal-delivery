@@ -7,6 +7,7 @@ from statistics import mean, median
 
 import diffa_fewshot_emotions as evaluation
 from diffa_model_receipts import model_revisions
+from multiarith_instruction_checks import THIRD_ASK, checks
 from phi4_queued_workers import gpu_queue
 from phi4_sweep import job_lock
 from rescore_audio_steering import paired
@@ -19,7 +20,7 @@ SENTENCE = 'Give concise step-by-step reasoning with only the necessary calculat
 STYLES = ('neutral', 'angry')
 
 
-def prepare(folder):
+def prepare(folder, three_asks=False):
     reference = json.loads(REFERENCE.read_text())
     original = reference['original_prompt']
     if original.count(SENTENCE) != 1 or reference['recipe'] != evaluation.night.vanilla.RECIPE:
@@ -39,6 +40,16 @@ def prepare(folder):
                 records=records, question_order=list(questions), original_prompt=original,
                 prompt=original.replace(SENTENCE, '', 1), reference_sha256=winners.digest(REFERENCE),
                 primary_metric='flexible-numeric')
+    if three_asks:
+        plan['prompt'] = original.replace(SENTENCE, SENTENCE + THIRD_ASK + ' ', 1)
+        plan['primary_metric'] = 'all-three-observed'
+        plan['instruction_checks_sha256'] = winners.digest(Path(__file__).with_name('multiarith_instruction_checks.py'))
+        extra = json.loads(REFERENCE.with_name('multiarith_original_instruction_checks.json').read_text())
+        if extra['scores_sha256'] != reference['scores_sha256'] or extra['checks_sha256'] != plan['instruction_checks_sha256']:
+            raise ValueError('Archived two-ask checks differ from the score source or check definitions.')
+        for q, item in questions.items():
+            for style in STYLES:
+                item[style]['scores'].update(extra['questions'][q][style])
     config = folder/'run_config.json'
     if config.exists():
         if json.loads(config.read_text()) != plan:
@@ -71,6 +82,13 @@ def report(folder, plan, questions):
         return
     rows = [saved[q,s] for q in ids for s in STYLES]
     scored, receipt = winners.score_rows(dict(target=plan), rows, folder/'scoring')
+    three_asks = 'instruction_checks_sha256' in plan
+    label_new = 'three asks' if three_asks else 'without reasoning sentence'
+    label_original = 'original (two asks)' if three_asks else 'original'
+    change_label = 'after adding Ready' if three_asks else 'after removal'
+    if three_asks:
+        for row in scored:
+            row['metrics'].update(checks(row['response']))
     groups = {s:{q:dict(metrics=questions[q][s]['scores']) for q in ids} for s in STYLES}
     lengths = {}
     for s in STYLES:
@@ -79,10 +97,10 @@ def report(folder, plan, questions):
         groups[s+'-reasoning'] = group
         tokens = [r['response_tokens'] for r in group.values()]
         lengths[s] = dict(mean=mean(tokens), median=median(tokens))
-        print(f'Without reasoning sentence / {s}: mean/median tokens {mean(tokens):.1f}/{median(tokens):g}')
+        print(f'{label_new} / {s}: mean/median tokens {mean(tokens):.1f}/{median(tokens):g}')
     comparisons, changes = [], []
     for metric in scored[0]['metrics']:
-        for label, suffix in [('original', ''), ('without reasoning sentence', '-reasoning')]:
+        for label, suffix in [(label_original, ''), (label_new, '-reasoning')]:
             a, b = groups['neutral'+suffix], groups['angry'+suffix]
             result = paired([(a[q]['metrics'][metric], b[q]['metrics'][metric]) for q in ids])
             comparisons.append(dict(prompt=label, metric=metric, **result))
@@ -91,7 +109,7 @@ def report(folder, plan, questions):
                   f'95% CI {result["ci95_gain_pp"]}, p={result["mcnemar_exact_p"]:.4g}')
         change = accuracy_interaction(groups, metric)
         changes.append(change)
-        print(f'{metric} / change in angry-neutral gap after removal: {change["interaction_pp"]:+.2f} pp, '
+        print(f'{metric} / change in angry-neutral gap {change_label}: {change["interaction_pp"]:+.2f} pp, '
               f'95% CI {change["ci95_pp"]}, p={change["p"]}')
     winners.atomic_text(folder/'summary.json', json.dumps(dict(matched=len(ids), comparisons=comparisons,
                         changes=changes, new_token_lengths=lengths, scorer=receipt), indent=2)+'\n')
@@ -101,19 +119,20 @@ def report(folder, plan, questions):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mode', choices=('run', 'summary', 'prepare'), default='run')
-    parser.add_argument('--output', type=Path, default=OUTPUT)
+    parser.add_argument('--three-asks', action='store_true', help='Add the Ready opening to the original reasoning and formatting instructions.')
+    parser.add_argument('--output', type=Path)
     parser.add_argument('--audio-root', type=Path)
     args = parser.parse_args()
-    folder = args.output
+    folder = args.output or (Path('outputs/diffa-multiarith-three-asks290') if args.three_asks else OUTPUT)
     if args.mode == 'summary':
         if (folder/'run_config.json').is_file():
-            plan, questions = prepare(folder)
+            plan, questions = prepare(folder, args.three_asks)
             report(folder, plan, questions)
         else:
             print('MultiArith: 0/580 responses, 0/290 pairs.')
         return
     with job_lock(folder):
-        plan, questions = prepare(folder)
+        plan, questions = prepare(folder, args.three_asks)
         print(plan['prompt'], flush=True)
         pending = pending_recordings(folder, plan, args.audio_root)
         print(f'{len(pending)} verified recordings pending.', flush=True)

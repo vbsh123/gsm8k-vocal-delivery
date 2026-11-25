@@ -34,3 +34,33 @@ class MultiArithAblationTest(unittest.TestCase):
             self.assertEqual(len(summary['comparisons']), 8)
             self.assertTrue(all(s['pairs'] == 1 for s in summary['comparisons']))
             self.assertEqual(summary['new_token_lengths']['angry']['mean'], 4)
+
+    def test_three_asks_on_original_recordings(self):
+        with TemporaryDirectory() as temp:
+            folder = Path(temp)
+            plan, questions = ablation.prepare(folder, three_asks=True)
+            self.assertEqual(plan['prompt'].replace(ablation.THIRD_ASK + ' ', ''), plan['original_prompt'])
+            self.assertEqual(len(plan['records']), 580)
+            self.assertEqual(sum(v['angry']['scores']['written-operation'] for v in questions.values()), 205)
+            with self.assertRaises(ValueError):
+                ablation.prepare(folder)
+
+            class Backend:
+                def generate(self, record, plan, capture):
+                    opening = 'Ready. ' if record['style'] == 'angry' else ''
+                    return dict(response=opening+'2 + 1 = 3.\n#### '+record['reference_answer'],
+                                response_tokens=12, audio_encoding='test')
+
+            ablation.evaluation.generate_dataset(folder, plan, plan['records'][:5], Backend())
+            ablation.report(folder, plan, questions)
+            stats = json.loads((folder/'summary.json').read_text())
+            joint = next(c for c in stats['comparisons'] if c['prompt']=='three asks' and c['metric']=='all-three-observed')
+            self.assertEqual((stats['matched'], joint['baseline_correct'], joint['steered_correct']), (2, 0, 2))
+            self.assertEqual(len(stats['changes']), 8)
+
+    def test_instruction_measures_are_independent(self):
+        from multiarith_instruction_checks import checks
+        self.assertFalse(checks('Ready.\n#### 2')['written-operation'])
+        self.assertFalse(checks('Already done. 1+1=2\n#### 2')['ready-opening'])
+        self.assertFalse(checks('Ready. 1+1=2\n#### 2 dollars')['exact-final-line'])
+        self.assertTrue(checks('  ready! 1+1=5\n#### 5  ')['all-three-observed'])
