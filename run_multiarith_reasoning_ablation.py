@@ -18,6 +18,8 @@ REFERENCE = Path(__file__).parent / 'data/multiarith_original_jenny290.json'
 OUTPUT = Path('outputs/diffa-multiarith-original-minus-reasoning290')
 SENTENCE = 'Give concise step-by-step reasoning with only the necessary calculations. '
 STYLES = ('neutral', 'angry')
+THREE_ASKS = Path('outputs/diffa-multiarith-three-asks290')
+EXTRA_STYLES = ('happy', 'sad')
 
 
 def prepare(folder, three_asks=False):
@@ -116,14 +118,87 @@ def report(folder, plan, questions):
     winners.atomic_text(folder/'rescored.jsonl', ''.join(json.dumps(r)+'\n' for r in scored))
 
 
+def emotion_plan(folder, baseline):
+    if not (baseline/'run_config.json').is_file():
+        raise FileNotFoundError(f'Expected the completed Jenny three-ask run in {baseline}.')
+    original, _ = prepare(baseline, three_asks=True)
+    clips = json.loads(REFERENCE.with_name('multiarith_three_asks_audio.json').read_text())
+    records = [dict(question_id=q, style=s, condition=s, voice='en-US-JennyNeural',
+                    reference_answer=original['bank'][q]['answer'], **clips[q][s])
+               for q in original['question_order'] for s in EXTRA_STYLES]
+    plan = dict(original, records=records, baseline_sha256=winners.digest(baseline/'run_config.json'))
+    winners.freeze(folder/'run_config.json', plan)
+    return plan, original
+
+
+def emotion_report(folder, plan, baseline, original):
+    saved = evaluation.raw_rows(baseline, original)
+    new = evaluation.raw_rows(folder, plan)
+    saved.update(new)
+    styles = STYLES + EXTRA_STYLES
+    ids = [q for q in plan['question_order'] if all((q, s) in saved for s in styles)]
+    print(f'Jenny MultiArith: {len(new)}/580 happy/sad responses, {len(ids)}/290 four-way matched questions.')
+    if not ids:
+        return
+    scored, receipt = winners.score_rows(dict(target=plan), [saved[q,s] for q in ids for s in styles], folder/'scoring')
+    groups = {s: {} for s in styles}
+    for row in scored:
+        row['metrics'].update(checks(row['response']))
+        groups[row['condition']][row['question_id']] = row
+    lengths, comparisons = {}, []
+    for s in styles:
+        tokens = [r['response_tokens'] for r in groups[s].values()]
+        lengths[s] = dict(mean=mean(tokens), median=median(tokens))
+        print(f'{s}: mean/median tokens {mean(tokens):.1f}/{median(tokens):g}')
+    for metric in scored[0]['metrics']:
+        for s in styles[1:]:
+            result = paired([(groups['neutral'][q]['metrics'][metric], groups[s][q]['metrics'][metric]) for q in ids])
+            comparisons.append(dict(emotion=s, metric=metric, **result))
+            print(f'{metric}: neutral {result["baseline_correct"]}/{len(ids)} -> {s} '
+                  f'{result["steered_correct"]}/{len(ids)}, {result["gain_pp"]:+.2f} pp, '
+                  f'95% CI {result["ci95_gain_pp"]}, p={result["mcnemar_exact_p"]:.4g}')
+    # Cochran's Q compares three paired binary outcomes on the same questions.
+    from scipy.stats import chi2
+    metric = plan['primary_metric']
+    bits = [[int(groups[s][q]['metrics'][metric]) for s in styles[1:]] for q in ids]
+    totals = list(map(sum, zip(*bits)))
+    k = len(totals)
+    denom = k * sum(totals) - sum(sum(row)**2 for row in bits)
+    statistic = (k-1) * (k*sum(v*v for v in totals)-sum(totals)**2) / denom if denom else 0.
+    omnibus = dict(metric=metric, styles=styles[1:], q=statistic, df=k-1,
+                   discordant_questions=sum(0 < sum(row) < k for row in bits),
+                   p_asymptotic=float(chi2.sf(statistic, k-1)) if denom else 1.)
+    print(f'{metric} across angry/happy/sad: paired Cochran Q={statistic:.2f}, '
+          f'asymptotic p={omnibus["p_asymptotic"]:.4g}, discordant questions={omnibus["discordant_questions"]}/{len(ids)}')
+    winners.atomic_text(folder/'summary.json', json.dumps(dict(matched=len(ids), comparisons=comparisons,
+                        token_lengths=lengths, emotion_test=omnibus, scorer=receipt), indent=2)+'\n')
+    winners.atomic_text(folder/'rescored.jsonl', ''.join(json.dumps(r)+'\n' for r in scored))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mode', choices=('run', 'summary', 'prepare'), default='run')
     parser.add_argument('--three-asks', action='store_true', help='Add the Ready opening to the original reasoning and formatting instructions.')
+    parser.add_argument('--happy-sad', action='store_true', help='Extend the completed Jenny three-ask run.')
+    parser.add_argument('--baseline', type=Path, default=THREE_ASKS)
     parser.add_argument('--output', type=Path)
     parser.add_argument('--audio-root', type=Path)
     args = parser.parse_args()
-    folder = args.output or (Path('outputs/diffa-multiarith-three-asks290') if args.three_asks else OUTPUT)
+    folder = args.output or (THREE_ASKS if args.three_asks else OUTPUT)
+    if args.happy_sad:
+        folder = args.output or THREE_ASKS.with_name(THREE_ASKS.name+'-happy-sad')
+        if folder.resolve() == args.baseline.resolve():
+            parser.error('Use a separate output for the new recordings.')
+    if args.happy_sad and args.mode == 'summary':
+        if (folder/'run_config.json').exists():
+            plan = json.loads((folder/'run_config.json').read_text())
+            original, _ = prepare(args.baseline, three_asks=True)
+            if plan['baseline_sha256'] != winners.digest(args.baseline/'run_config.json'):
+                raise ValueError('Three-ask baseline changed.')
+            emotion_report(folder, plan, args.baseline, original)
+        else:
+            print('Jenny MultiArith: 0/580 happy/sad responses.')
+        return
     if args.mode == 'summary':
         if (folder/'run_config.json').is_file():
             plan, questions = prepare(folder, args.three_asks)
@@ -132,7 +207,12 @@ def main():
             print('MultiArith: 0/580 responses, 0/290 pairs.')
         return
     with job_lock(folder):
-        plan, questions = prepare(folder, args.three_asks)
+        if args.happy_sad:
+            plan, original = emotion_plan(folder, args.baseline)
+            if len(evaluation.raw_rows(args.baseline, original)) != len(original['records']):
+                raise ValueError('The original neutral/angry run is incomplete.')
+        else:
+            plan, questions = prepare(folder, args.three_asks)
         print(plan['prompt'], flush=True)
         pending = pending_recordings(folder, plan, args.audio_root)
         print(f'{len(pending)} verified recordings pending.', flush=True)
@@ -148,7 +228,10 @@ def main():
                 winners.freeze(folder/'runtime.json', dict(model_revisions=model_revisions(),
                                packages={k:version(k) for k in ('torch','transformers')}, native_prompt_tokens=count))
                 evaluation.generate_dataset(folder, plan, pending, backend)
-        report(folder, plan, questions)
+        if args.happy_sad:
+            emotion_report(folder, plan, args.baseline, original)
+        else:
+            report(folder, plan, questions)
 
 
 if __name__ == '__main__':

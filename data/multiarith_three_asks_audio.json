@@ -1,0 +1,2902 @@
+{
+ "multiarith_095": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00290-azure-happy.wav",
+   "audio_sha256": "88c0dc383eab6640764bca486d1086c4eb4cfdff47c42996153e0c7230730ad6"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00085-azure-sad.wav",
+   "audio_sha256": "e8173fb38d430214a6acad27da3bb3e9e8a986c6050b1ca3b6cef69d4686052f"
+  }
+ },
+ "multiarith_346": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00291-azure-happy.wav",
+   "audio_sha256": "a0c93284895619a980dbd11f314b9c304cb5c81aa4bd6991c09833d4170fb835"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00336-azure-sad.wav",
+   "audio_sha256": "20e4011d6b652cbc1861e0228cd1a163bc6cab5b965b14989d71b5aaa9755703"
+  }
+ },
+ "multiarith_047": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00292-azure-happy.wav",
+   "audio_sha256": "f848bb856b0ea14839dabae0143256f318330b304b5fb9a0c3eedef25c6229bc"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00047-azure-sad.wav",
+   "audio_sha256": "1fc412bb8e5de6806a27b995e3e8b4a3f429784b0b5ea431989a3c5f5ebe2970"
+  }
+ },
+ "multiarith_007": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00293-azure-happy.wav",
+   "audio_sha256": "b124563104178a4f112d6cd758287e98062c16b94c6b3beae022e32a871e4001"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00007-azure-sad.wav",
+   "audio_sha256": "27646688f6c7537fd4e8b4655d96d700a17b9609931083575f39da5b8715f554"
+  }
+ },
+ "multiarith_382": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00294-azure-happy.wav",
+   "audio_sha256": "5a2c597d6129b637580af009dcc1592473664f114ae5b6ff2e63f5c27c36cb97"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00362-azure-sad.wav",
+   "audio_sha256": "c834e44c7927cb6c6e9aed2673fe1cd41f31f1f22e8010274ca08a0c45ebdfdc"
+  }
+ },
+ "multiarith_598": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00295-azure-happy.wav",
+   "audio_sha256": "32e4c91b48b71308f1dbcb754c3299d6e65aa800eedaaf940acf1540806f07e2"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00578-azure-sad.wav",
+   "audio_sha256": "130824e1bc0b5a1ac1dbbb7c9d98c3a36b9ee470ab00df5d4962355d592751d1"
+  }
+ },
+ "multiarith_325": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00296-azure-happy.wav",
+   "audio_sha256": "f7aa3ec8f95deaa512361e97a94c0b8070285ca379c4b20a40a8facd46f7de0f"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00315-azure-sad.wav",
+   "audio_sha256": "15400082a372aea8f53b2da4305060c5e39cc990fcb38541151c5bf883df5684"
+  }
+ },
+ "multiarith_396": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00297-azure-happy.wav",
+   "audio_sha256": "aacf45373eeb40dc2c700f028f2304b274a81350f8eb1b343212ce36428288ac"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00376-azure-sad.wav",
+   "audio_sha256": "209d0876b0da538da6a435825b1b9cbfe9be647bac146433e17f90c7c208922c"
+  }
+ },
+ "multiarith_236": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00298-azure-happy.wav",
+   "audio_sha256": "a9796cb1325c49e08f7da0c9764877a305b1d97511400e65cf45a1cfef33fde3"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00226-azure-sad.wav",
+   "audio_sha256": "b49f411e5df0eb1861fcdb79dbf8ab989ce88cb1b25bc115af93444ef68c66b5"
+  }
+ },
+ "multiarith_038": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00299-azure-happy.wav",
+   "audio_sha256": "38fd2abc99d50e332f8a0be9a82108ab20c4544012b861e0ec26131df8c439a5"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00038-azure-sad.wav",
+   "audio_sha256": "de26916280671c09f6153d30067cfb5db7c5c717a05a5187ea16f1d468bc08b3"
+  }
+ },
+ "multiarith_392": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00300-azure-happy.wav",
+   "audio_sha256": "e0264680123aaf34848453f16da994eed6eb0b66924999a2120d98d8ab9fa0cb"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00372-azure-sad.wav",
+   "audio_sha256": "c2035ad888e116968b4fa144aa230f4914ae820a2860d4d1cc189918795bedf6"
+  }
+ },
+ "multiarith_246": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00301-azure-happy.wav",
+   "audio_sha256": "0f5cf016c5dcbbaa49cc9cbcccc528e5a9a48fa652e02d6af1261ec387894b8c"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00236-azure-sad.wav",
+   "audio_sha256": "91863ac0a543627d2674960dafedc262082989b43ef9d54d255d58b5fb509cd2"
+  }
+ },
+ "multiarith_508": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00302-azure-happy.wav",
+   "audio_sha256": "9192213da4975a720f853f3a4e4827eef3eb667ae5b9aa620b519f802e09d417"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00488-azure-sad.wav",
+   "audio_sha256": "0610e463a5c9365f2e9122f9f30acd6535ec5e711dbe7e63c11c54731361cfff"
+  }
+ },
+ "multiarith_103": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00303-azure-happy.wav",
+   "audio_sha256": "73afb179cc6929ab1f518060f940b2f21394af27f18e93ae5cd32c75fc4384f3"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00093-azure-sad.wav",
+   "audio_sha256": "40d043bd10215968f529c9eee3a72197b4276cf7fb0714b1264b1f7a981778be"
+  }
+ },
+ "multiarith_329": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00304-azure-happy.wav",
+   "audio_sha256": "291abcafa6a02b5475579cfb0f448bef318153c6da2050b50c5cf8dace12a974"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00319-azure-sad.wav",
+   "audio_sha256": "7bec26cff0a1d0fb102edd7bc3459d3b1ca25807be228e8f8c811053299540b9"
+  }
+ },
+ "multiarith_529": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00305-azure-happy.wav",
+   "audio_sha256": "0a203cfca1caac202307ba51f90fbdd679a0f4f36f182147867886e6311cc1f3"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00509-azure-sad.wav",
+   "audio_sha256": "01ba9e62767bf817c4309e1e10472de06e35fe1656b2e3ac4c21ecc651a17e00"
+  }
+ },
+ "multiarith_239": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00306-azure-happy.wav",
+   "audio_sha256": "8e9870568b3e35e938333743caedff66089b405bb99e5c9bec8a90a477c42e73"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00229-azure-sad.wav",
+   "audio_sha256": "5adbd5417a3d6cad0e936225c106d844ab7b222df06e3e5538e697703a3bb0f4"
+  }
+ },
+ "multiarith_522": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00307-azure-happy.wav",
+   "audio_sha256": "cdd62bd32e9e30fd64740846aa34682807f6afdcbec9cb7d0f914c5570bbc1ad"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00502-azure-sad.wav",
+   "audio_sha256": "575b3d0696b2e9658d0733a24b92843f1c9119eef3d0a78b54318dff6f7db3c7"
+  }
+ },
+ "multiarith_334": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00308-azure-happy.wav",
+   "audio_sha256": "efd8fa7c2f808c72f8f386899bdde27f9254b85ab39f6ccc0e2b871f5c7ab584"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00324-azure-sad.wav",
+   "audio_sha256": "60b2b35cc3038f054821950b569156215840c0bdc028d7a1ca9dcba76991bcc2"
+  }
+ },
+ "multiarith_108": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00309-azure-happy.wav",
+   "audio_sha256": "a63cb6a6581394ccb7b2f101eda78c9c7ebcf360bad8bd470190a4d1a7165b3c"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00098-azure-sad.wav",
+   "audio_sha256": "0ea53ad81f3483aa34829e77edc9387b1ef6a9e4088354766a43dd2961d15690"
+  }
+ },
+ "multiarith_559": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00310-azure-happy.wav",
+   "audio_sha256": "5b54ef2db67b501225fc4a01caf5e417191283928888eea987f6b04e1cc11dc1"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00539-azure-sad.wav",
+   "audio_sha256": "fe07b3e437ebc0c347383bd78f16f49bef5d7a0a3b6d12f09efb3ec00d4ae002"
+  }
+ },
+ "multiarith_065": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00311-azure-happy.wav",
+   "audio_sha256": "6a440f9f963d2ae50e69ee714f92ed3baf2e7563192dcc56c19e54c46adc3e1b"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00055-azure-sad.wav",
+   "audio_sha256": "81e7c88f8bd13f5a2c893db525e6d1df6e15b1a7ade408a8522184dded48506f"
+  }
+ },
+ "multiarith_438": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00312-azure-happy.wav",
+   "audio_sha256": "13fa56a9dcfa97bd6eb011633e5b2ed6b9340a71430d5245fd6872d8791d056c"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00418-azure-sad.wav",
+   "audio_sha256": "ff47ba9cc62dc5ab4f060ce6ff9f097cb848a370306d68b8e670ce10f26a8695"
+  }
+ },
+ "multiarith_216": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00313-azure-happy.wav",
+   "audio_sha256": "681bf2273fd406389302faee32488e0ba938c3a522f3dc53221fe6365a0884b9"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00206-azure-sad.wav",
+   "audio_sha256": "a460e5c657ae8bb995404c4a84d8b03ef20baba7dbe3ab8db227a0a3bd068111"
+  }
+ },
+ "multiarith_031": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00314-azure-happy.wav",
+   "audio_sha256": "53c654f4d202695cba0dcaca885c6739973063f3a5e864bc03818a977a1e6d1f"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00031-azure-sad.wav",
+   "audio_sha256": "83f47d094a360f6aff002681fc609960b7161698d8b0d9dd6b16f14840e4edb1"
+  }
+ },
+ "multiarith_060": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00315-azure-happy.wav",
+   "audio_sha256": "ca699a979ed02e23dd2d29486a2c9f0a32d0ccd519f11b31b883d8fd661d0eea"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00050-azure-sad.wav",
+   "audio_sha256": "03cbba385daeeb4873e03f3acd10a5ebc8db6adb2103f258d565985ce1bd7eda"
+  }
+ },
+ "multiarith_583": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00316-azure-happy.wav",
+   "audio_sha256": "8779b03e087bc178b9e66228b0e36a172d51912cff906c33585077ff7c1981ed"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00563-azure-sad.wav",
+   "audio_sha256": "4a05ee54c7ccaae9f8a4a27695c11da9523563dd97fec6032400791420b5290f"
+  }
+ },
+ "multiarith_473": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00317-azure-happy.wav",
+   "audio_sha256": "e6800e408b03283e5a5b8fc1d91fe65ad56d0357070b5b2eb9ccff8311864edb"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00453-azure-sad.wav",
+   "audio_sha256": "78d95edd4a7a457948f460b6b8c720e5bfe5655a12b56f44228ffe390552ccf8"
+  }
+ },
+ "multiarith_220": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00318-azure-happy.wav",
+   "audio_sha256": "3c0618242a30e7e3886963f969284702bb804c9d24f42e4f715d8de2497aed9b"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00210-azure-sad.wav",
+   "audio_sha256": "c91aeab6e4a6642e287181a57372a173e68c23ad702c4b23661b34569bd8d0de"
+  }
+ },
+ "multiarith_391": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00319-azure-happy.wav",
+   "audio_sha256": "b519252f70fae2a3ebb9683f8bfea23bc220ee2f3b34be423282f9b1e1ff00d1"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00371-azure-sad.wav",
+   "audio_sha256": "04a7c8ca1959af75ef172dfdc2ede1d33bcea41032480f0eb9e27c6e7786b9cb"
+  }
+ },
+ "multiarith_191": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00320-azure-happy.wav",
+   "audio_sha256": "68a45bc3947d3d45136116e92b48d4c7bffb16430f199849f2bf7da6a2f034b3"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00181-azure-sad.wav",
+   "audio_sha256": "29802c77ecb10907c14c59cb9bd79c703e5645454bab389a1300d857bb4d0a80"
+  }
+ },
+ "multiarith_570": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00321-azure-happy.wav",
+   "audio_sha256": "38f634720d6f8270236c999fa5aa3da7a5cda7c740c29c27cf7a8ddece98a5e5"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00550-azure-sad.wav",
+   "audio_sha256": "453ae613a285a43797b805d53fab6588d184cbdfe3f0094dd5c44a8eb752938b"
+  }
+ },
+ "multiarith_049": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00322-azure-happy.wav",
+   "audio_sha256": "91407c4f22bb7fcd6291f8f8c6d64a647ad30d9265c0dc90c267ef9273a5b197"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00049-azure-sad.wav",
+   "audio_sha256": "76a9eafb98b9eeaad17c34721f48484e657a780cc5023ec3ee4ec776597ca632"
+  }
+ },
+ "multiarith_048": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00323-azure-happy.wav",
+   "audio_sha256": "ad443fccafb5ea1caf0b3e02528d068fbc6290d036b30f98d4e32227d8f17211"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00048-azure-sad.wav",
+   "audio_sha256": "4be2ecf9e0c0ee88ae2b50a9bbe80d90fa297c7ed1a72a0256d2d2acc6e06251"
+  }
+ },
+ "multiarith_107": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00324-azure-happy.wav",
+   "audio_sha256": "c59353ffdf230d72a7663ca1cf6fa24a1ca5d88bead69e50a8a7b0228469152a"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00097-azure-sad.wav",
+   "audio_sha256": "f0beaa24477acaac03c530b9223179fb35401c6080499d69d6ef70c14ca40684"
+  }
+ },
+ "multiarith_218": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00325-azure-happy.wav",
+   "audio_sha256": "12637e12d8b80052225d55c9f022f6de6891615de9ac78c289d33e38dcc0baea"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00208-azure-sad.wav",
+   "audio_sha256": "6d81db48615186c42d5d7d42e0ee4e2d70cc05bbe17197e2f766599336b0b90c"
+  }
+ },
+ "multiarith_447": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00326-azure-happy.wav",
+   "audio_sha256": "bf20752e58ae6f494af4c0c4889926aeabea6b86f1a08e0ada050da1f1ce45f2"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00427-azure-sad.wav",
+   "audio_sha256": "d79d1cc6e9b2015a0be620f18d62afa6e7173da4073ab7939e9d0226afb35c71"
+  }
+ },
+ "multiarith_134": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00327-azure-happy.wav",
+   "audio_sha256": "d4c29967582da198d410ce4da9abebcdd916934a571f08109810f93a15230470"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00124-azure-sad.wav",
+   "audio_sha256": "cfa1e8ac3fdd6105aba2cc0cf679e869a3088a75fae801c2eb5f7398a8742c7b"
+  }
+ },
+ "multiarith_252": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00328-azure-happy.wav",
+   "audio_sha256": "d4dcdd5351ad8254fff9619125a73cce496a60a64b52a08b200fdf0a4b15f0bd"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00242-azure-sad.wav",
+   "audio_sha256": "ae4439157c133dabb981c63e5c585cc0659c0cdfd4c4578e792770b16273c06a"
+  }
+ },
+ "multiarith_305": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00329-azure-happy.wav",
+   "audio_sha256": "c8578c4c3864142642c102238baa30e07d5aec4c5b5e05696f63b4252e0dbd80"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00295-azure-sad.wav",
+   "audio_sha256": "135eca77cd0d5438fd85df46c5b023fb0504a618c9daeffe0315b13a5384a232"
+  }
+ },
+ "multiarith_302": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00330-azure-happy.wav",
+   "audio_sha256": "3a37f3b2933e46361a6fa57ade775b6551fb5975b27bf1745ab921ac3f6cf85f"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00292-azure-sad.wav",
+   "audio_sha256": "585bdd7dbd1ea8a7251c3a11ae5178836891350e6cb45c0a186365fed84acfbe"
+  }
+ },
+ "multiarith_077": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00331-azure-happy.wav",
+   "audio_sha256": "e94eaa05e0e60f096b9048f93162df90163a9ea15e93286a039c8fb0152ca9a1"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00067-azure-sad.wav",
+   "audio_sha256": "5b4e49c99696c0fcf3f3a454c806e07a788fed87920aa39bb66fba8cb9896241"
+  }
+ },
+ "multiarith_439": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00332-azure-happy.wav",
+   "audio_sha256": "f52c28848bd7b8c6da1bc725de01db710e78c350e31f097c31c603fa4f3440ea"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00419-azure-sad.wav",
+   "audio_sha256": "15375e0e7bcfdb4f4c0157d35030ab82fa145ee6a989e4db3777e90d02f7b4c6"
+  }
+ },
+ "multiarith_119": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00333-azure-happy.wav",
+   "audio_sha256": "7169c7c62593772b990ce781f66ba3fd2b81bcb9a30a51c28de5b8cea584b1f6"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00109-azure-sad.wav",
+   "audio_sha256": "c4aecbade6c4ef0cdf9b84a4d14f0bee1da534272ce62a91855c96c758e615e7"
+  }
+ },
+ "multiarith_403": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00334-azure-happy.wav",
+   "audio_sha256": "eb838d1f3973bdf8e4da7abb26aca716981a18e0a0019ae9d8c8a1f4ec65df1d"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00383-azure-sad.wav",
+   "audio_sha256": "adbb35eeb97a72bdccf8472d345665a93d7fff40c01614755c156536c97b5781"
+  }
+ },
+ "multiarith_594": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00335-azure-happy.wav",
+   "audio_sha256": "3fd6d57481adf64dbc96c33d6f28be12096d1eacbdc7411aa0ecfa173a371e84"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00574-azure-sad.wav",
+   "audio_sha256": "480b3f2d1b95511e35afdb3f2544f5e007568ee6dcbfae93e704c7d80caafdf6"
+  }
+ },
+ "multiarith_131": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00336-azure-happy.wav",
+   "audio_sha256": "dbf3da775690f8285687dc46d580166762af5d4908147c12326ba2a927a2572d"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00121-azure-sad.wav",
+   "audio_sha256": "04d65de2499e4bfd3e25d3d38f2d6bdde5565c6c24ac3a4c0a45a9667c5d95ab"
+  }
+ },
+ "multiarith_273": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00337-azure-happy.wav",
+   "audio_sha256": "5cc9dd4c6d5e81b160af3f55e3878faa4611589f08cb2216f54f7cd97ae379b6"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00263-azure-sad.wav",
+   "audio_sha256": "cb66a982c6a18b5464c917b56f45577bb58b71a35a5b250d966fd53185f03a11"
+  }
+ },
+ "multiarith_365": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00338-azure-happy.wav",
+   "audio_sha256": "3ed273b7f39cd68db56567ffcd47c6f5884317d636a6c584e92e8e3f5af98fdc"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00345-azure-sad.wav",
+   "audio_sha256": "882183337f31ac851036374b1564256f7e21d78e7aac2ced2818a7ff37b2d112"
+  }
+ },
+ "multiarith_179": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00339-azure-happy.wav",
+   "audio_sha256": "2b8bf2198291577350ad72b31b58fc7ec150564ba75c72215d47366ab103907d"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00169-azure-sad.wav",
+   "audio_sha256": "55f25c66dbe5ade14be6936453584bd1914eae03cf623b85d357ec588b64cd4e"
+  }
+ },
+ "multiarith_516": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00340-azure-happy.wav",
+   "audio_sha256": "35104987e450594fcfc715ede7c24e9ac5173edb6ecf95518d48273b3c1ac9d8"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00496-azure-sad.wav",
+   "audio_sha256": "f26302fd9d4f8a8d406f5329a355adcc0b6bcfc3fb0b63ed63e6142a5f01f238"
+  }
+ },
+ "multiarith_034": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00341-azure-happy.wav",
+   "audio_sha256": "d0fd26b8fb4413df2e8c607b69640cc21c411186d4dcae5f732ea8ab2fc25156"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00034-azure-sad.wav",
+   "audio_sha256": "8e418ada8161914c2f07c6c5c12f6eed4c5dab89fe665ebe6e742f661219a19c"
+  }
+ },
+ "multiarith_574": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00342-azure-happy.wav",
+   "audio_sha256": "f4fc4b1ff927eec443835fc0c95a13d87d1c771449d5e68408a9c107c210175f"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00554-azure-sad.wav",
+   "audio_sha256": "4e4b518ff08cf1c261e6899fda5fad16dd9f7bb17cf84cb7191d61cf844cf66a"
+  }
+ },
+ "multiarith_588": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00343-azure-happy.wav",
+   "audio_sha256": "5e84b3c8d5e229c9ef61e6d60c10b8ee06fa7174b2b16843dbcaeb76f144b0c1"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00568-azure-sad.wav",
+   "audio_sha256": "4bd934cb74cf77c61bf400a46c2a6eb69869e8500a120c41d5b89e82f8f38755"
+  }
+ },
+ "multiarith_333": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00344-azure-happy.wav",
+   "audio_sha256": "1cc37a1a37854885b80e3bbbdb1d43208042efabf1b2286995939cd7d3600058"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00323-azure-sad.wav",
+   "audio_sha256": "ac62542e29cc702bf67cb853262390df36a8a2e190d8239dc7a58fa750514ca1"
+  }
+ },
+ "multiarith_036": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00345-azure-happy.wav",
+   "audio_sha256": "aef051281404560ffd9e601e25135661f9c3cf59c02bc3175d3a3334434be589"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00036-azure-sad.wav",
+   "audio_sha256": "8b84a75453529c8de6f973e5cc13eae889688bbc09a5706f11c47f42f328df87"
+  }
+ },
+ "multiarith_003": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00346-azure-happy.wav",
+   "audio_sha256": "7b5fbaad642db7cca15f6fcab8c9859bb029c0fba8d347a7f235644b8887f723"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00003-azure-sad.wav",
+   "audio_sha256": "6ebcf1245b85e08b94732edf874e11c05ee6fedf9854b9373e8ee175c42e336e"
+  }
+ },
+ "multiarith_480": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00347-azure-happy.wav",
+   "audio_sha256": "b441fec730d650c7d378e5b14235303d96c7707a4f75e74def93f1c7504378de"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00460-azure-sad.wav",
+   "audio_sha256": "787f1e97ca9aa54390eee7d25d3cabc18b40a85d0e8aaec90c1051155e430b49"
+  }
+ },
+ "multiarith_371": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00348-azure-happy.wav",
+   "audio_sha256": "25627fe40e072b4bd8b28ab84b3f7055187981a1d5595febb07b36e52ae9b5ea"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00351-azure-sad.wav",
+   "audio_sha256": "06d8999b57594f84c7b1dcefc83bb36dc6f42729397bb2d400a9f1a195a86434"
+  }
+ },
+ "multiarith_518": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00349-azure-happy.wav",
+   "audio_sha256": "784d44dbd7d19bed40481883aea7fd07e9725b8b6e778829b4e4738e4c04fac9"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00498-azure-sad.wav",
+   "audio_sha256": "ae2701137e62ff8d3d536f272063eb690481063b1233957477c6bceeb392737d"
+  }
+ },
+ "multiarith_457": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00350-azure-happy.wav",
+   "audio_sha256": "bfd6320d227f366bd0fe0748e09fc1b5a3134fe05f2fcb9531f2149a63f29b1e"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00437-azure-sad.wav",
+   "audio_sha256": "039eeb5965b8b0228dde325d6170eeafc9f4ab8fdfeed4589b4830c9d377dbc8"
+  }
+ },
+ "multiarith_311": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00351-azure-happy.wav",
+   "audio_sha256": "ca2fb8a261f450501d4be8b798d4d9bef1af995c0556b57d5e4ee0e70d63ee8e"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00301-azure-sad.wav",
+   "audio_sha256": "ddb12281269e679ddd08fc88cd2432a6503813268c6368d2e2b8d16f47ba39da"
+  }
+ },
+ "multiarith_010": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00352-azure-happy.wav",
+   "audio_sha256": "25d3f5d96f199d3372700c6aefcc45947e2c5c517e6b5ac20571675e55dee19a"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00010-azure-sad.wav",
+   "audio_sha256": "bf70c6bf2bddaaa31647f77460df5815291b3729061bae5a730bb24881432197"
+  }
+ },
+ "multiarith_183": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00353-azure-happy.wav",
+   "audio_sha256": "951ac8aea14c7ef6f2e6bcd6050ce4f92ab65cdc157918937e6ca74ae13f6b3d"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00173-azure-sad.wav",
+   "audio_sha256": "59e7ba490d97acb3ab8f97eef8828fd661277c8a5743c82dfdf9abc04de699b0"
+  }
+ },
+ "multiarith_464": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00354-azure-happy.wav",
+   "audio_sha256": "dcfb4aa62441692acf5783d2fde04f2f459ba0743d092932b4f7870b06e7f98b"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00444-azure-sad.wav",
+   "audio_sha256": "e3a08e3d67160630c06be90d94dcb680cf55ff91073d48901a4aac23b643b561"
+  }
+ },
+ "multiarith_125": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00355-azure-happy.wav",
+   "audio_sha256": "e6f1069e864de1435f09b7142ce3c0fb5217f4ccc8cee2ff82ead10028eca835"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00115-azure-sad.wav",
+   "audio_sha256": "c9e2255bab7d367afcec5bdc0b9a0a0966e8c9c462b586c88a3c1eec15a701aa"
+  }
+ },
+ "multiarith_492": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00356-azure-happy.wav",
+   "audio_sha256": "2f8297e079ce4e9edebe790a832240eb526e8cb1aa8b25ccaa25dce0f8059fb7"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00472-azure-sad.wav",
+   "audio_sha256": "5e2d5b177dc144bb2503d1fa66289f1e9ee4c595ebebb82af168d454a37fe6b2"
+  }
+ },
+ "multiarith_071": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00357-azure-happy.wav",
+   "audio_sha256": "2f32e4c5a0e69caa3db6fde46e628c3490b9b94803e4acde9808944dc2c6249e"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00061-azure-sad.wav",
+   "audio_sha256": "5118a0262753180df05c8eb71ab8f1bd055a02447dc9596e947ec783fa3d489c"
+  }
+ },
+ "multiarith_241": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00358-azure-happy.wav",
+   "audio_sha256": "be77e5dbfb4ee1a87acaff82a287b1135d88d2af968329c1fe16c89b3dbcd46f"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00231-azure-sad.wav",
+   "audio_sha256": "483c9a1144001bfe2717b0bd110beca239576968fa5a95046664a9000b83f8f9"
+  }
+ },
+ "multiarith_274": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00359-azure-happy.wav",
+   "audio_sha256": "37f5a655d8f54afd279ae41da4237fc0117a69a49b4f98f204abc505c367577f"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00264-azure-sad.wav",
+   "audio_sha256": "86047587150a679fe2231d790fce0db0a2297822f70a43d7521aba762bcd1416"
+  }
+ },
+ "multiarith_234": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00360-azure-happy.wav",
+   "audio_sha256": "7a9e1ebaf31f4d4569ba78d7c58a9957b3f073992d6f9f7f6dc3710b57719b60"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00224-azure-sad.wav",
+   "audio_sha256": "1ff8ed83590dea62402c9966557e597cc3575e8b7287e0acd59b51d2068798d5"
+  }
+ },
+ "multiarith_424": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00361-azure-happy.wav",
+   "audio_sha256": "2274fcd5a090ee39c2c24fbd423263d3f3b3ace4c2b40bb47f93432ff53179dc"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00404-azure-sad.wav",
+   "audio_sha256": "3b93cb6e2f6a2ec533aee77608302bdc3b47daabc35a258e2bd90365dcfeaceb"
+  }
+ },
+ "multiarith_342": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00362-azure-happy.wav",
+   "audio_sha256": "973bf23afcb502aa3c86a156191e0fd9223fba5575587d31a9d317e3befb4b40"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00332-azure-sad.wav",
+   "audio_sha256": "eb375932bdd24e62f155705094e3806bc12a213cde59867d899600ba8757819e"
+  }
+ },
+ "multiarith_363": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00363-azure-happy.wav",
+   "audio_sha256": "1b7eadaaed25d51089da58123f1e13c0bca884216dc80290dfd3d897ad52f6a8"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00343-azure-sad.wav",
+   "audio_sha256": "9280b1440c9239d444b625dba8004058c404f6eb6db932204f1aec5cc304ff7b"
+  }
+ },
+ "multiarith_482": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00364-azure-happy.wav",
+   "audio_sha256": "faa943ee7da64ea768b1fafa078473917f9a14646480655cfe8c6f0e81eecc2d"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00462-azure-sad.wav",
+   "audio_sha256": "59393282b63c9c9b55976714f9f2199758d61171e96e1b29a30f6a0005c1b693"
+  }
+ },
+ "multiarith_571": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00365-azure-happy.wav",
+   "audio_sha256": "0bfa6f0a74d6ee82822f95fdc0b4226d9544cbd35211feb5b7a71ccb4e0fd73b"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00551-azure-sad.wav",
+   "audio_sha256": "55192b34b275f072cd12fbd555a945a5b1e6b4095a572c8379da9ab32479a386"
+  }
+ },
+ "multiarith_385": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00366-azure-happy.wav",
+   "audio_sha256": "f0fe22a207f38f88cc0e8fdc581db5a9cefee8b850c691150b7d2eb338bf6c9d"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00365-azure-sad.wav",
+   "audio_sha256": "9c8dd966bde7fbf03705ad0154ae3bb50d934e8ad9d0d4277edc2f35ec1c4b53"
+  }
+ },
+ "multiarith_112": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00367-azure-happy.wav",
+   "audio_sha256": "562696f7ca05d756771c9d60a57c7180de2a3399aad2f922cd26f812b312885e"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00102-azure-sad.wav",
+   "audio_sha256": "af5c2bccb7cb2bb92b3dd457301781f2c9a03cdbde81361f7fdccb93f69f8971"
+  }
+ },
+ "multiarith_373": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00368-azure-happy.wav",
+   "audio_sha256": "f7c4580bf9527f2ec5f49b363ed7371074b65bbeb94fbb36f1e97a7ba8907d27"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00353-azure-sad.wav",
+   "audio_sha256": "4804118e5456ebd124c71f3bdd731b21b486f8aaaaa5436605c39419eed97302"
+  }
+ },
+ "multiarith_421": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00369-azure-happy.wav",
+   "audio_sha256": "e5b5dbe126da4b3ec732c5a821bbf45a0c15d27c82276f78fd334b268ccf6f09"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00401-azure-sad.wav",
+   "audio_sha256": "bfee9501389369f69b509284e18e5554d4aaa79741a8837d5b6963fd742fb52e"
+  }
+ },
+ "multiarith_503": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00370-azure-happy.wav",
+   "audio_sha256": "6eda8568d4712e0c84ea3e2f23841d05528e772bcfe94ee62ee12ce7e5d33e80"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00483-azure-sad.wav",
+   "audio_sha256": "bd099d535759dfe697c1a31e76edba213f9f0f7c6e9bbccfb4a809eba0ce5159"
+  }
+ },
+ "multiarith_466": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00371-azure-happy.wav",
+   "audio_sha256": "5339c7a29f9742b8875bf088b0a744f2ce03d293d6fba2673d7d97dc88e57d46"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00446-azure-sad.wav",
+   "audio_sha256": "2bb2f9c78b13e8f2c5a35c8ce4a002d7b07df792b156cf62b3def87bba630568"
+  }
+ },
+ "multiarith_320": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00372-azure-happy.wav",
+   "audio_sha256": "cccee607a7c407d614c53262f0d5cce4fc4fcfa8ccd34ab2f5bee1c082ab65a5"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00310-azure-sad.wav",
+   "audio_sha256": "d827f59f6601bac805dddabe8e0654e4a5d54a2bd533ab387fdaf8bb94e4eea3"
+  }
+ },
+ "multiarith_459": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00373-azure-happy.wav",
+   "audio_sha256": "c95fd198c18da3c7bb3de3eb616b2a84072643f32e1f76f937efc42892c8ac51"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00439-azure-sad.wav",
+   "audio_sha256": "de249337faa6cd206892ceaeb966d6ab789d9c164488993a09ca1e26b88c063b"
+  }
+ },
+ "multiarith_494": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00374-azure-happy.wav",
+   "audio_sha256": "169a958beaa8938c54d7db83a88d08bf7c3aa85c985a2a4522a30dc545b694cd"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00474-azure-sad.wav",
+   "audio_sha256": "e86a1a1d15ff4f2dfd5556c4b3343c0f25e77b9dfd4ab3d1aea974ba8b34ca65"
+  }
+ },
+ "multiarith_094": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00375-azure-happy.wav",
+   "audio_sha256": "e91ad175c3acdc7851b1a783568808ec35ef126e76f910f9d1a655c53b94e537"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00084-azure-sad.wav",
+   "audio_sha256": "45419dd874f7df54e1b8186209a76aa25a9caf112bc197e1507dfb7c63cb1666"
+  }
+ },
+ "multiarith_597": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00376-azure-happy.wav",
+   "audio_sha256": "b58d6acb833fbe3ea30b25ec854e3b53a8b0704414033eafba8bf527712e3358"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00577-azure-sad.wav",
+   "audio_sha256": "8cd3791a04e2f1bf37e57ddbf87686a284c70b0ddd861d6f48f782a96dc1c03c"
+  }
+ },
+ "multiarith_253": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00377-azure-happy.wav",
+   "audio_sha256": "0032c37d1c98af4598198813694a80c53e9bd7c35f3fd9a7f2aba01dd3ba1767"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00243-azure-sad.wav",
+   "audio_sha256": "22cf2d33c308e0c5fc9753f8d767342dc579cd1e492e2678e689e50d5db376d9"
+  }
+ },
+ "multiarith_347": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00378-azure-happy.wav",
+   "audio_sha256": "d4016bb0c97fa36e48a0a06f62b0fcae7517e2387f37e7997424ef6dfb1a2583"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00337-azure-sad.wav",
+   "audio_sha256": "d51d200b66371eb979bac1c7a3e48cbe5fc5a6be114d3a3c23dcaf0e00b2c7f7"
+  }
+ },
+ "multiarith_075": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00379-azure-happy.wav",
+   "audio_sha256": "81d979bff9d1da6481035c6a09729cc6e2ffeee9533fbed798f9115c337caf1f"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00065-azure-sad.wav",
+   "audio_sha256": "93b2aa01ecb2d02f745eedcea7281841b7e50016ce15d26ccff31b92b0826264"
+  }
+ },
+ "multiarith_074": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00380-azure-happy.wav",
+   "audio_sha256": "c495f0224de01f7aa72e6a3fe3448590f2c4475f19d15c0d3a35dc9e5edef063"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00064-azure-sad.wav",
+   "audio_sha256": "4a8cfadbce8255e8fab091bac5170160e4ee31a8e7df023601229b8713cd005c"
+  }
+ },
+ "multiarith_282": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00381-azure-happy.wav",
+   "audio_sha256": "256128cbc0868da2ab1b186fbadca3276a1d47e45b894b03e0c2f4c2827ad64b"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00272-azure-sad.wav",
+   "audio_sha256": "0886d4f913176e81555ef42a26a5514c653fdeab19a9ef34b4a6c9b7ddc9b657"
+  }
+ },
+ "multiarith_035": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00382-azure-happy.wav",
+   "audio_sha256": "b85e395201bd3e23a43b6ed31ef560be3d706af052da4bc4a60e6d83b65bc5cf"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00035-azure-sad.wav",
+   "audio_sha256": "ccc5f9e5d899a4f6534466d9995643d4f5fdc0c6e7498e2ef0856c9de9d5ee98"
+  }
+ },
+ "multiarith_258": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00383-azure-happy.wav",
+   "audio_sha256": "5951713ad3e2687e4f7cbcac7b24a123ae516f8f83178f25b2fe75764782ae97"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00248-azure-sad.wav",
+   "audio_sha256": "4f9a5f4492cabbbd7832b1fa16eb63577bc71baf263df3334ec1c6e4db274c8e"
+  }
+ },
+ "multiarith_394": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00384-azure-happy.wav",
+   "audio_sha256": "77fde7fac4ed158ae8f7b2dcf66f23d30705737149e4e67a117df69c7bb0a35c"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00374-azure-sad.wav",
+   "audio_sha256": "09c06ec50c7fbcbbbe40284e0c050d71b32be89a6f02b008315e556c2f5cc611"
+  }
+ },
+ "multiarith_043": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00385-azure-happy.wav",
+   "audio_sha256": "7d3f9910fcc969bf85ed6c7ede0b8b36c5e4f1f2f3fc95139fc68d05efd7e353"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00043-azure-sad.wav",
+   "audio_sha256": "2bf348902c1d9e2a81bad151fae89b8e7a9710f95df01ebff30bc2e595c275ec"
+  }
+ },
+ "multiarith_040": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00386-azure-happy.wav",
+   "audio_sha256": "f85b66e28886a9a5a4511e090972b836c0262e65a96ed494cf9f9f0621e4f182"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00040-azure-sad.wav",
+   "audio_sha256": "46fbe73e6ec085ab4a1713236695bdb6ef10cbe08e980fab9148f2d449adf8cb"
+  }
+ },
+ "multiarith_507": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00387-azure-happy.wav",
+   "audio_sha256": "8029b27e0f55e9e1702e16a7f53ba36bcb8a1e97ab40e9775789af9f3234c18a"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00487-azure-sad.wav",
+   "audio_sha256": "fa3d3ff50ff06b3ee29d615c08f198a740785aa7d202db7369b570950396e628"
+  }
+ },
+ "multiarith_133": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00388-azure-happy.wav",
+   "audio_sha256": "e3eadb97a5c545fb37dd93a2440ccb1e8745a0eecf274afcad9ae0184ebd2621"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00123-azure-sad.wav",
+   "audio_sha256": "b9bf445acc15a244adccde1c0a9ed6e3eca214e187d8b28759630c0aeb54f653"
+  }
+ },
+ "multiarith_029": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00389-azure-happy.wav",
+   "audio_sha256": "c804a928b8acab0a9bcf041dca988e20451bddfcb8b15360d9dbac0e40749b86"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00029-azure-sad.wav",
+   "audio_sha256": "e8887b96c494242752ea07cb9b313c6467df3cf1d3897811b93be735120ee92d"
+  }
+ },
+ "multiarith_132": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00390-azure-happy.wav",
+   "audio_sha256": "1c2dc1b8195510dfb8390fa6a2e4de30c659a9d020e31725b65ee04b0ed26e48"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00122-azure-sad.wav",
+   "audio_sha256": "d45926dc3cf8cf05745b8e1d6b498e9ea6a777173d102ce5bce9317830dc085f"
+  }
+ },
+ "multiarith_167": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00391-azure-happy.wav",
+   "audio_sha256": "6788c085d4bfc9102899b0acd491973aed626901d6da2840aafafe05705a85c6"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00157-azure-sad.wav",
+   "audio_sha256": "0460cf563fc3aaba2fa1258fc294383add8cfa1707794ddfd39fd9d2bf2b09fe"
+  }
+ },
+ "multiarith_481": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00392-azure-happy.wav",
+   "audio_sha256": "8687792c6d5f6bd4364b5c00653e658111fdacd0b87bfa64e0f952016fd5b9f0"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00461-azure-sad.wav",
+   "audio_sha256": "b5b0e074eeb88a840b25bb0ba23116ae3af255ebffb528e78cc9892165b12107"
+  }
+ },
+ "multiarith_445": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00393-azure-happy.wav",
+   "audio_sha256": "b0b84a20cfb7a56df36623cd16e424dee83490485a2b8a551b28eff8a8afd8ad"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00425-azure-sad.wav",
+   "audio_sha256": "6bef3513a77079744e9c76d139680a925aef4124d94b33a36091986d3aba29e1"
+  }
+ },
+ "multiarith_009": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00394-azure-happy.wav",
+   "audio_sha256": "0f3c4ce7b12f79d5bf2edc4084f2759c43926a6e7782f38b1525f3f7b88911d7"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00009-azure-sad.wav",
+   "audio_sha256": "b69dc6aa4c7de9c855ba649d18a1c552510ce0fcb0d3f1240352ac00e8bcc83c"
+  }
+ },
+ "multiarith_535": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00395-azure-happy.wav",
+   "audio_sha256": "e5105078b4b97f210bcba6c583bd2653d018f53aaa0590bf530bba699eaf2034"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00515-azure-sad.wav",
+   "audio_sha256": "0f5fe93c2742432fe37cfd59c45573dbe835379556c2935ddae211b20389ddcf"
+  }
+ },
+ "multiarith_175": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00396-azure-happy.wav",
+   "audio_sha256": "8d0a1767c2c0b76ee4cc36732caa8fcfb719dfa71a9afe2882aab38fdf22f679"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00165-azure-sad.wav",
+   "audio_sha256": "856ed404730b7311ddb5852ce789dea5dee7d4d7331a1c03f21f2934b37a21db"
+  }
+ },
+ "multiarith_316": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00397-azure-happy.wav",
+   "audio_sha256": "92356b99672c3d6355c457f4a9a3abaf841fe1a66ac62fa609d85d969e9d5c40"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00306-azure-sad.wav",
+   "audio_sha256": "db4ddf2dfd0c65b3ed0cf9056b79b8d64486051fa6979062780418dcb5847121"
+  }
+ },
+ "multiarith_000": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00398-azure-happy.wav",
+   "audio_sha256": "24ed3fa1fa3d4b3fe8ed9d55d174f5f163dd6de33f9130f7db01880fd8d2820d"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00000-azure-sad.wav",
+   "audio_sha256": "8db69dad095af9fd7c870041fd3bec8fcf774e842b1c944cc3bcdab9de3be5de"
+  }
+ },
+ "multiarith_281": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00399-azure-happy.wav",
+   "audio_sha256": "cd31dfd61fb30739fc64091f551e4ea2925eeba88ce8302dee963da8c8ca5cf6"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00271-azure-sad.wav",
+   "audio_sha256": "400b3372bcca4cc4fa9c2dbdeb4123e454ee6bbe895281117dd0782a5158726d"
+  }
+ },
+ "multiarith_418": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00400-azure-happy.wav",
+   "audio_sha256": "5b95ff293362d69f8b45bd81e1ff70daa6ecdc36f7287239150975715d75dade"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00398-azure-sad.wav",
+   "audio_sha256": "0f621933b13ead48305f6d00034f1f329b111f81b86952bb19768020e2380ae3"
+  }
+ },
+ "multiarith_531": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00401-azure-happy.wav",
+   "audio_sha256": "3612786588f71992283d9f9c49c248cb5dc0200cf2b36a1b23538df0ae447081"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00511-azure-sad.wav",
+   "audio_sha256": "f373e81c3cf62019323827441d79359fdfd0f534212ec5af099d08bef11e32d8"
+  }
+ },
+ "multiarith_092": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00402-azure-happy.wav",
+   "audio_sha256": "8e53379c97f587a535847aa7d8d1fe2c1a3260057132234dcf5edbdfdb3e2f04"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00082-azure-sad.wav",
+   "audio_sha256": "2ebfffaf39c4b2af57a33360ddbc81aa1a5458ca3db8d0e6375feb501c808631"
+  }
+ },
+ "multiarith_435": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00403-azure-happy.wav",
+   "audio_sha256": "8f67a8d078d0958cc9c088a86ca2d989759c283ef79b78da217ac4369aeebb15"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00415-azure-sad.wav",
+   "audio_sha256": "ac48173b2dcf5d904d0dd4fd5e41155b378abaefefbfbdbead1178c712d425d5"
+  }
+ },
+ "multiarith_201": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00404-azure-happy.wav",
+   "audio_sha256": "17454d305361e31b026231e165217f82ef1bb15f4dc8cf44e7187eab2b6abba2"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00191-azure-sad.wav",
+   "audio_sha256": "be4b3c77ee7aa8c8b300b6b01730c2964a8a6c255206108cb58c8b0df3d3a867"
+  }
+ },
+ "multiarith_471": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00405-azure-happy.wav",
+   "audio_sha256": "edbb322159ae7f35286bece3820dbd8e1daf4d985c136f0a770b41b28500325c"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00451-azure-sad.wav",
+   "audio_sha256": "c201747082a02441ec506f1a389ea443796f00588be271da9939571cdf56fc4d"
+  }
+ },
+ "multiarith_111": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00406-azure-happy.wav",
+   "audio_sha256": "aa2139fe61124b00dd0cedbabd3a62bcfdd6c7b746dd699904b457bda05ff1b6"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00101-azure-sad.wav",
+   "audio_sha256": "628c9f4550d12c51e19d51983169814037c8e187b6a59ea1d1e7b2a0ebc04fcc"
+  }
+ },
+ "multiarith_321": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00407-azure-happy.wav",
+   "audio_sha256": "8f1fc9afc520685523b153beae31d1928614ddb5348ae3ab742ea919330fef8d"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00311-azure-sad.wav",
+   "audio_sha256": "8aea85402d6fffb0fa7c5a08b09df6f896ad261fe6b4c510397b32611959895f"
+  }
+ },
+ "multiarith_433": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00408-azure-happy.wav",
+   "audio_sha256": "b973f5864daa235c0ec69b2eaebda3604fc6b3a6a00783509bf2a6aa7907b2a1"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00413-azure-sad.wav",
+   "audio_sha256": "c5467f5647201785b671c2fe858fb1a8aaf1097e002a86ac6b65b1adfbff2f30"
+  }
+ },
+ "multiarith_528": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00409-azure-happy.wav",
+   "audio_sha256": "89f4b4dcee4f73e5c239a9249e3877545f74b73cc9f4e1cc5d81fd8b97253401"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00508-azure-sad.wav",
+   "audio_sha256": "c62a456e18cff772f3f33d529bee564dc08410ab7f6d869783642836eae13c05"
+  }
+ },
+ "multiarith_162": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00410-azure-happy.wav",
+   "audio_sha256": "1adae26b503738edcadc65540d38ac03f7145e17d89a1a9e53b9ef1cf107281f"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00152-azure-sad.wav",
+   "audio_sha256": "dac8128b34eafe41dc9ef7df89aaff57118d5e485a0b698179db781e6c6d3af4"
+  }
+ },
+ "multiarith_330": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00411-azure-happy.wav",
+   "audio_sha256": "18fab9bbc5939795c0a0637cad586935bc531393fa686676f7bf5d4389159d01"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00320-azure-sad.wav",
+   "audio_sha256": "e20691283b6386bd51136df47abe55eb9f21b708b5ed1e9cf75163b927da90ad"
+  }
+ },
+ "multiarith_064": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00412-azure-happy.wav",
+   "audio_sha256": "32116c1bf9463fb0f6950fb20240e82816695d239db1f54d098a8a2d09cd40b8"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00054-azure-sad.wav",
+   "audio_sha256": "476b91abe79c3b7d6c090044f57d19842883ba61b4c4211f04b4b8b919a8d348"
+  }
+ },
+ "multiarith_269": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00413-azure-happy.wav",
+   "audio_sha256": "6867b4532957b26ac6f674b800272e2a0eaf872babcd15f5f56f089de0c26d9a"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00259-azure-sad.wav",
+   "audio_sha256": "06f9bee8547e42d045ef9685f367f90c44c5713918f592d82b5cdfcaed028faf"
+  }
+ },
+ "multiarith_101": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00414-azure-happy.wav",
+   "audio_sha256": "af2a32f35a34a9a22c619b92e20f96800d3627759c5408f8d751e22aa6764b50"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00091-azure-sad.wav",
+   "audio_sha256": "2bb9d009aa55e02bc7a8dd6ee9c636c8c9e00a3483776a597bfe66a243292f24"
+  }
+ },
+ "multiarith_410": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00415-azure-happy.wav",
+   "audio_sha256": "4f5e17900f1ac25d88180733cded8ebd2af5e6c0f44cc2aaff25194d57cafe5c"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00390-azure-sad.wav",
+   "audio_sha256": "a8c17ec42facc01384e09238c7d08c7d70b080bbb67cb2dd7699e9e711d12699"
+  }
+ },
+ "multiarith_266": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00416-azure-happy.wav",
+   "audio_sha256": "19bef1e4f76f5f66680156f2090ac51373e3f3ab9d93329007fc8d47f420682a"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00256-azure-sad.wav",
+   "audio_sha256": "35dfe4781726aeae5beeddc3791abfa2050ed2bab89cb851144ae7856d355ba1"
+  }
+ },
+ "multiarith_498": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00417-azure-happy.wav",
+   "audio_sha256": "373737dba159c5c46ffe1f19e60fe7ed02ec6021c8846643fd828f1e62a3e123"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00478-azure-sad.wav",
+   "audio_sha256": "7e205dad6c343b3a8dc652e9c9dcdfa5adf042e0aa22a9fa81d2c0862cc023a4"
+  }
+ },
+ "multiarith_388": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00418-azure-happy.wav",
+   "audio_sha256": "ca102d70c2c74542f20f591e7832f2ca5e163f45ad6c3a35ffff0e3cbe64f02a"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00368-azure-sad.wav",
+   "audio_sha256": "1d5dca1c9adeafd26f9a0a82ab2e58510512931d9308fa31d5f293431c966973"
+  }
+ },
+ "multiarith_454": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00419-azure-happy.wav",
+   "audio_sha256": "1e05aa8727ff37f1a428002cbc162c80844ec6894f27f8f7e7e0b0003391e15c"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00434-azure-sad.wav",
+   "audio_sha256": "a1a242e271fcbbd9fb9efb53e19ab399fcd63d5e079c091a6f547a6ceceba22a"
+  }
+ },
+ "multiarith_001": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00420-azure-happy.wav",
+   "audio_sha256": "61c3c07802aba9f8d3f137c65609a3810a8811efbc32e17a34fff0c9240c1b3f"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00001-azure-sad.wav",
+   "audio_sha256": "f05a8e3ab9be9531763d61ab96285302ce4bf1db437c33f6033dee3a5c1d8f24"
+  }
+ },
+ "multiarith_242": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00421-azure-happy.wav",
+   "audio_sha256": "3f4bc7c66c4c5bdf7e25a0bdc8d67282292943ae09a3e57c3693cf6a9b37e022"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00232-azure-sad.wav",
+   "audio_sha256": "996e77a3522d2a5eded31e2021f34147f67f6d2e5dc6a24f180382ad21a5a32a"
+  }
+ },
+ "multiarith_557": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00422-azure-happy.wav",
+   "audio_sha256": "1921e511e2fe14840a3534211f3a245bb2c204c3e5ea7e8c317c4264db38b50f"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00537-azure-sad.wav",
+   "audio_sha256": "b0e79fc4f408117ea72a198c0daaa03284a5d96c94c1800320b567d3b2b8ff0c"
+  }
+ },
+ "multiarith_232": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00423-azure-happy.wav",
+   "audio_sha256": "1e0e44d1140d217dba43a58c6ff0f72e2890f9cb512e770b954687d8ecc87728"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00222-azure-sad.wav",
+   "audio_sha256": "68b7cab146af671a3b99749655da330d03107fe88dad7af1ef99ea05f17e08be"
+  }
+ },
+ "multiarith_160": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00424-azure-happy.wav",
+   "audio_sha256": "39668a59c62b38fbf078594dabaf9d9512776cef0a0db2099faff9b2729298e0"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00150-azure-sad.wav",
+   "audio_sha256": "689e5b4312a8cdf25957bf5101334174972d48791ebc7756837e9707ce817345"
+  }
+ },
+ "multiarith_067": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00425-azure-happy.wav",
+   "audio_sha256": "039d79a77f8bf2402a582317f6c0c5f5e85488c0b97195ca8f00fc98b6fe9b45"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00057-azure-sad.wav",
+   "audio_sha256": "9d835a15e8608e25bd3835cb386a25b80ab591165a324d1446781e3cec71a7b0"
+  }
+ },
+ "multiarith_184": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00426-azure-happy.wav",
+   "audio_sha256": "13109c69dbd64e4d23b09090f2ac013e9c21d0a7c6eb80366b55c0036d5ea6c1"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00174-azure-sad.wav",
+   "audio_sha256": "83d49225dc7d376a65836d4159fbdd6f77f3696239d7855e4303a5f09b14de2c"
+  }
+ },
+ "multiarith_338": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00427-azure-happy.wav",
+   "audio_sha256": "db5a3a48799a05c4e5dad6090a24cd46600cdc699902e4921314912375751506"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00328-azure-sad.wav",
+   "audio_sha256": "6eb8eb9874ac5e2cd7e96143d869be91a797fe5a67a9b090387bc69ec3abeb40"
+  }
+ },
+ "multiarith_521": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00428-azure-happy.wav",
+   "audio_sha256": "4f1165f4bb0e3db69e58073f66ce5ca9dd6fc1addf71f539888977eae351e048"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00501-azure-sad.wav",
+   "audio_sha256": "3f5df8bb258b0b407902cd623a21d208bc62bc711db7517c90fc002bf5e07850"
+  }
+ },
+ "multiarith_146": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00429-azure-happy.wav",
+   "audio_sha256": "9db549bb37e94251b93c90d6b5b508af527a289c11f4baa29b745b5623759b90"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00136-azure-sad.wav",
+   "audio_sha256": "2c40011c17e4924cf1957a29a3b3d8d02444d4b82a1d481516c9e5aa411a6be1"
+  }
+ },
+ "multiarith_404": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00430-azure-happy.wav",
+   "audio_sha256": "d40ff8d7a5b0dcc4b4479144605cd2366972b7f0c634530f7c5513a3d7104baa"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00384-azure-sad.wav",
+   "audio_sha256": "aefdf96cde6eb379ea8f7e22563151014f04bc34ede511ac120b6abce4435a3f"
+  }
+ },
+ "multiarith_284": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00431-azure-happy.wav",
+   "audio_sha256": "8da7bc7ce2829530d1ca5d8e5f59e7fa1d0fb518b5e189b42eaf133bbd52bd16"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00274-azure-sad.wav",
+   "audio_sha256": "cd5f37e15f4ef39376a284890d944affc8132b9b6d80f1175a5445fbb9774174"
+  }
+ },
+ "multiarith_369": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00432-azure-happy.wav",
+   "audio_sha256": "c3216d248c558b0bd584fac92060b3b7254502a9e247f837556b8c9a3cb841eb"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00349-azure-sad.wav",
+   "audio_sha256": "6d915025fa6439b397f92af0af83d6f6937289d08f357795ae771df88d10da36"
+  }
+ },
+ "multiarith_068": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00433-azure-happy.wav",
+   "audio_sha256": "8f53547012ee69c4b98c082d4d49077bc839848832555152a18b2e52343a4a4f"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00058-azure-sad.wav",
+   "audio_sha256": "ee69e38c552b3f31f177000a86391a1429d62102bbdf4b86ff82dc58e593b59a"
+  }
+ },
+ "multiarith_389": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00434-azure-happy.wav",
+   "audio_sha256": "738210b611b43b9d9e40dcc74b263f33cd23bec8f21886ef63231e0c7722ee94"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00369-azure-sad.wav",
+   "audio_sha256": "29fee5b6e42e19917bf7946370941025ba3e2f105bd57bc0237d2417cf042596"
+  }
+ },
+ "multiarith_467": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00435-azure-happy.wav",
+   "audio_sha256": "53dd0ae979c04b660c94b15c452eb1729c557126aa51d75e4ef8201cb7288d9c"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00447-azure-sad.wav",
+   "audio_sha256": "10938ca19ea057ee0d6af667c18c24c2394beabe96e7a17df1c49865069e1daf"
+  }
+ },
+ "multiarith_005": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00436-azure-happy.wav",
+   "audio_sha256": "1433609ac8b0d7ad0624b1c627b3c29e60aa70d05c943ccf44a5b3d676bc291d"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00005-azure-sad.wav",
+   "audio_sha256": "9c4d100110551f5cc7996c3be0697934ded95dc59886bf637a43fd9198d39e81"
+  }
+ },
+ "multiarith_293": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00437-azure-happy.wav",
+   "audio_sha256": "7dae7f767bc865c1bce44743ba1553143181a98b250666872df7f8b3c096b154"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00283-azure-sad.wav",
+   "audio_sha256": "803837891fe070b3e71de06d9784edae1b2a3965e9d82e88a6f6cf949831b952"
+  }
+ },
+ "multiarith_138": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00438-azure-happy.wav",
+   "audio_sha256": "1a605537019f088f83558c34e7ae17eac72b625e568774879f399367afb5b42f"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00128-azure-sad.wav",
+   "audio_sha256": "90592e0578426fad1b48256b78b7a3bec4bd0537dd30fba570eb8ae383411b6e"
+  }
+ },
+ "multiarith_562": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00439-azure-happy.wav",
+   "audio_sha256": "528271c7a11723effd13953949bfa7d37abaeb5485f0a21c33fd0f5ed68959ac"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00542-azure-sad.wav",
+   "audio_sha256": "3f72112f9c9dd4a522d24499315ef2d42043afa81a018b4347513a2b7b6672df"
+  }
+ },
+ "multiarith_249": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00440-azure-happy.wav",
+   "audio_sha256": "d162df16d1e758408e76ce57443c5760772d7dbd5855e4eb7eb58df30fd042dd"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00239-azure-sad.wav",
+   "audio_sha256": "02ea8caad60a2fb2dbb6b2e2290f49705073bcc47e0c2b2a8683cfc12ad48100"
+  }
+ },
+ "multiarith_465": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00441-azure-happy.wav",
+   "audio_sha256": "766099e459068184ce19d4291a5819b5d5f15c20d81d1cc44316c6182e09d63b"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00445-azure-sad.wav",
+   "audio_sha256": "0d9dddb724f129b261723cf131be323af995160b5be1720ae637b85be3db696b"
+  }
+ },
+ "multiarith_205": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00442-azure-happy.wav",
+   "audio_sha256": "89704c7b2faddfcd708c88484c01dfb7854f7e37ac2f0a2baebf5d8cf67dc31b"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00195-azure-sad.wav",
+   "audio_sha256": "6cf3cf2f3d9df89298993c96722a733ca45f489d0fe70e3f6cedd6725654d285"
+  }
+ },
+ "multiarith_207": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00443-azure-happy.wav",
+   "audio_sha256": "72e2030805b291e0e083928b62bb75d1cc1d4a71ffdb3246a80d67d52659a611"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00197-azure-sad.wav",
+   "audio_sha256": "2398740f9c4028078b0b90591b00be9b812f168797f8a237b9c72996dbaf0c42"
+  }
+ },
+ "multiarith_589": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00444-azure-happy.wav",
+   "audio_sha256": "f476ba5b393faa0302ff23f8aab92166e9d4d149c7f87d395f42d6ff944f2ff5"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00569-azure-sad.wav",
+   "audio_sha256": "a142dbfe69d0e019c10735bf90e2925f602a4243ae909bab7c90091c8f98c8b2"
+  }
+ },
+ "multiarith_315": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00445-azure-happy.wav",
+   "audio_sha256": "2cca5d6c2785b9ad0978ba8de30b69f5b58ef8b7626e461a6c7678908ae483c6"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00305-azure-sad.wav",
+   "audio_sha256": "48377346915af87811519ebf86794da53385f64bf3bf8d83a45560f6bcbb292f"
+  }
+ },
+ "multiarith_226": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00446-azure-happy.wav",
+   "audio_sha256": "7626aeb368b1862ea647d9baab8e441662dfd39166d303a7b4458d7b17918769"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00216-azure-sad.wav",
+   "audio_sha256": "ce12d2bd85e2a18ab18e3b12b300851dc35b505841e18c8b52e57886066f3180"
+  }
+ },
+ "multiarith_573": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00447-azure-happy.wav",
+   "audio_sha256": "dca00a58f83f936716f915d064f79f81ae3fbd69c4f690d816f7a4bbd27711d8"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00553-azure-sad.wav",
+   "audio_sha256": "a5b7442137dac5d16a48f8d10d330e783fbb9c5919eaf11ae562c73e03ff0030"
+  }
+ },
+ "multiarith_425": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00448-azure-happy.wav",
+   "audio_sha256": "4927d2c0c3c0c70330e4a9362d3081df783dc00d7872e879614487fdba29a373"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00405-azure-sad.wav",
+   "audio_sha256": "987bbf34d1d1c4aeb049cdc732e9180f5b4693d9805794135359c68fadcc4354"
+  }
+ },
+ "multiarith_549": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00449-azure-happy.wav",
+   "audio_sha256": "b946337bfb2cbad5f6cc248cc469ad8030fd466be25b328ccbf9c9474e4e1c05"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00529-azure-sad.wav",
+   "audio_sha256": "7e947533c8c5241d4502f5c9c622a0938d87ad7351a492758cb611671725f53b"
+  }
+ },
+ "multiarith_331": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00450-azure-happy.wav",
+   "audio_sha256": "2d0b5490aac7a78c1f5db69e0ca50c081a74df73048dcdb9b1991837b12abca7"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00321-azure-sad.wav",
+   "audio_sha256": "24c2e489061c287bb96f863b17dc4effcc05529a6a72f5f8106fdbe476a57362"
+  }
+ },
+ "multiarith_088": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00451-azure-happy.wav",
+   "audio_sha256": "61de42810c48b7c1552770967baede4eb709b60cd53cc438a7e4d423b70f5a85"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00078-azure-sad.wav",
+   "audio_sha256": "f6e262464d767d8a5946c5bab2f38f6bbfc726bc98a6ff2131b6f0873454fbca"
+  }
+ },
+ "multiarith_066": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00452-azure-happy.wav",
+   "audio_sha256": "5e2f3cb9a5b84a1d2c2a3b2970e4acc8da1706e77f96cff794f45811a8c9cab7"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00056-azure-sad.wav",
+   "audio_sha256": "b0611848f51d647ac6fec22bff2443b6684d6fe41893a3858c5f3e21ec2e919d"
+  }
+ },
+ "multiarith_460": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00453-azure-happy.wav",
+   "audio_sha256": "a678377a9f79b3c6fa8c4a8247202dc74ddec30885c86b167470f2f2531d7472"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00440-azure-sad.wav",
+   "audio_sha256": "fb636b19931a0e94410437a48b64a9a3601573c65b4b9d13145946c1ac9bf435"
+  }
+ },
+ "multiarith_024": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00454-azure-happy.wav",
+   "audio_sha256": "32a84e857287a8e33aa26d8d2ffebcb7ef9130217bd5c5e752edb8096cbe8241"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00024-azure-sad.wav",
+   "audio_sha256": "1f5fa54e1ef1e62cd3fd5012823470de59f45f882593239ee2e9ed1f1eb6dcdb"
+  }
+ },
+ "multiarith_406": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00455-azure-happy.wav",
+   "audio_sha256": "dd8835e9203be634aac7fc7a1f5c302b0918fdb31e56cdca0356c091b22002a2"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00386-azure-sad.wav",
+   "audio_sha256": "990097a5156eefe4e5a3746d2fd16ba6094b8a0441327667d79bf4f079814d9f"
+  }
+ },
+ "multiarith_552": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00456-azure-happy.wav",
+   "audio_sha256": "61038d94a6baf15d7f8d789eecdf99e41073d55d66bff24c17eee12aac7b9bec"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00532-azure-sad.wav",
+   "audio_sha256": "4735eb220a7d67e07dbde606a1cd3991ed91dbf659f14d81e54379a15015208b"
+  }
+ },
+ "multiarith_262": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00457-azure-happy.wav",
+   "audio_sha256": "41ec2062bcad3d7803d149bb9eca561413eb742eea632dca80981f878c33a281"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00252-azure-sad.wav",
+   "audio_sha256": "89fa335ffd08dcf6e5e608d7814f42fd83c1b92bed6b7bd3d290bded9d4e9be4"
+  }
+ },
+ "multiarith_270": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00458-azure-happy.wav",
+   "audio_sha256": "0b95a7719b0f97b4596fe8eb083f33e2dec37f6964449e3216374d9eaf5f5897"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00260-azure-sad.wav",
+   "audio_sha256": "790fbb0182d13b87c545cf5deaa295fc59b40a1fddd9b33aa49de77c4900e218"
+  }
+ },
+ "multiarith_080": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00459-azure-happy.wav",
+   "audio_sha256": "a11b37305fef482d6c7a24dbbcc4993d9bd8ccc734ddcfdddaf1cf1b6cbc5838"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00070-azure-sad.wav",
+   "audio_sha256": "1dd9061fe8095f7e1c08300f254ea7ce38f41189c0df8cf16b16d7c836883e52"
+  }
+ },
+ "multiarith_525": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00460-azure-happy.wav",
+   "audio_sha256": "bf168bf431596928279bd4c18599a7e29ddec2fe76501b7bbfa88265c970d691"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00505-azure-sad.wav",
+   "audio_sha256": "a10503ae6f0155b4110fef01f288102e5e7e2a6e1e793b4cbc905345139d3cc7"
+  }
+ },
+ "multiarith_195": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00461-azure-happy.wav",
+   "audio_sha256": "3ea57245c006bfbe00f411cccbe5e9ef1d34e32dc59de208e11eb016836812d5"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00185-azure-sad.wav",
+   "audio_sha256": "12bc1a04b1895d5ea5d6822443c5a671673fdf743e0e0e5d82ac7d613eb9e125"
+  }
+ },
+ "multiarith_214": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00462-azure-happy.wav",
+   "audio_sha256": "0f374634d19f18a6c2cee1f69a48c7e964cdfb95a509cd9fcfb475d82b2ebfc9"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00204-azure-sad.wav",
+   "audio_sha256": "ba17f0e737d52bdc9cf4f28d3768f31cd32c737139c1f54a06a81093f70a3067"
+  }
+ },
+ "multiarith_308": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00463-azure-happy.wav",
+   "audio_sha256": "9836f48d0a103420212bcd0c89617debb547d1766321e03d60cae34c54bfaaa6"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00298-azure-sad.wav",
+   "audio_sha256": "90a7436a2d1589979d42281514dde551d0b31f4045aba2b30e3f9e4785258ab7"
+  }
+ },
+ "multiarith_581": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00464-azure-happy.wav",
+   "audio_sha256": "b4e3330a20a05b04c0beba2544bb9b6600263821c760fd13193de95174385107"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00561-azure-sad.wav",
+   "audio_sha256": "b1bd3cab184018656c87555e531202d8edd3770cb92099e7c1886debdf9c90e6"
+  }
+ },
+ "multiarith_229": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00465-azure-happy.wav",
+   "audio_sha256": "7dff9c8983cb00940905ec20937ad99d10fb4777d13c2499c551132490aa7656"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00219-azure-sad.wav",
+   "audio_sha256": "cf828c783117daee248691d88682058e54f40284145009daee8e4bddc6ab5c5b"
+  }
+ },
+ "multiarith_309": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00466-azure-happy.wav",
+   "audio_sha256": "fa2efecf3480e5d4e38ec405064b3fdbe9110e63b5113ced9a6375d910108a4e"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00299-azure-sad.wav",
+   "audio_sha256": "a2203772602204b4cedc1904ae483c36df90869fffb1e2f8ee00b23ed44502a9"
+  }
+ },
+ "multiarith_402": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00467-azure-happy.wav",
+   "audio_sha256": "280f605c57b7543d3ed0a56b756f3d0e707b4f6be4795d42c8e1c307d5f7f224"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00382-azure-sad.wav",
+   "audio_sha256": "6f6d711e189770531ca74302916cce1228e96e9bc874ffbc4f89396383abe17e"
+  }
+ },
+ "multiarith_144": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00468-azure-happy.wav",
+   "audio_sha256": "4e9e04440e55661c40ac46d0bce86e3eb9197d0ede82bc7829544b5ec7530ae8"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00134-azure-sad.wav",
+   "audio_sha256": "3bda93e3d43bc54ac2e287e43430eb5ad44b7a7e4f6920ec248930b47ceb9b81"
+  }
+ },
+ "multiarith_285": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00469-azure-happy.wav",
+   "audio_sha256": "902d780d5549b69ffd796baefc736c47ea94c6eefa2acf51db4be026639efc71"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00275-azure-sad.wav",
+   "audio_sha256": "1a016703f6cca7b7a7ab77e05758828a71cd993130897f4b91df09c5800d8d4d"
+  }
+ },
+ "multiarith_297": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00470-azure-happy.wav",
+   "audio_sha256": "ada61fd9305a05d40ece7024f16a1ff6e02388fe3f2f84d1db336041c569a71c"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00287-azure-sad.wav",
+   "audio_sha256": "31c888d64ae3eae23cb1ffed094891fe5fa24861ac5306301a05ce1f2dbd5c27"
+  }
+ },
+ "multiarith_401": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00471-azure-happy.wav",
+   "audio_sha256": "df9f6dd4618c5bbd17e8bf5948fb402a86f845503505b4d8622eead8646f58f7"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00381-azure-sad.wav",
+   "audio_sha256": "bbec8ee6d8bb1adbce8703a5827e29f7e95b8bf471620883e3785190c3399fa6"
+  }
+ },
+ "multiarith_136": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00472-azure-happy.wav",
+   "audio_sha256": "7a1bf1f04786a518cfe10c624b8cc3bc4482f14ff0c6aa4ea785a921f1a1019a"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00126-azure-sad.wav",
+   "audio_sha256": "3a2c8a9a69f5375efefa9148a98af4d8c8ede1c85a14b125a1458b4ea1705cab"
+  }
+ },
+ "multiarith_553": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00473-azure-happy.wav",
+   "audio_sha256": "7b53ff80250d5b464fc3a70e9b5c507b6df27d52cf9d9a898cd78a81d0742ddd"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00533-azure-sad.wav",
+   "audio_sha256": "ccf4ab3d650b306a0b227043fbf352f3838d80b389dd504613c57d64d9b0cc12"
+  }
+ },
+ "multiarith_145": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00474-azure-happy.wav",
+   "audio_sha256": "67e5102cd8eea8aa4af8cb2f71bf8340a98a0f122ee921979c5880c989868fdc"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00135-azure-sad.wav",
+   "audio_sha256": "64a55984d81ba2f8ae97279ecfc103aa5fe173f863e188c55d3172160ca7fbcf"
+  }
+ },
+ "multiarith_584": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00475-azure-happy.wav",
+   "audio_sha256": "9a7398babdab5173603d7a349f2c71acfc5ee01413ae2350f9bd0688bbf63181"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00564-azure-sad.wav",
+   "audio_sha256": "4e566d3763321fc688954615c902d70236c2c27a1ff003e126575431c9449c55"
+  }
+ },
+ "multiarith_244": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00476-azure-happy.wav",
+   "audio_sha256": "9f83118fc6983495b33a9aac6e8b00c360a217599514d7b9e35e9925ae21de1b"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00234-azure-sad.wav",
+   "audio_sha256": "80b63c42380139271ee79a6808f90e4981df2d23388ea2ba053e2356b2b90897"
+  }
+ },
+ "multiarith_339": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00477-azure-happy.wav",
+   "audio_sha256": "d318d67e30f7005989a6a7c4577f548d83623f5baf7d2d10f12c7be31ab9269c"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00329-azure-sad.wav",
+   "audio_sha256": "6f01eed8266186e3c62ea5571bae6408049fe01efa71e517ffc71c1265da64f6"
+  }
+ },
+ "multiarith_488": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00478-azure-happy.wav",
+   "audio_sha256": "f58151e35fdf615da74af7e15c302aa35a591598de7accc9940641b6e582b490"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00468-azure-sad.wav",
+   "audio_sha256": "087c4461446f58e73b6813088ae588791b54e2430cef732c6433e29e7b464e5b"
+  }
+ },
+ "multiarith_472": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00479-azure-happy.wav",
+   "audio_sha256": "385a7b5e6bba94f9d2d623b7d78246e7f098f01dec48e14f4d9f1d94f4c49225"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00452-azure-sad.wav",
+   "audio_sha256": "81c36b5b2e7ab84771717e943c65ca59fa781c68c57469563e94460739b506ce"
+  }
+ },
+ "multiarith_212": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00480-azure-happy.wav",
+   "audio_sha256": "03ee1afa5d534503702685e00c06ceceb032eab996f9b18782f237b2a1bcded1"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00202-azure-sad.wav",
+   "audio_sha256": "265e0fcae72d28789d32410b3c1ebc98f97c9efbccce7b19e7d4f0f799308e69"
+  }
+ },
+ "multiarith_265": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00481-azure-happy.wav",
+   "audio_sha256": "8868079351b7d8f22a17d7563689c72cf3f515f99d66e4c7383d5041ee10f051"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00255-azure-sad.wav",
+   "audio_sha256": "6468610aa97895f5e926258a25fcebfdc6542442c7cc0549441cee6c80188b24"
+  }
+ },
+ "multiarith_345": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00482-azure-happy.wav",
+   "audio_sha256": "7d2348d6c605408f186358de0e2196fbbb298ea1a5aebdcd883d6dbdd1926199"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00335-azure-sad.wav",
+   "audio_sha256": "c168c59dfaa31b986d76cd23e77aa9326b1d74a051484bb64d2456b3a7d3023f"
+  }
+ },
+ "multiarith_510": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00483-azure-happy.wav",
+   "audio_sha256": "c65a687cb3daa670543e6e6ce9456065baf4fb5339b6d7efae7f3e419ec49b9a"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00490-azure-sad.wav",
+   "audio_sha256": "ef9d92782dfcd81e322a45816231aada352b52a6f167747b724e8b96875e8e68"
+  }
+ },
+ "multiarith_514": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00484-azure-happy.wav",
+   "audio_sha256": "1414898716c580ac7d4241dd2b0a1a3aeb74f896e06d16d0d4fec855ba90ac85"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00494-azure-sad.wav",
+   "audio_sha256": "0f96ad718056860fb64ac40cb8d2a9eb4cc8110aec5c16286ff61973af7d753c"
+  }
+ },
+ "multiarith_564": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00485-azure-happy.wav",
+   "audio_sha256": "74f77dd91fecda87d75efcaa799f640ed16a45e71826feac1c554ae1aa3ce282"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00544-azure-sad.wav",
+   "audio_sha256": "677602f5b827a86f22dc4c9fc8a90389881936ad6e5581a035065b74ed4791cf"
+  }
+ },
+ "multiarith_468": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00486-azure-happy.wav",
+   "audio_sha256": "23d35cd1091a794e84b33c9d088b5c0b4d30c4a5f06bbfe8b6961292fe789802"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00448-azure-sad.wav",
+   "audio_sha256": "c85a26526f77b9c81420c08910b117882c70fb8891d4d3a1befd75306f626574"
+  }
+ },
+ "multiarith_300": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00487-azure-happy.wav",
+   "audio_sha256": "12668a71290e8d603221e368312fa68c015723e214332edd1941aeaa6125cbd3"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00290-azure-sad.wav",
+   "audio_sha256": "a69fe32eca6435134f03bf0811ded438d9bad5f1e70caa3c1dadd75a143948fb"
+  }
+ },
+ "multiarith_502": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00488-azure-happy.wav",
+   "audio_sha256": "702dfdb469ce54422b7781639b4a3ea2c5076ec3e9183760bcacdcae3b2b9808"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00482-azure-sad.wav",
+   "audio_sha256": "4f5920a84a213fcc5bb1993e470a0cc50499a16b4005858aafacc28640babd0c"
+  }
+ },
+ "multiarith_487": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00489-azure-happy.wav",
+   "audio_sha256": "3519e37768a7f23fd8174ad864e300d80eb4e11492842c89227be93606afabce"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00467-azure-sad.wav",
+   "audio_sha256": "4c048d89ae75f43cc42a7bf2e27be647d4d08f634873e5006ddd120e1bdbcac9"
+  }
+ },
+ "multiarith_118": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00490-azure-happy.wav",
+   "audio_sha256": "2c7d86434430efb9e20813487497c6d41690ae83fdb11e66986f6a693f8ee256"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00108-azure-sad.wav",
+   "audio_sha256": "a335d93a29d50d93039481e45e4e57dc3faaf0db5b3b64159a09d6b61528e24f"
+  }
+ },
+ "multiarith_033": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00491-azure-happy.wav",
+   "audio_sha256": "03564247b9478e1853a83ddaa2baa4a64e939bbb264725891cc6caeca46c597d"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00033-azure-sad.wav",
+   "audio_sha256": "7589ce3e1d7698bfb3343ea27188a0cbd21972fc4a3674947ce25c7b37b201ab"
+  }
+ },
+ "multiarith_147": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00492-azure-happy.wav",
+   "audio_sha256": "26ef550ced0060fd48e53816384fc4747159dbd0aa6d12e5142f5bbd68b18261"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00137-azure-sad.wav",
+   "audio_sha256": "70f5db168ff520aad9be4546a113f07ea182f8de6b48c53477f9bba6716a6228"
+  }
+ },
+ "multiarith_215": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00493-azure-happy.wav",
+   "audio_sha256": "f02a549e6775a2e1a6bf61508b9a1cc326456cbcdaa3ff9a5d3cf19ec5c92f03"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00205-azure-sad.wav",
+   "audio_sha256": "3b76597b2f49b12f002b707b3c69331f79213b8065027f29ad45858a6a46469d"
+  }
+ },
+ "multiarith_171": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00494-azure-happy.wav",
+   "audio_sha256": "3e5e3c58aa43a99fd48994b3d6d6751ccc8aecabf967b39062cd8512394a69ae"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00161-azure-sad.wav",
+   "audio_sha256": "b6938ee7318215ff8a203f4fcfa7eeed0125390a7f7fcf1953ecee9fb0a9a085"
+  }
+ },
+ "multiarith_432": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00495-azure-happy.wav",
+   "audio_sha256": "a332c1192c62b3a86d3143d7483c71d038f851b10ecd30ea188c5d76e7153e79"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00412-azure-sad.wav",
+   "audio_sha256": "4d6c2855cb06173e960f5731dd541a3642dd29955d09677d2190d67f2deab9fd"
+  }
+ },
+ "multiarith_016": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00496-azure-happy.wav",
+   "audio_sha256": "6886388812b7b2664029999b91cc5386966ddf03e74527843bd9b931134fa055"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00016-azure-sad.wav",
+   "audio_sha256": "3f07f4775ac1b90183fd4fb47030b6dd67006e9c9d23b47f21080a9a556e3a4a"
+  }
+ },
+ "multiarith_440": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00497-azure-happy.wav",
+   "audio_sha256": "b67d54692a87fb56e1df9d5e4406655b1f7ea7d1a3a01cce3f7b06c626bc0187"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00420-azure-sad.wav",
+   "audio_sha256": "60449bcb4cd9ce6bd5dd48723c7a76174f42de2bb480717dc8d3f0a796eaea4e"
+  }
+ },
+ "multiarith_127": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00498-azure-happy.wav",
+   "audio_sha256": "6f55301b6070a4bb3fdaa66ec346263a1156700da883f1ff8a7430483fe8b169"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00117-azure-sad.wav",
+   "audio_sha256": "9ed4b5fd7d7f3fa916804000d6c3798a7df6bd635dcd18a093138ae12d5ecb92"
+  }
+ },
+ "multiarith_028": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00499-azure-happy.wav",
+   "audio_sha256": "18d238e923db4f7e9655413b2714341f5dca99b6ce03d547d25bab7a46ce62df"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00028-azure-sad.wav",
+   "audio_sha256": "04295a8947995b1b04bfe4ee15321917eb1f435c747a1a4ba92b3c8aefe49d7e"
+  }
+ },
+ "multiarith_417": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00500-azure-happy.wav",
+   "audio_sha256": "34c338507b4abed01b157d297d9deabb47240833f75ecd373ef48369b81e43a2"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00397-azure-sad.wav",
+   "audio_sha256": "4f3dd927903ff0917cf08a5eb9251556621f8d89867d5115cf852aa6dff47e24"
+  }
+ },
+ "multiarith_413": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00501-azure-happy.wav",
+   "audio_sha256": "24302c6d7a183907dc19e1c25aa991016a4207919b97e75f7b9c1e788b014037"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00393-azure-sad.wav",
+   "audio_sha256": "66d33b28e1808513b3436f37049895cd48f9f4480927bd0ae53ef4952df15223"
+  }
+ },
+ "multiarith_451": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00502-azure-happy.wav",
+   "audio_sha256": "8778660ec68f7456b6c88d70a73ed4c0bb18b850b1edfc537342bbeb336bc69c"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00431-azure-sad.wav",
+   "audio_sha256": "56e6d2799f8b1d9242cfe2418ea9457c5fd4b4cba117520f9879755d80745c2c"
+  }
+ },
+ "multiarith_542": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00503-azure-happy.wav",
+   "audio_sha256": "d7a5ee26f65e61658fd5907b876b636c6539fd09bf5b3512a5dabc339c868050"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00522-azure-sad.wav",
+   "audio_sha256": "a7c2647813edab6e2e5b92b91ec0ccc937473c3cdc006ae41579458f3bc9bd94"
+  }
+ },
+ "multiarith_370": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00504-azure-happy.wav",
+   "audio_sha256": "9c12fa26a0734fc2e3329c8f2904c9d37ef4a2cea0a722943085a504cda9c5a1"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00350-azure-sad.wav",
+   "audio_sha256": "4429a54eef70d25755de85dd32e1426bc34fe3495999da6966d46d459f5830dd"
+  }
+ },
+ "multiarith_122": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00505-azure-happy.wav",
+   "audio_sha256": "b62e1f6b1f23a437b3d6bd0589c57cfdefe6ff3cc6b410d5767fd051169a0770"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00112-azure-sad.wav",
+   "audio_sha256": "2636f04e7d672015661b43e0f51b53df98844d1cf0797a04fe08d35e5f770f50"
+  }
+ },
+ "multiarith_295": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00506-azure-happy.wav",
+   "audio_sha256": "57a4680bb6674a99c54e9cba79360634fa8a33aa7a6e0b2b1ac4a9d29c053a2b"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00285-azure-sad.wav",
+   "audio_sha256": "ee0c053981fa124ec3ae0073534aa11f90bedeb3e0d05e29782536832b0e833b"
+  }
+ },
+ "multiarith_563": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00507-azure-happy.wav",
+   "audio_sha256": "765882ecefea6bfcac718768756ebd70059ff7b2a23339ab6f96841411344b92"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00543-azure-sad.wav",
+   "audio_sha256": "359f83ac6dc88567f4329d400c4b02af8476a6a5af6af4791d9f3a88157281d9"
+  }
+ },
+ "multiarith_337": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00508-azure-happy.wav",
+   "audio_sha256": "314e18176fa454b21869211f8b22f20f4aa8d2d62fd8ba3922191c5b4e63c96e"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00327-azure-sad.wav",
+   "audio_sha256": "63c00d07b38334c81fe9a444abe2a290e81a9d16d509639448897c4a0189df0f"
+  }
+ },
+ "multiarith_533": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00509-azure-happy.wav",
+   "audio_sha256": "3e578153c63e138fe6202b076bad1335c93264c2c7f4a4fb1b3a60421fa2db2f"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00513-azure-sad.wav",
+   "audio_sha256": "b665c6270a336001a8080cf1ad36fb5d14a9f0fe780540c9fcf6bd023f88e039"
+  }
+ },
+ "multiarith_526": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00510-azure-happy.wav",
+   "audio_sha256": "bf137a6e69a87363f4cfe58e04b178908cd6f6ac732168241dd363bf5145af8b"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00506-azure-sad.wav",
+   "audio_sha256": "36ce5d0c2034257b8cdd816607ae5f8b0672cf815cd72c5d0b08662d8cc9fa61"
+  }
+ },
+ "multiarith_286": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00511-azure-happy.wav",
+   "audio_sha256": "f6afb885a39800b4f72f9fa15d95a5c8331f6c613cbc9cf9da8f678ad28e6699"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00276-azure-sad.wav",
+   "audio_sha256": "22c09b9c5ed5b3dedda4f1201b827cf1eecf676535568371fef21828e0017308"
+  }
+ },
+ "multiarith_408": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00512-azure-happy.wav",
+   "audio_sha256": "dd6cf0cc7decd1a9b26f3a0316221376c4904902cda7c074dddabc4102325a1a"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00388-azure-sad.wav",
+   "audio_sha256": "41652fa724918d02fd2dcade2368df0837c83b5252230eadf91b4e0835a5f131"
+  }
+ },
+ "multiarith_493": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00513-azure-happy.wav",
+   "audio_sha256": "b66a15e086ee047424baea7558934668546246c7269908e55827e203a5068bd3"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00473-azure-sad.wav",
+   "audio_sha256": "e971128491ccad96bd5354157a0e75026aebe3c4078473accfa10456905dbab0"
+  }
+ },
+ "multiarith_177": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00514-azure-happy.wav",
+   "audio_sha256": "aaa4b096ea97020368f84eeea41782e91e6806dca17da723a44125cbc03b4088"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00167-azure-sad.wav",
+   "audio_sha256": "ce48131a19eeb0b7dd19b9892eefa5247efc83f6428b0d181c396a8ad348ea91"
+  }
+ },
+ "multiarith_596": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00515-azure-happy.wav",
+   "audio_sha256": "5661ccc0d2fb192a58201e054e220ba44375f0e5764a68f0300c8d0925a46dbc"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00576-azure-sad.wav",
+   "audio_sha256": "1825ca2537f91d4f9470e70de0e90f7954e5ca3779df7e3b99aca8ab079d20f2"
+  }
+ },
+ "multiarith_185": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00516-azure-happy.wav",
+   "audio_sha256": "804f747836dcf2a63c5e362109ea9d0c9ca0418bdfcb665b6e9b6eceae975141"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00175-azure-sad.wav",
+   "audio_sha256": "0d67708d3006d675bed67b834593d2739c53498bd591f97e66a565ad801cf47f"
+  }
+ },
+ "multiarith_083": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00517-azure-happy.wav",
+   "audio_sha256": "5840325a82b96580f47628a1fb355170f3c7355194a266a63e776958089abe75"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00073-azure-sad.wav",
+   "audio_sha256": "fdfadc9da8381dc5d9749f8b32cf2de5d928bc29234f20e68fe204fa59c66ed9"
+  }
+ },
+ "multiarith_283": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00518-azure-happy.wav",
+   "audio_sha256": "74c55c188b37ea46c47128547cb368c1868775273b1b4d449bc4b981a5fb2ade"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00273-azure-sad.wav",
+   "audio_sha256": "557b9cad2a049e9622030b887839513a1fbba0144a5fd512d655dc6b98fb92b5"
+  }
+ },
+ "multiarith_224": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00519-azure-happy.wav",
+   "audio_sha256": "806239c7653a7aa7d57bff9fe4105a965302c07b18e47c025089af86be918017"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00214-azure-sad.wav",
+   "audio_sha256": "b6b5ec2e031725a2868fc13e312919cda74f7a443c4f17d93c65588f530c8ad0"
+  }
+ },
+ "multiarith_383": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00520-azure-happy.wav",
+   "audio_sha256": "b50d8e36ed54f5d31ec5a8c4c1ed6f5e7c8152448aa6d0c7ee231637ec9f0dc6"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00363-azure-sad.wav",
+   "audio_sha256": "09f96230f14a2da9c4313ffbdfbcd9311f3a6a0794fadd516a11ef4fda9728e6"
+  }
+ },
+ "multiarith_399": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00521-azure-happy.wav",
+   "audio_sha256": "6abda7c04c77b1365ce0efaa3c6effe90a6908a605ec37725e2b77bbb56689e8"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00379-azure-sad.wav",
+   "audio_sha256": "746549589356c7ef03e1794bddeded5d503e17e2c9e3b3d999ad577b875b720b"
+  }
+ },
+ "multiarith_176": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00522-azure-happy.wav",
+   "audio_sha256": "8afecd581195ed49852ea4e8cd087fdedec6704f023bfe0e436689cd41fc9ec0"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00166-azure-sad.wav",
+   "audio_sha256": "c5a6a33b8ac0c8927baf0ce7ed8840c49a260304479beab4e7577304f477fea6"
+  }
+ },
+ "multiarith_393": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00523-azure-happy.wav",
+   "audio_sha256": "36ac2608a54497db933a0fda54daac13d6b76c9d9d45139741a15bee57c48238"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00373-azure-sad.wav",
+   "audio_sha256": "09952af59f0d4bc32c4eaf344143241a476199bfa7badb944f5df9532e7bf054"
+  }
+ },
+ "multiarith_484": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00524-azure-happy.wav",
+   "audio_sha256": "78dcc68a89f352eff2e15e826778e3ab1e07fbd0bc07ab734049f7e48b08bf0f"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00464-azure-sad.wav",
+   "audio_sha256": "ce05fbe61ff891fa21a03dc69e4a164ba4ddb69ed332a3a5ba290dcd920b7ae0"
+  }
+ },
+ "multiarith_572": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00525-azure-happy.wav",
+   "audio_sha256": "6ab9574175545ca158b94d69805a215389b47705ceefb109dad7e0c1372d528e"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00552-azure-sad.wav",
+   "audio_sha256": "67117f34fce91d39557ecc71f361bc0a301a95741b5353827ab0534697ab1549"
+  }
+ },
+ "multiarith_566": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00526-azure-happy.wav",
+   "audio_sha256": "b6df58a799b23d71b8ba9b989ef1501d4e690abab3be1471a43f0f8614c6a38a"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00546-azure-sad.wav",
+   "audio_sha256": "c9faea9a266bd52dd698391f4caff77b2dcb7d1fae4f42f95b136277864ac396"
+  }
+ },
+ "multiarith_113": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00527-azure-happy.wav",
+   "audio_sha256": "e8df91cbe9626f46cf7bf0f84d9b0ffde35a9479aa3819806cb60146b8dafb8b"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00103-azure-sad.wav",
+   "audio_sha256": "2488eb57e03399aa1a1c0cf54f063b507ea070e786a823382bf86878041d900a"
+  }
+ },
+ "multiarith_585": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00528-azure-happy.wav",
+   "audio_sha256": "2e510cde4caac1cc18bd6433d2fd7868b40e76bb7734f551ebc6c1e5f10bd6b4"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00565-azure-sad.wav",
+   "audio_sha256": "8359743c5457feb5ab84dd23166730469643b3098ad317f0c69b5d51727dc173"
+  }
+ },
+ "multiarith_091": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00529-azure-happy.wav",
+   "audio_sha256": "4f3447046f75ea4fda36d1f15db67ca1f5e3276dd07fc2b609c1a285f2a7e5a0"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00081-azure-sad.wav",
+   "audio_sha256": "b8bea8b335ace5afed6ec5248533338ddba434e34f88eeace2012ae01ac3116a"
+  }
+ },
+ "multiarith_306": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00530-azure-happy.wav",
+   "audio_sha256": "d169c4cceb6630fbad765f474753b1ff641000c94fa9c2ef028e72b055b3fc99"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00296-azure-sad.wav",
+   "audio_sha256": "2ef7a11e5becc46c038998195a96e202e1eea59422d591a99c015771aa7fd016"
+  }
+ },
+ "multiarith_243": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00531-azure-happy.wav",
+   "audio_sha256": "29af1d219f462deb094ca15e6e027d3f5a801cfe98a87415b9de201602e93715"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00233-azure-sad.wav",
+   "audio_sha256": "e927b9139cb551068f126246c35468222b89ace112a316bd01f45ebdb2cc478f"
+  }
+ },
+ "multiarith_046": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00532-azure-happy.wav",
+   "audio_sha256": "0781ac7d71749ee03466743b9cd493aecfcae4be8f82efcefdae4380b376ec3a"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00046-azure-sad.wav",
+   "audio_sha256": "465551432b6f31de95ee51fdb35eb06ec61cef5899eb2be4a6a4b092721effc7"
+  }
+ },
+ "multiarith_081": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00533-azure-happy.wav",
+   "audio_sha256": "e340a4a2f0ae584c7b26640986d4fd0f7480946b9b6fffd6747d655c18c5d77f"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00071-azure-sad.wav",
+   "audio_sha256": "357598b9934f0e5dbeef8941dc1ebfe8bb13b87e9e12531552220158ed7c44b3"
+  }
+ },
+ "multiarith_206": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00534-azure-happy.wav",
+   "audio_sha256": "13282c2fbdf74bf9b49dd9a8c53dea0acf1de377ed771c99cb2cc96d1554affa"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00196-azure-sad.wav",
+   "audio_sha256": "e597709c6020fd5870586e0c9c0cf3a7ca446e268495a93b5cb9faee8655bc12"
+  }
+ },
+ "multiarith_390": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00535-azure-happy.wav",
+   "audio_sha256": "1facf089fb03c26ee8efdd2a8b16f4989cbcab8076347beaf8fba7d506762a14"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00370-azure-sad.wav",
+   "audio_sha256": "769b39d530862cd388cde2fd69b362e7267ab97ab9344b47406d7dc864fea8cd"
+  }
+ },
+ "multiarith_310": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00536-azure-happy.wav",
+   "audio_sha256": "17270b4912f24827ee90c232e93cb474deaf37bc0944e6f37b7dfbabba0efced"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00300-azure-sad.wav",
+   "audio_sha256": "503142a426c2faffa1f2dc0aeabf4fff6de26d6f19fa0144cf983cfd4cc76cce"
+  }
+ },
+ "multiarith_090": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00537-azure-happy.wav",
+   "audio_sha256": "612fe0ce7464cc05b68fd1eb84505e30e2fb1c0cd1a8939cd8246b7461c2aee2"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00080-azure-sad.wav",
+   "audio_sha256": "02f3d3d1eff9b7edee62992306b80bd81365de2ed7c80f18165dba413775fb16"
+  }
+ },
+ "multiarith_407": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00538-azure-happy.wav",
+   "audio_sha256": "31b83832f80cfc9fbf00908b57ad5fca2fec12eff5e2cc91074f44bcdfc43b63"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00387-azure-sad.wav",
+   "audio_sha256": "a72028d6e9eadd5fdedeccef55283a9e88bf909a2ae650ca8021a338be9df19c"
+  }
+ },
+ "multiarith_137": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00539-azure-happy.wav",
+   "audio_sha256": "782459bc9bbee56c7ea492c3aeb5ab1ede705c1b4ba4be1d70187dbfb9da2b16"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00127-azure-sad.wav",
+   "audio_sha256": "bfdcf2aceedba7ee811a4e0b31c0a906f81d3734bfce7264fb9b53e61934f2fa"
+  }
+ },
+ "multiarith_490": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00540-azure-happy.wav",
+   "audio_sha256": "4f353f73ebf64e5472ba0a91106f81154e36f5726cfe9d8d7e78af21c82a2348"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00470-azure-sad.wav",
+   "audio_sha256": "33540343d1d514ae38c088b7c32c58ddf566a5d4fcc79f308b8f4da36a9ad2b9"
+  }
+ },
+ "multiarith_044": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00541-azure-happy.wav",
+   "audio_sha256": "074d52780eaccf7f34c45d225838a1ade92719dbbeb7d9e15dfaef6f1f514a3b"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00044-azure-sad.wav",
+   "audio_sha256": "2455f820581c1747b1343586bc382dc36ceafa13ae6ab929831566f7905739b7"
+  }
+ },
+ "multiarith_280": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00542-azure-happy.wav",
+   "audio_sha256": "d78c6054baec8f7d76363257305a6e3806731ee80b94125f1ee408f6d49629c7"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00270-azure-sad.wav",
+   "audio_sha256": "39855421199503dd2b44c13c47c32d00413ae7bde1d1ab59e20e5982b8229193"
+  }
+ },
+ "multiarith_372": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00543-azure-happy.wav",
+   "audio_sha256": "41661c96097d1974761b30f74da05aa3fe7c62271b60e06f9d5a70d1dfb9cdc4"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00352-azure-sad.wav",
+   "audio_sha256": "f0775a2c85f2359ee46dda9d31ff9740f877bea9645e08a9a43ad6b41d9a0c4f"
+  }
+ },
+ "multiarith_387": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00544-azure-happy.wav",
+   "audio_sha256": "90410b70cf83bd57e011924c3d3cd66732aeb58b158397285d5894262d3259ae"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00367-azure-sad.wav",
+   "audio_sha256": "59f10ac237f59d4108abb548ed037974ab565c44481cf8e80112c834adb27c71"
+  }
+ },
+ "multiarith_109": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00545-azure-happy.wav",
+   "audio_sha256": "d29ca62020a82dcc10352a6fdfa06b95b821c20ccd026a16521e3fb1ccda0a43"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00099-azure-sad.wav",
+   "audio_sha256": "34224db83c8af0c2dfc91fa92319877a539bf969b617165ae7ed7f5bc4c25df5"
+  }
+ },
+ "multiarith_409": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00546-azure-happy.wav",
+   "audio_sha256": "ab685c2bb22ee1230742d04c874eda5fe5b9f8711e55f6c04d1b4dedcbb982e2"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00389-azure-sad.wav",
+   "audio_sha256": "7bd9e0d5af27fd048eb9623342a72d5526ae033b266d2dae634e559b709a824e"
+  }
+ },
+ "multiarith_104": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00547-azure-happy.wav",
+   "audio_sha256": "b254f78d4592c0ebca6ca5cd74bd857dabdaf7200674d8cef83294e46d4b558d"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00094-azure-sad.wav",
+   "audio_sha256": "cf1012e1d4a5fb8c429b9cf93e065618989508831543083115b3fd6b6a2c1364"
+  }
+ },
+ "multiarith_593": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00548-azure-happy.wav",
+   "audio_sha256": "ce19155c48677f97cf32a90783fb7f4eb85bcd2339b6f749a9ce3bab71c3aece"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00573-azure-sad.wav",
+   "audio_sha256": "2f8562b65e45c27cbb0b830ab8f16204e3db87755dcae4ee45b401be19d5821b"
+  }
+ },
+ "multiarith_364": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00549-azure-happy.wav",
+   "audio_sha256": "9681acb68f42392ea678dd77c437dd5738b05933dc40f562a3ca4d37ac4c74a1"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00344-azure-sad.wav",
+   "audio_sha256": "8573e062ebed097b4e79ab60895d626eab13e2b8f6ab23dcde2f2fb5601e66b4"
+  }
+ },
+ "multiarith_230": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00550-azure-happy.wav",
+   "audio_sha256": "58a47bfa1ed98c47224df7c7e2ecc4b5abaaa06dcc4a3c8fa5ace56c0ea71b69"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00220-azure-sad.wav",
+   "audio_sha256": "482d570dbeb9069a6d8b583c6e3e744e2424033ac208ea111859ad6b6137368c"
+  }
+ },
+ "multiarith_169": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00551-azure-happy.wav",
+   "audio_sha256": "da8f7672b9158c36f5cc0b7c896f614bff3263830577c9b43895548f6f951673"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00159-azure-sad.wav",
+   "audio_sha256": "2b11a89cd5e9855353a6bbe40e784d70564a6d5f07815bda5270597a3f3f6cdf"
+  }
+ },
+ "multiarith_577": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00552-azure-happy.wav",
+   "audio_sha256": "b6e32ea7034316b9ad81ab1786a649f5e58053d5d8ce7ff1274a02485a648d90"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00557-azure-sad.wav",
+   "audio_sha256": "f5a8b647c550d3c8dfa4d421dbf3eccf112cd8fe4c3e669d9f7b496f0744dd18"
+  }
+ },
+ "multiarith_368": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00553-azure-happy.wav",
+   "audio_sha256": "d9a0e65dc935b31a052708808a86182baab2c8d97df4858b94756cc2453e7931"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00348-azure-sad.wav",
+   "audio_sha256": "fda00f4b1643dabec546008ce962f8c2070ab0912f084d3402e0863e493c7087"
+  }
+ },
+ "multiarith_590": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00554-azure-happy.wav",
+   "audio_sha256": "8c5032c1f7f9d37eb6115fdb7309a675a4ea5e420aabc6a4a5096d4d4bae0952"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00570-azure-sad.wav",
+   "audio_sha256": "1ec11a9a16a8f11173b052121a3faa218ce8449ef57356606f4cb6ab157fd228"
+  }
+ },
+ "multiarith_173": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00555-azure-happy.wav",
+   "audio_sha256": "170abd5ca58e05eb5510bba579b39dad6d65e2fc0cff02a75b86fe77152a0f42"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00163-azure-sad.wav",
+   "audio_sha256": "262174ccaf8a1ae1248e3fcc918018a1de1f62d8e006b8e0e2cd4d2aa5fe8a2a"
+  }
+ },
+ "multiarith_006": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00556-azure-happy.wav",
+   "audio_sha256": "62865a10343c6a1005b8f0ba1cfc626ab192959fc1e5c3b56daa37f1dcc8535e"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00006-azure-sad.wav",
+   "audio_sha256": "f44a653c0953a33835cef9c5ac2bf5f43daa8f149c505f1fe3b9ee57586ffe00"
+  }
+ },
+ "multiarith_294": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00557-azure-happy.wav",
+   "audio_sha256": "b8aef51c332a62bca8fd3f65e2457e66e870eef4a242e93e0621d37231ae1fd9"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00284-azure-sad.wav",
+   "audio_sha256": "8773e77f3c1e41860fb66c0a6c92177f1b821e2d7122808f8eee5141d574b360"
+  }
+ },
+ "multiarith_479": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00558-azure-happy.wav",
+   "audio_sha256": "a174e361afaaf7432ed704ff1c60e4edbe4f860497a5bd11c86a674e9e7e85dc"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00459-azure-sad.wav",
+   "audio_sha256": "bd1ed45a2434e442c0ebd68949be0da1b5cfde11c9e55d9d39dfc76c0b6d349e"
+  }
+ },
+ "multiarith_235": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00559-azure-happy.wav",
+   "audio_sha256": "6bef3adbd3cf21e43edbf25cae69b7197a9ab19c61d07c0e1e867e2fa5fba137"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00225-azure-sad.wav",
+   "audio_sha256": "99f8d8acb9edd830dfed974c531dba76faa88be176272a80c5f02be2b8a7f770"
+  }
+ },
+ "multiarith_449": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00560-azure-happy.wav",
+   "audio_sha256": "6e57a04e0caa9ac5b2e46ae4ccbf4f7685355df2557b262123c291e9c7819d00"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00429-azure-sad.wav",
+   "audio_sha256": "4d148996fe6231965b23f4c54b954df0f44f7f55260ab09389793e07d10a69e2"
+  }
+ },
+ "multiarith_592": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00561-azure-happy.wav",
+   "audio_sha256": "c233067af7a86b019860bb1346ec8f61b6509bcab5a46086d4faa4d3b8e45d6f"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00572-azure-sad.wav",
+   "audio_sha256": "60f382de8ff1a3f8467a537d310c8f387dfc7915d314b24fac85e38173353f84"
+  }
+ },
+ "multiarith_213": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00562-azure-happy.wav",
+   "audio_sha256": "a9aaa87dd0384fc15ad589fb303fc274a76820b581d05e4ffd33ed1dea700bf2"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00203-azure-sad.wav",
+   "audio_sha256": "85e90087304682a189897d7a9a0cf3f2a84ed2d88310150df42472c95ae83b84"
+  }
+ },
+ "multiarith_027": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00563-azure-happy.wav",
+   "audio_sha256": "fe856dc4c14efa93a87b6bcdc4b3fb97017d399fb6cf233958feb6e1a74c0dd6"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00027-azure-sad.wav",
+   "audio_sha256": "13803c3863ed8a185c43738946b0bc324f25c048896b5d1e1e351e46c848ff1f"
+  }
+ },
+ "multiarith_537": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00564-azure-happy.wav",
+   "audio_sha256": "2c7bb36b42710dccbc53fbcb2cb56488f68dac32f3c6fc7681fa15cff7532607"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00517-azure-sad.wav",
+   "audio_sha256": "2b1deff9b3463ae90994789915766fb9966aa5fbb97e4a59c017525b6151ba22"
+  }
+ },
+ "multiarith_248": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00565-azure-happy.wav",
+   "audio_sha256": "80d98d119529c1553d80d6da78058a9cbfdeab1937e17b8e2faada91c3f9fcda"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00238-azure-sad.wav",
+   "audio_sha256": "b11fca8b0f391b4662c29eca78436beac82fb9683e99fe16a73af79c9959ccf1"
+  }
+ },
+ "multiarith_233": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00566-azure-happy.wav",
+   "audio_sha256": "7cc76da53c6796249385a9952c51c9610a828a8d710f269947596e40b53e69b9"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00223-azure-sad.wav",
+   "audio_sha256": "c60066931dfc79f89127fedfa46eef56d00fa3882c465aac3c673290b3c649d9"
+  }
+ },
+ "multiarith_105": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00567-azure-happy.wav",
+   "audio_sha256": "105fbed74de30487313ba99f18b71431fc4b407ef0b930975e180a92431c2278"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00095-azure-sad.wav",
+   "audio_sha256": "e47187ffee7b6d22bbd8b55d1c65ab542f8fcc40aaeca1f381d388c9eba87902"
+  }
+ },
+ "multiarith_030": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00568-azure-happy.wav",
+   "audio_sha256": "fc54569f0ce7ccdb42fe7ba3f36b7d9d97f02a724b4bf3c5fc21cdee3420ae11"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00030-azure-sad.wav",
+   "audio_sha256": "a05e614753d7e34f1f667929c80f1a7b363368a36771fe42b5cfbf94a1eca15c"
+  }
+ },
+ "multiarith_032": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00569-azure-happy.wav",
+   "audio_sha256": "8108dd56472bd6ee9a8568db963dac66f02b71901f882e93cfae976f4c678659"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00032-azure-sad.wav",
+   "audio_sha256": "310a320bf575510d4d257f89a3831488c8278287a46f7b7bb4a671aa5f306f3f"
+  }
+ },
+ "multiarith_452": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00570-azure-happy.wav",
+   "audio_sha256": "9893d8ea18a5d81bb8c5d1f4461defb1407c923d9688ec8f568440c75a3899c7"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00432-azure-sad.wav",
+   "audio_sha256": "79121b2af945d372431017fd8851593ca871ca672de79d04443465f27cbf670e"
+  }
+ },
+ "multiarith_099": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00571-azure-happy.wav",
+   "audio_sha256": "fb4a423f56dd36a37243ca4334b7c276835ca1f6e932077cbef0839051e9e88a"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00089-azure-sad.wav",
+   "audio_sha256": "c719184b32ea2b9b585219b0bf7899292b6739df12cb2fb649f7d2bb66aa4c3a"
+  }
+ },
+ "multiarith_578": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00572-azure-happy.wav",
+   "audio_sha256": "1fc2f43b81a5b1de201c2d6a52b673c4478676cb4c8cae37c211257423033323"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00558-azure-sad.wav",
+   "audio_sha256": "d0219e978900d57f5083da114ecbd9c10b96be7270055fb67d3fcb4e2c64b23d"
+  }
+ },
+ "multiarith_114": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00573-azure-happy.wav",
+   "audio_sha256": "d1bfaba545ff2d8bb8cf0989f34735c7212b5d10fa0b6d86df9d4b9e5d38e065"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00104-azure-sad.wav",
+   "audio_sha256": "3950b635b1b7765a571adb1feaedf47556bc70b3c62241e15565d1f34db47c1c"
+  }
+ },
+ "multiarith_152": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00574-azure-happy.wav",
+   "audio_sha256": "e8bcb017342fb01a537704cee295137b97e2a3b0f6c28ccef45020763d89b4a2"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00142-azure-sad.wav",
+   "audio_sha256": "4255ef409b8f58fcd5b589c8a2ef1681081c97ded9509d505fc79032ac65dee3"
+  }
+ },
+ "multiarith_238": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00575-azure-happy.wav",
+   "audio_sha256": "1a6b5e38abb27d208078740a19c06018c0f33fdaaa0dc37a6e88e5255f7a82bc"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00228-azure-sad.wav",
+   "audio_sha256": "d0b1a572aaf451f5ead0c697062b237984728169c97b0e61d6ca54414cf45ab3"
+  }
+ },
+ "multiarith_260": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00576-azure-happy.wav",
+   "audio_sha256": "d757906eaca9ad98d29f004257e04d5599ea04d8582a7893279cbc8b61867247"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00250-azure-sad.wav",
+   "audio_sha256": "e0b78af6ca2d17f7dcbf1085e300fd102aa5b971aa2f6909ff8f39ac54758570"
+  }
+ },
+ "multiarith_291": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00577-azure-happy.wav",
+   "audio_sha256": "21e8a159ada3a48296f8921087de93129696623743ccf7abf42c8bbafa3f5f45"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00281-azure-sad.wav",
+   "audio_sha256": "fa21b8a02178071b59b4f1e2dff169d0cd7903233e042435786a150dc00bf91d"
+  }
+ },
+ "multiarith_025": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00578-azure-happy.wav",
+   "audio_sha256": "5cf0efb75d1eed5afa27a319305cf7dbac79fd3fd694bae674042f70af7ce185"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00025-azure-sad.wav",
+   "audio_sha256": "ecfc86633919e9c90d4dcd4c87b3dc3083044af51698c0bf763bf60e09ecfdad"
+  }
+ },
+ "multiarith_124": {
+  "happy": {
+   "audio_file": "outputs/diffa-happy-winners/multiarith/audio-happy/q00579-azure-happy.wav",
+   "audio_sha256": "a4b198c282b186506a74c9a1fffd172bc1c9e144f15f2178f8739651928b317e"
+  },
+  "sad": {
+   "audio_file": "outputs/missing-emotion-audio/multiarith/sad/q00114-azure-sad.wav",
+   "audio_sha256": "008af3ca145990925dd6c1f70d0308f7c5683d240a96a2aadeeb602e0d036caf"
+  }
+ }
+}
