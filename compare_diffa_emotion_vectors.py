@@ -27,8 +27,8 @@ def geometry(angry,happy):
     return result
 
 
-def load_vector(path,emotion):
-    state=torch.load(path,map_location='cpu',weights_only=True)
+def load_vector(path,emotion,*,mmap=False):
+    state=torch.load(path,map_location='cpu',weights_only=True,mmap=mmap)
     if state.get('method','mean')!='mean' or state.get('mode','fixed')!='fixed':
         raise ValueError('Compare the fixed raw mean vectors, not normalized/probe/SVD alternatives.')
     sums=state['pair_mean_sums'][emotion].float()
