@@ -12,7 +12,7 @@ import zipfile
 
 
 HERE = Path(__file__).resolve().parent
-STYLES = ('neutral', 'angry', 'happy', 'sad', 'excited', 'hopeful')
+STYLES = ('neutral', 'angry', 'happy', 'sad', 'disgusted', 'fearful')
 VOICE = 'en-US-Olivia:MAI-Voice-2.1'
 SOURCES = {
     'gsm8k': ['azure-jenny50', 'azure-jenny500-neutral', 'azure-jenny-next500', 'azure-jenny-remaining-test'],

@@ -13,7 +13,7 @@ from urllib.request import Request, urlopen
 
 
 STYLES = ("neutral", "angry", "happy", "sad")
-AZURE_EXTRA_STYLES = ("excited", "terrified", "shouting", "whispering", "hopeful", "friendly", "unfriendly")
+AZURE_EXTRA_STYLES = ("excited", "terrified", "shouting", "whispering", "hopeful", "friendly", "unfriendly", "disgusted", "fearful")
 
 
 class TransientTTSError(RuntimeError):
