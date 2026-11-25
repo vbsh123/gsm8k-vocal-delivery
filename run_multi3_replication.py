@@ -1,6 +1,8 @@
 """Matched MultiArith three-ask evaluation on Phi or with spoken instructions on DIFFA."""
 import argparse
+import hashlib
 import json
+import zipfile
 from pathlib import Path
 from statistics import mean, median
 
@@ -14,6 +16,63 @@ import winning_diffa_sweeps as winners
 
 DATA = Path(__file__).resolve().parent / 'data/multiarith_three_ask_pairs290.json'
 AUDIO = Path('inputs/multi3-jenny290')
+
+
+def resolve_phi_recordings(records, folder, workspace=Path('/workspace')):
+    """Reuse exactly the clips from the original DIFFA comparison, wherever staged."""
+    base = json.loads(DATA.with_name('multiarith_original_jenny290.json').read_text())['questions']
+    extra = json.loads(DATA.with_name('multiarith_three_asks_audio.json').read_text())
+    staged = Path('outputs/jenny-zip-audio')
+    paths, missing = {}, {}
+    for row in records:
+        q, style, key = row['question_id'], row['style'], row['audio_sha256']
+        original = (base if style in STYLES else extra)[q][style]
+        if original['audio_sha256'] != key:
+            raise ValueError(f'Original recording manifests disagree for {q}/{style}.')
+        relative = Path(original['audio_file'])
+        cached = folder/'restored-audio'/f'{key}.wav'
+        for path in (Path(row['audio_file']), relative, staged/relative, cached):
+            if path.is_file() and winners.digest(path) == key:
+                paths[key] = path
+                break
+        else:
+            missing[key] = (q, style)
+
+    # Bundle manifests also record aliases when the original path was external.
+    for root in (staged, Path('.')):
+        manifest = root/'JENNY_AUDIO_MANIFEST.json'
+        if missing and manifest.is_file():
+            for entry in json.loads(manifest.read_text())['files']:
+                key = entry['audio_sha256']
+                path = root/entry['member']
+                if key in missing and path.is_file() and winners.digest(path) == key:
+                    paths[key] = path
+                    del missing[key]
+
+    # A worker may have the original transfer ZIP without an extracted copy.
+    for archive in sorted(workspace.glob('jenny-six-datasets-audio-*.zip')):
+        if not missing:
+            break
+        with zipfile.ZipFile(archive) as z:
+            for entry in json.loads(z.read('JENNY_AUDIO_MANIFEST.json'))['files']:
+                key = entry['audio_sha256']
+                if key not in missing:
+                    continue
+                data = z.read(entry['member'])
+                if hashlib.sha256(data).hexdigest() != key:
+                    raise ValueError(f'Jenny archive hash mismatch in {archive}: {entry["member"]}')
+                path = folder/'restored-audio'/f'{key}.wav'
+                path.parent.mkdir(parents=True, exist_ok=True)
+                tmp = path.with_suffix('.tmp')
+                tmp.write_bytes(data)
+                tmp.replace(path)
+                paths[key] = path
+                del missing[key]
+    if missing:
+        examples = ', '.join(f'{q}/{s}' for q, s in list(missing.values())[:3])
+        raise FileNotFoundError(f'{len(missing)} original Jenny recordings unavailable, including {examples}. '
+                                'Restore inputs/ from multi3-phi290.zip in the repo and rerun.')
+    return paths
 
 
 def prepare(folder, experiment):
@@ -42,8 +101,6 @@ def prepare(folder, experiment):
             if experiment == 'phi':
                 path = AUDIO/f'{q}-{style}.wav'
                 audio_hash = item['audio_sha256'][style]
-                if winners.digest(path) != audio_hash:
-                    raise ValueError(f'Jenny audio differs for {q}/{style}.')
                 source = dict(audio_file=str(path), audio_sha256=audio_hash)
             else:
                 clip = clips['three_asks', style]
@@ -60,7 +117,7 @@ def prepare(folder, experiment):
     return plan
 
 
-def generate_phi(folder, plan, native):
+def generate_phi(folder, plan, native, paths):
     from phi4_all_layer_diagnostic import generate
     done = saved(folder, plan, repair=True)
     checksum = winners.digest(folder/'run_config.json')
@@ -69,7 +126,8 @@ def generate_phi(folder, plan, native):
             key = record['question_id'], record['condition']
             if key in done:
                 continue
-            trace = generate(native, record, record['prompt'], interventions=[], max_new_tokens=plan['max_new_tokens'])
+            runtime_record = dict(record, audio_file=str(paths[record['audio_sha256']]))
+            trace = generate(native, runtime_record, record['prompt'], interventions=[], max_new_tokens=plan['max_new_tokens'])
             row = dict(record, **trace, run_config_sha256=checksum, **plan['recipe'])
             out.write(json.dumps(row)+'\n')
             out.flush()
@@ -129,12 +187,17 @@ def main():
         if args.experiment == 'diffa-flip':
             for record in plan['records'][:2]:
                 print(f'{record["style"]} instruction audio: {record["seconds"]:.1f}s')
-        if args.mode == 'prepare' or len(saved(folder, plan, repair=True)) == len(plan['records']):
+        done = saved(folder, plan, repair=True)
+        pending = [r for r in plan['records'] if (r['question_id'], r['condition']) not in done]
+        if pending and args.experiment == 'phi':
+            paths = resolve_phi_recordings(pending, folder)
+            print(f'Verified original audio for {len(pending)} pending Phi responses.', flush=True)
+        if args.mode == 'prepare' or not pending:
             return
         if args.experiment == 'phi':
             from phi4_more_bare_eval import model_session
             with model_session() as native:
-                generate_phi(folder, plan, native)
+                generate_phi(folder, plan, native, paths)
         else:
             from diffa_model_receipts import model_revisions
             from emotion_block_night import DiffaBackend
