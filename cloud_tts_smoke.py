@@ -20,8 +20,10 @@ class TransientTTSError(RuntimeError):
     pass
 
 
-def azure_ssml(text, style, voice, intensity):
+def azure_ssml(text, style, voice, intensity, rate_offset=0):
     content = escape(text)
+    if rate_offset:
+        content = f'<prosody rate="{rate_offset:+d}%">{content}</prosody>'
     mai = ':MAI-Voice-' in voice
     if style != "neutral":
         # MAI voices use "happy" directly, unlike Jenny's "cheerful".
@@ -91,6 +93,8 @@ def main():
     parser.add_argument("--styles", nargs="+", choices=STYLES + AZURE_EXTRA_STYLES, default=list(STYLES))
     parser.add_argument("--output", type=Path, default=Path("outputs/cloud-tts-smoke"))
     parser.add_argument("--azure-voice", default="en-US-JennyNeural")
+    parser.add_argument("--azure-rate-offset", type=int, default=0,
+                        help="Relative Jenny speaking rate in percent (0 uses the original SSML).")
     parser.add_argument("--azure-intensity", type=float, default=1.5)
     parser.add_argument("--eleven-model", default="eleven_v3")
     parser.add_argument("--seed", type=int, default=42)
@@ -126,7 +130,7 @@ def main():
         for style in args.styles:
             if provider == "azure":
                 voice = args.azure_voice
-                request = azure_ssml(text, style, voice, args.azure_intensity)
+                request = azure_ssml(text, style, voice, args.azure_intensity, args.azure_rate_offset)
                 extension = "wav"
             else:
                 voice = os.environ.get("ELEVENLABS_VOICE_ID", "YOUR_VOICE_ID")
