@@ -10,10 +10,14 @@ def summarize(rows, model="emotion2vec"):
     print(f"\n{model} classification summary")
     labels = sorted({row["emotion"] for row in rows})
     print(f'{"Requested":12} {"Clips":>6}' + ''.join(f'{label:>12}' for label in labels) + f'{"Match":>10}')
+    supported = {"neutral", "angry", "happy", "sad"}
+    if model == "emotion2vec":
+        supported.update(label.split("/")[-1].strip().lower()
+                         for row in rows for label in row.get("labels", ()))
     for style in dict.fromkeys(row["requested_style"] for row in rows):
         counts = Counter(row["emotion"] for row in rows if row["requested_style"] == style)
         n = sum(counts.values())
-        match = f'{counts[style]/n:.1%}' if style in {"neutral", "angry", "happy", "sad"} else "n/a"
+        match = f'{counts[style]/n:.1%}' if style in supported else "n/a"
         print(f'{style:12} {n:6}' + ''.join(f'{counts[label]:12}' for label in labels) + f'{match:>10}')
     print("Cells are clip counts; match means predicted emotion equals requested style.")
 
