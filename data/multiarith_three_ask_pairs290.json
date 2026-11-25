@@ -1,0 +1,2905 @@
+{
+  "original_prompt": "Solve the math problem in the audio. Give concise step-by-step reasoning with only the necessary calculations. If the question asks for a total, compute that total. End with one plain-text line in exactly this format: #### <number>. Put a single numeric answer on that line, without Markdown, units, or separate component counts.",
+  "questions": {
+    "multiarith_095": {
+      "question": "Ned was trying to expand his game collection. He bought 50 games from a friend and bought 27 more at a garage sale. If 74 of the games didn't work, how many good games did he end up with?",
+      "answer": "3",
+      "audio_sha256": {
+        "neutral": "ecdfe7ee70e2132ce66ea2b8dd3aae0d6c59bed4b5900711a234eaf998c9ed37",
+        "angry": "cd634980f73ab7475e4156f030dd14c4d2dac27a0288601e040489a8963b64f5",
+        "happy": "88c0dc383eab6640764bca486d1086c4eb4cfdff47c42996153e0c7230730ad6",
+        "sad": "e8173fb38d430214a6acad27da3bb3e9e8a986c6050b1ca3b6cef69d4686052f"
+      }
+    },
+    "multiarith_346": {
+      "question": "Haley and her friends were recycling paper for their class. For every 3 pounds they recycled they earned one point. If Haley recycled 11 pounds and her friends recycled 16 pounds, how many points did they earn?",
+      "answer": "9",
+      "audio_sha256": {
+        "neutral": "d16bb4bf8437df0dca7c0adc6070c16651b8ecd79d3d42dcb78bb1a0e636c74a",
+        "angry": "03df1b70dccc63c5bec1322bcd642a8825627bf5c554a13a75f44c8abb46793f",
+        "happy": "a0c93284895619a980dbd11f314b9c304cb5c81aa4bd6991c09833d4170fb835",
+        "sad": "20e4011d6b652cbc1861e0228cd1a163bc6cab5b965b14989d71b5aaa9755703"
+      }
+    },
+    "multiarith_047": {
+      "question": "While on vacation, Rachel took 6 pictures at the zoo and 9 at the museum. If she later deleted 11 of the pictures, how many pictures from her vacation did she still have?",
+      "answer": "4",
+      "audio_sha256": {
+        "neutral": "3a12d02ea1caf36b68788c465e3a913ac0588b035ccae3c04cd14023c3a75390",
+        "angry": "e1d8cf261353873575ea3afbfe6e0270bda6e2af8e121d354474002e33ac7f03",
+        "happy": "f848bb856b0ea14839dabae0143256f318330b304b5fb9a0c3eedef25c6229bc",
+        "sad": "1fc412bb8e5de6806a27b995e3e8b4a3f429784b0b5ea431989a3c5f5ebe2970"
+      }
+    },
+    "multiarith_007": {
+      "question": "While on vacation, Megan took 15 pictures at the zoo and 18 at the museum. If she later deleted 31 of the pictures, how many pictures from her vacation did she still have?",
+      "answer": "2",
+      "audio_sha256": {
+        "neutral": "0650022558f38bbb79c41a583f0aca543ba9d2720b1ef306f16e784c6e48aca2",
+        "angry": "b2ce75016eb568fb7194c43dd7fdc37caf377c4ef030a1ec618492a61dd9316d",
+        "happy": "b124563104178a4f112d6cd758287e98062c16b94c6b3beae022e32a871e4001",
+        "sad": "27646688f6c7537fd4e8b4655d96d700a17b9609931083575f39da5b8715f554"
+      }
+    },
+    "multiarith_382": {
+      "question": "Jerry made 14 dollars mowing lawns and 31 dollars weed eating. If he only spent 5 dollar a week, how long would the money last him?",
+      "answer": "9",
+      "audio_sha256": {
+        "neutral": "791d2de4af4d96c442d0c4da4ebc7c56c2ceaae4f9cc9f41ea858dfdc035f24b",
+        "angry": "fc16cad568e2ae56cf2e77924eee93cfebf39223c26da11a023bdc0d0da3d5a4",
+        "happy": "5a2c597d6129b637580af009dcc1592473664f114ae5b6ff2e63f5c27c36cb97",
+        "sad": "c834e44c7927cb6c6e9aed2673fe1cd41f31f1f22e8010274ca08a0c45ebdfdc"
+      }
+    },
+    "multiarith_598": {
+      "question": "Sarah baked 38 cupcakes for her school's bake sale. If her brother, Todd, ate 14 of them how many packages could she make if she put 8 cupcake in each package?",
+      "answer": "3",
+      "audio_sha256": {
+        "neutral": "09d476f1165b8ff5b4bd523c0129d2411d17e76c510a05b81d156ec77aa0c263",
+        "angry": "f6c1d9b4d46b3d05e11f4a4af0919981255c675ca55772e1e8522b28ae94d344",
+        "happy": "32e4c91b48b71308f1dbcb754c3299d6e65aa800eedaaf940acf1540806f07e2",
+        "sad": "130824e1bc0b5a1ac1dbbb7c9d98c3a36b9ee470ab00df5d4962355d592751d1"
+      }
+    },
+    "multiarith_325": {
+      "question": "Maria was making baggies of cookies with 5 cookies in each bag. If she had 33 chocolate chip cookies and 2 oatmeal cookies, how many baggies could she make?",
+      "answer": "7",
+      "audio_sha256": {
+        "neutral": "b8bd23cb648f4118734f1ce5ec1f77244e7baa7587ea9f416df0f20b476b0b16",
+        "angry": "f9bdd45c2fbf17a4fe1a8344968d3073b508891a71aeb4263fd3ba9ef498f846",
+        "happy": "f7aa3ec8f95deaa512361e97a94c0b8070285ca379c4b20a40a8facd46f7de0f",
+        "sad": "15400082a372aea8f53b2da4305060c5e39cc990fcb38541151c5bf883df5684"
+      }
+    },
+    "multiarith_396": {
+      "question": "Katie uploaded 30 pictures from her phone and 51 from her camera to facebook. If she sorted the pics into 9 different albums with the same amount of pics in each album, how many pictures were in each of the albums?",
+      "answer": "9",
+      "audio_sha256": {
+        "neutral": "3ccd3ab34c73a74b39b0658f49595315b22523cafbfd793342fce67b7d38e1c3",
+        "angry": "3d919464735dffa7cf20089c468346c83b469fc20ad934603df7c89521b7adbc",
+        "happy": "aacf45373eeb40dc2c700f028f2304b274a81350f8eb1b343212ce36428288ac",
+        "sad": "209d0876b0da538da6a435825b1b9cbfe9be647bac146433e17f90c7c208922c"
+      }
+    },
+    "multiarith_236": {
+      "question": "A waiter had 6 tables he was waiting on, with 3 women and 5 men at each table. How many customers total did the waiter have?",
+      "answer": "48",
+      "audio_sha256": {
+        "neutral": "02bbc7058dea2a8cc3fa5e9d2d5f9ca196dcd8f54a9ecd2683803aaf18006cdb",
+        "angry": "e79c9aebec3f37fcbc2b66da458c041d32b98d5a5be516a4947bba1157596501",
+        "happy": "a9796cb1325c49e08f7da0c9764877a305b1d97511400e65cf45a1cfef33fde3",
+        "sad": "b49f411e5df0eb1861fcdb79dbf8ab989ce88cb1b25bc115af93444ef68c66b5"
+      }
+    },
+    "multiarith_038": {
+      "question": "Dave had to wash 29 short sleeve shirts and 11 long sleeve shirts before school. If he had only washed 35 of them by the time school started, how many did he not wash?",
+      "answer": "5",
+      "audio_sha256": {
+        "neutral": "91b192ff8e06ba60aa31906a03efca8b0d6ed75966b6950cad60f6a0b8c1bdec",
+        "angry": "b8dc415063e3b8cbe3bc3955cc76711aa7c0ffc40dda89f5f1d970e983b70e05",
+        "happy": "38fd2abc99d50e332f8a0be9a82108ab20c4544012b861e0ec26131df8c439a5",
+        "sad": "de26916280671c09f6153d30067cfb5db7c5c717a05a5187ea16f1d468bc08b3"
+      }
+    },
+    "multiarith_392": {
+      "question": "Billy was organizing his baseball cards in a binder with 5 on each page. If he had 3 new cards and 42 old cards to put in the binder, how many pages would he use?",
+      "answer": "9",
+      "audio_sha256": {
+        "neutral": "eed89efaa0cbeb6a590fe383f8ff784f522f265e0dba3735291de87b88013ec6",
+        "angry": "4ebde561bae2c7513b761839f9ae20f55f6d389bcb2228d2dbc138d8b894d637",
+        "happy": "e0264680123aaf34848453f16da994eed6eb0b66924999a2120d98d8ab9fa0cb",
+        "sad": "c2035ad888e116968b4fa144aa230f4914ae820a2860d4d1cc189918795bedf6"
+      }
+    },
+    "multiarith_246": {
+      "question": "While shopping for music online, Isabel bought 6 country albums and 2 pop albums. Each album came with a lyric sheet and had 9 songs. How many songs did Isabel buy total?",
+      "answer": "72",
+      "audio_sha256": {
+        "neutral": "e67aba1ba7dff3774d77ba62a33989f6687e6c3b377262190e7bf73ad6515069",
+        "angry": "4822f405fcbfb33bb67d59d9e327532719ca541eb9d634c914b8d665d009b4cf",
+        "happy": "0f5cf016c5dcbbaa49cc9cbcccc528e5a9a48fa652e02d6af1261ec387894b8c",
+        "sad": "91863ac0a543627d2674960dafedc262082989b43ef9d54d255d58b5fb509cd2"
+      }
+    },
+    "multiarith_508": {
+      "question": "The cafeteria had 62 apples. For lunch they handed out 8 to students and decided to use the rest to make pies. If each pie takes 9 apples, how many pies could they make?",
+      "answer": "6",
+      "audio_sha256": {
+        "neutral": "9486845104b875fcf40a18fc7884c46f241caf3eea2acae0b0e6b7ff74ff722b",
+        "angry": "1fc8a7283af4947ab7ebb4b49a58d5ab23afecab301baa12347d4ab199b78e9b",
+        "happy": "9192213da4975a720f853f3a4e4827eef3eb667ae5b9aa620b519f802e09d417",
+        "sad": "0610e463a5c9365f2e9122f9f30acd6535ec5e711dbe7e63c11c54731361cfff"
+      }
+    },
+    "multiarith_103": {
+      "question": "In fourth grade there were 10 students at the start of the year. During the year 4 students left and 42 new students came to school. How many students were in fourth grade at the end?",
+      "answer": "48",
+      "audio_sha256": {
+        "neutral": "2ff2e99922d9ac39b5ebdf7120d72d40e76d695d8d991c3bb6a19862c2808dfb",
+        "angry": "84443e895c1d46e49834c400f34a27381dc297d81270ff29a909174ea732811a",
+        "happy": "73afb179cc6929ab1f518060f940b2f21394af27f18e93ae5cd32c75fc4384f3",
+        "sad": "40d043bd10215968f529c9eee3a72197b4276cf7fb0714b1264b1f7a981778be"
+      }
+    },
+    "multiarith_329": {
+      "question": "Dave was helping the cafeteria workers pick up lunch trays, but he could only carry 9 trays at a time. If he had to pick up 17 trays from one table and 55 trays from another, how many trips will he make?",
+      "answer": "8",
+      "audio_sha256": {
+        "neutral": "c931730a5857180b0c2506400730ba31e9f262d5a9d4cf73dbeb77caf92c8c09",
+        "angry": "4dc1520fcac751171c1e3440f1943c96bcad55560f34a2f23bfd80073a4af608",
+        "happy": "291abcafa6a02b5475579cfb0f448bef318153c6da2050b50c5cf8dace12a974",
+        "sad": "7bec26cff0a1d0fb102edd7bc3459d3b1ca25807be228e8f8c811053299540b9"
+      }
+    },
+    "multiarith_529": {
+      "question": "Mike is at the library helping put away books. There are 82 book to put away total but a librarian takes 10 of them and leaves Mike with the rest. If he can fit 9 books on a shelf, how many shelves will he need?",
+      "answer": "8",
+      "audio_sha256": {
+        "neutral": "0533f09dcd760afc5771fa87a0fedff06eca126f676587749b725c4e3353db9a",
+        "angry": "f9fad73f21a14e208425f095a8ddffdf488a21e629357e275a02fa99870c52d4",
+        "happy": "0a203cfca1caac202307ba51f90fbdd679a0f4f36f182147867886e6311cc1f3",
+        "sad": "01ba9e62767bf817c4309e1e10472de06e35fe1656b2e3ac4c21ecc651a17e00"
+      }
+    },
+    "multiarith_239": {
+      "question": "There were 5 friends playing a video game online when 2 more players joined the game. If each player had 8 lives, how many lives did they have total?",
+      "answer": "56",
+      "audio_sha256": {
+        "neutral": "b718c52c13a1feb1b3c14b6031e0127f84301de02567138d4f050bd8e08b6f2d",
+        "angry": "6af82ab0c2b4c50782f5c75bf62ed4c5a575d58494d8ae85aae79a734fe41e6f",
+        "happy": "8e9870568b3e35e938333743caedff66089b405bb99e5c9bec8a90a477c42e73",
+        "sad": "5adbd5417a3d6cad0e936225c106d844ab7b222df06e3e5538e697703a3bb0f4"
+      }
+    },
+    "multiarith_522": {
+      "question": "A pet store had 64 puppies. In one day they sold 28 of them and put the rest into cages with 4 in each cage. How many cages did they use?",
+      "answer": "9",
+      "audio_sha256": {
+        "neutral": "2f1a69d222ef027638c902707d67ea8ceae066ff8d609d185ebdfd093f94a24d",
+        "angry": "52c13823cc4c8d9f5a144000a630a0cb47dd6cc48b6d24d3782719a279845d0d",
+        "happy": "cdd62bd32e9e30fd64740846aa34682807f6afdcbec9cb7d0f914c5570bbc1ad",
+        "sad": "575b3d0696b2e9658d0733a24b92843f1c9119eef3d0a78b54318dff6f7db3c7"
+      }
+    },
+    "multiarith_334": {
+      "question": "Henry was helping the cafeteria workers pick up lunch trays, but he could only carry 9 trays at a time. If he had to pick up 29 trays from one table and 52 trays from another, how many trips will he make?",
+      "answer": "9",
+      "audio_sha256": {
+        "neutral": "475fff347c3dd1513430ed47852581e0721df55ac5adf682e5316b0d42ec9526",
+        "angry": "9f9747819663d9e8215f868d4120c8b5343afefefdaa1886c4bdbca8c473daaf",
+        "happy": "efd8fa7c2f808c72f8f386899bdde27f9254b85ab39f6ccc0e2b871f5c7ab584",
+        "sad": "60b2b35cc3038f054821950b569156215840c0bdc028d7a1ca9dcba76991bcc2"
+      }
+    },
+    "multiarith_108": {
+      "question": "A waiter had 19 customers to wait on. If 14 customers left and he got another 36 customers, how many customers would he have?",
+      "answer": "41",
+      "audio_sha256": {
+        "neutral": "eb6f8eae5ac2f3ebd990f303e3d698dd7495d03aea56b0ed78b72514793aea99",
+        "angry": "23f7d39e7a351ba3056fed9473e72d7891abfb7d9036a28d95fbaa8c470afd13",
+        "happy": "a63cb6a6581394ccb7b2f101eda78c9c7ebcf360bad8bd470190a4d1a7165b3c",
+        "sad": "0ea53ad81f3483aa34829e77edc9387b1ef6a9e4088354766a43dd2961d15690"
+      }
+    },
+    "multiarith_559": {
+      "question": "Nancy had 101 homework problems. She finished 47 of them but still had 6 pages of problems to do. If each page has the same number of problems on it, how many problems are on each page?",
+      "answer": "9",
+      "audio_sha256": {
+        "neutral": "b5c3efcd2b21fd21e5cf92de53b947ce917593feb6ab9a680a7c0de939877ac8",
+        "angry": "887a687fc111bf00030f299863471dd9152dc7c0fe4519fe706d59e518a61796",
+        "happy": "5b54ef2db67b501225fc4a01caf5e417191283928888eea987f6b04e1cc11dc1",
+        "sad": "fe07b3e437ebc0c347383bd78f16f49bef5d7a0a3b6d12f09efb3ec00d4ae002"
+      }
+    },
+    "multiarith_065": {
+      "question": "A pet store had 36 siamese cats and 18 house cats. During a sale they sold 26 cats. How many cats do they have left?",
+      "answer": "28",
+      "audio_sha256": {
+        "neutral": "3fa1ccc813d8ad3c050f09fc2caa703114c7191546e10fd648267bd6efcaa919",
+        "angry": "9a0fe7d4751cd8c6ee3eda501a49a4ec4a752935ace3efadcdf753fa59906af9",
+        "happy": "6a440f9f963d2ae50e69ee714f92ed3baf2e7563192dcc56c19e54c46adc3e1b",
+        "sad": "81e7c88f8bd13f5a2c893db525e6d1df6e15b1a7ade408a8522184dded48506f"
+      }
+    },
+    "multiarith_438": {
+      "question": "Will invited 9 friends to a birthday party, but 4 couldn't come. If he wanted to buy enough cupcakes so each person could have exactly 8, how many should he buy?",
+      "answer": "40",
+      "audio_sha256": {
+        "neutral": "1d334442100bc3b90bf978acb25b454290e90af20b0cb18d77120541f8c7c8fa",
+        "angry": "01033156a390ece41e8160d4330ca48d49f6c31af7402f60abcec573e4d57213",
+        "happy": "13fa56a9dcfa97bd6eb011633e5b2ed6b9340a71430d5245fd6872d8791d056c",
+        "sad": "ff47ba9cc62dc5ab4f060ce6ff9f097cb848a370306d68b8e670ce10f26a8695"
+      }
+    },
+    "multiarith_216": {
+      "question": "Haley's favorite band was holding a concert where tickets were 4 dollars each. Haley bought 3 tickets for herself and her friends and 5 extra tickets in case anyone else wanted to go. How much did she spend?",
+      "answer": "32",
+      "audio_sha256": {
+        "neutral": "a32363dec2dd01e8e098e294bf1a89e2ec2f7f1d29313b617c3a2fa9323ee0cf",
+        "angry": "c2f95c217f348bebf32146034f5dbeda4110406e010775d1214fbfa86ad73ed8",
+        "happy": "681bf2273fd406389302faee32488e0ba938c3a522f3dc53221fe6365a0884b9",
+        "sad": "a460e5c657ae8bb995404c4a84d8b03ef20baba7dbe3ab8db227a0a3bd068111"
+      }
+    },
+    "multiarith_031": {
+      "question": "For the school bake sale Paige made pastries. She baked 36 cupcakes and 9 cookies. After the sale she had 4 to take back home. How many pastries did she sell?",
+      "answer": "41",
+      "audio_sha256": {
+        "neutral": "82e7ef40ec472e66f86e6ab34eeb4d63b5963610abc1abc8f4ea01606ee080f3",
+        "angry": "ffd566eb0691e6813c3bd14cb5a689660311be3be4dc1e05a38b21c13a502d57",
+        "happy": "53c654f4d202695cba0dcaca885c6739973063f3a5e864bc03818a977a1e6d1f",
+        "sad": "83f47d094a360f6aff002681fc609960b7161698d8b0d9dd6b16f14840e4edb1"
+      }
+    },
+    "multiarith_060": {
+      "question": "Janet picked 4 tulips and 11 roses to make flower bouquets. If she only used 11 of the flowers though, how many extra flowers did Janet pick?",
+      "answer": "4",
+      "audio_sha256": {
+        "neutral": "491ba8305b4e31d34bcf17ee37707d78c0609629e4b108ad1a0e686a89c1ce9e",
+        "angry": "62240db7ed15f8548e6238df906d67d450160af7642eb627e4a39c487bbd2298",
+        "happy": "ca699a979ed02e23dd2d29486a2c9f0a32d0ccd519f11b31b883d8fd661d0eea",
+        "sad": "03cbba385daeeb4873e03f3acd10a5ebc8db6adb2103f258d565985ce1bd7eda"
+      }
+    },
+    "multiarith_583": {
+      "question": "Haley was planting vegetables in her garden. She started with 56 seeds and planted 35 of them in the big garden and in each of her small gardens put 3 seeds each. How many small gardens did Haley have?",
+      "answer": "7",
+      "audio_sha256": {
+        "neutral": "3a90188241fccaf663e2a9534cd39e6c66112c7b08894cb3671f47402ff1e075",
+        "angry": "ffb0724387a0519a4d33a46fc8146dfcdfa3d95ee4da0b7bbc3009220b950a9a",
+        "happy": "8779b03e087bc178b9e66228b0e36a172d51912cff906c33585077ff7c1981ed",
+        "sad": "4a05ee54c7ccaae9f8a4a27695c11da9523563dd97fec6032400791420b5290f"
+      }
+    },
+    "multiarith_473": {
+      "question": "Isabel baked 3 brownies, but needed 5 total for her party. If she used 5 cups of flour on each one, how much cups of flour does she still need?",
+      "answer": "10",
+      "audio_sha256": {
+        "neutral": "7e75bb4a5138f25a1bdd65835bcdb8148393cd813078220da8019139ffd349f1",
+        "angry": "9dd90a1d3a6a611fa20fd2af47df9df094aafacf0918ac171f0f93e1873d972b",
+        "happy": "e6800e408b03283e5a5b8fc1d91fe65ad56d0357070b5b2eb9ccff8311864edb",
+        "sad": "78d95edd4a7a457948f460b6b8c720e5bfe5655a12b56f44228ffe390552ccf8"
+      }
+    },
+    "multiarith_220": {
+      "question": "Faye was playing a video game where she scores 7 points for each treasure she finds. If she found 2 treasures on the first level and 6 on the second, what would her score be?",
+      "answer": "56",
+      "audio_sha256": {
+        "neutral": "3458021387b2a24992fdfc81a354ebc33f314fff14337650f0ad07ad865476e6",
+        "angry": "97a91e5526f8ceea35a5994f79da63a4f0df2d23d4c6cec147208cb4f67d94eb",
+        "happy": "3c0618242a30e7e3886963f969284702bb804c9d24f42e4f715d8de2497aed9b",
+        "sad": "c91aeab6e4a6642e287181a57372a173e68c23ad702c4b23661b34569bd8d0de"
+      }
+    },
+    "multiarith_391": {
+      "question": "Zoe and her friends were recycling paper for their class. For every 8 pounds they recycled they earned one point. If Zoe recycled 25 pounds and her friends recycled 23 pounds, how many points did they earn?",
+      "answer": "6",
+      "audio_sha256": {
+        "neutral": "85e1484dff30ea277ce8c3cf0cbe23b8aaa4ef59eef823b5373afd856fff956e",
+        "angry": "a79f30d14df60dc91df5c8023062b22d72107303e4824034842b7867a949d781",
+        "happy": "b519252f70fae2a3ebb9683f8bfea23bc220ee2f3b34be423282f9b1e1ff00d1",
+        "sad": "04a7c8ca1959af75ef172dfdc2ede1d33bcea41032480f0eb9e27c6e7786b9cb"
+      }
+    },
+    "multiarith_191": {
+      "question": "A store had 40 oranges in a bin. If they threw away 25 of the old ones and put 21 new ones in the bin how many would be in the bin?",
+      "answer": "36",
+      "audio_sha256": {
+        "neutral": "1199e6dc7498a1fba7e8070c0556a4311becc2db2a6365e4ae14a8809f4503a1",
+        "angry": "d294674a150ce92f6cc92073c34201a83782e4702145cd9ac5b22f87d73f14b5",
+        "happy": "68a45bc3947d3d45136116e92b48d4c7bffb16430f199849f2bf7da6a2f034b3",
+        "sad": "29802c77ecb10907c14c59cb9bd79c703e5645454bab389a1300d857bb4d0a80"
+      }
+    },
+    "multiarith_570": {
+      "question": "Paige picked 53 flowers for her friend\u2019s wedding. She was making bouquets with 7 flowers in each one. If 18 of the flowers wilted before the wedding, how many bouquets could she still make?",
+      "answer": "5",
+      "audio_sha256": {
+        "neutral": "cfd59ea8fa58c945886afb6bc83782a97a393c8ba8b2c25c95e7021a91b0adaf",
+        "angry": "aca2c7835a07254411f52f963deafe624c5aa8e780ae2f1492fc43c5e29d6038",
+        "happy": "38f634720d6f8270236c999fa5aa3da7a5cda7c740c29c27cf7a8ddece98a5e5",
+        "sad": "453ae613a285a43797b805d53fab6588d184cbdfe3f0094dd5c44a8eb752938b"
+      }
+    },
+    "multiarith_049": {
+      "question": "A pet store had 41 siamese cats and 28 house cats. During a sale they sold 15 cats. How many cats do they have left?",
+      "answer": "54",
+      "audio_sha256": {
+        "neutral": "ea9209dfd93be269743d1971679b85028261edc7fcd92d87f50601c715691e8b",
+        "angry": "38316abf14db0ce05df6b4bbbe010014cc7bb1c444bd43a42e37b110f7d2234f",
+        "happy": "91407c4f22bb7fcd6291f8f8c6d64a647ad30d9265c0dc90c267ef9273a5b197",
+        "sad": "76a9eafb98b9eeaad17c34721f48484e657a780cc5023ec3ee4ec776597ca632"
+      }
+    },
+    "multiarith_048": {
+      "question": "Vanessa and her mom were picking carrots from their garden. Vanessa picked 17 and her mother picked 14. If only 24 of the carrots were good, how many bad carrots did they have?",
+      "answer": "7",
+      "audio_sha256": {
+        "neutral": "c28a764c92be76040d15d4d03244745a4f6f76dc53c9b7e9868fd87bc6c015ec",
+        "angry": "abbaa87a72c875afd2a3a56398afd05e1f8bab4f6875d244482c0b533eff8b72",
+        "happy": "ad443fccafb5ea1caf0b3e02528d068fbc6290d036b30f98d4e32227d8f17211",
+        "sad": "4be2ecf9e0c0ee88ae2b50a9bbe80d90fa297c7ed1a72a0256d2d2acc6e06251"
+      }
+    },
+    "multiarith_107": {
+      "question": "A book store had 41 books in the bargin bin. If they sold 33 books, but then put 2 more in the bin, how many books would be in the bin?",
+      "answer": "10",
+      "audio_sha256": {
+        "neutral": "7404da38b9a11f8c8b159c98f3752b2bcfa6e00be43f505a2de75371203bd6bf",
+        "angry": "b407cf153e0e83a1e3d39304d3195f34ee775f23291b7bb7d15f819cb1d8aa55",
+        "happy": "c59353ffdf230d72a7663ca1cf6fa24a1ca5d88bead69e50a8a7b0228469152a",
+        "sad": "f0beaa24477acaac03c530b9223179fb35401c6080499d69d6ef70c14ca40684"
+      }
+    },
+    "multiarith_218": {
+      "question": "Victor and his friend were buying trick decks from the magic shop for 8 dollars each. How much did they spend if Victor bought 6 decks and his friend bought 2 decks?",
+      "answer": "64",
+      "audio_sha256": {
+        "neutral": "127e4be13acf3ce672e1bbd1779a5e18785db6809b23114b738ba7d4fdd67885",
+        "angry": "adfb48d7a6eb065725ca09dc6ee1a19a0193a34d5b98dcffb7210b1a25683e28",
+        "happy": "12637e12d8b80052225d55c9f022f6de6891615de9ac78c289d33e38dcc0baea",
+        "sad": "6d81db48615186c42d5d7d42e0ee4e2d70cc05bbe17197e2f766599336b0b90c"
+      }
+    },
+    "multiarith_447": {
+      "question": "Kaleb had 10 video games but 8 of them weren't working. If he wanted to sell the working games for $6 each, how much money could he earn?",
+      "answer": "12",
+      "audio_sha256": {
+        "neutral": "7bdc92ecc43ecede56d3c4db2b3d1786eab7865ef5adaaf2232639d5b9db3c5f",
+        "angry": "3a484019895fecb1576ee98abcf960ee5895a1e7badf0b9600e2f28846d91145",
+        "happy": "bf20752e58ae6f494af4c0c4889926aeabea6b86f1a08e0ada050da1f1ce45f2",
+        "sad": "d79d1cc6e9b2015a0be620f18d62afa6e7173da4073ab7939e9d0226afb35c71"
+      }
+    },
+    "multiarith_134": {
+      "question": "Adam had 33 books. If he sold 11 of them and used the money he earned to buy 23 new books, how many books would Adam have?",
+      "answer": "45",
+      "audio_sha256": {
+        "neutral": "de661d387d97a52fcd9d8e584139cde6aa9c77a0714d18e513fe1c25c4042697",
+        "angry": "93a6f07ead87071c0320b4f917ce3f8884a4c0c0103fb874b0c7262dd44887d5",
+        "happy": "d4c29967582da198d410ce4da9abebcdd916934a571f08109810f93a15230470",
+        "sad": "cfa1e8ac3fdd6105aba2cc0cf679e869a3088a75fae801c2eb5f7398a8742c7b"
+      }
+    },
+    "multiarith_252": {
+      "question": "Adam bought 2 boxes of chocolate candy and 5 boxes of caramel candy. If each box has 4 pieces inside it, how much candy did he have total?",
+      "answer": "28",
+      "audio_sha256": {
+        "neutral": "4807bc34dc7c49ca5f4252f0387341c2e83820f3ab2b6a068fc68df26b68960e",
+        "angry": "32dcbf90d0dff29b1c0faeec94d58b64937cdab6ab0bf444119bcefd0606157d",
+        "happy": "d4dcdd5351ad8254fff9619125a73cce496a60a64b52a08b200fdf0a4b15f0bd",
+        "sad": "ae4439157c133dabb981c63e5c585cc0659c0cdfd4c4578e792770b16273c06a"
+      }
+    },
+    "multiarith_305": {
+      "question": "There school's baseball team had 48 new players and 6 returning players. If the coach put them into groups with 6 players in each group, how many groups would there be?",
+      "answer": "9",
+      "audio_sha256": {
+        "neutral": "1bcdc011cdaf87d4619cbabe9abe64b154b5eaf614841b9741eec5b73cd8f0e0",
+        "angry": "16574a21abb7b04f6e61f28279835c5e28ee4fb12118928e29ef4a9e7a73704a",
+        "happy": "c8578c4c3864142642c102238baa30e07d5aec4c5b5e05696f63b4252e0dbd80",
+        "sad": "135eca77cd0d5438fd85df46c5b023fb0504a618c9daeffe0315b13a5384a232"
+      }
+    },
+    "multiarith_302": {
+      "question": "Kaleb had saved up 21 dollars. If he received another 15 dollars for his allowance, how many 6 dollar toys could he buy?",
+      "answer": "6",
+      "audio_sha256": {
+        "neutral": "ad2225603ead52b383f7c0abe58a57524fadc8294d1ed246200844ea33f68000",
+        "angry": "5bac4edf74789a0f85ae946f1edea997d8bd08ab843ec947157b30c9ea790202",
+        "happy": "3a37f3b2933e46361a6fa57ade775b6551fb5975b27bf1745ab921ac3f6cf85f",
+        "sad": "585bdd7dbd1ea8a7251c3a11ae5178836891350e6cb45c0a186365fed84acfbe"
+      }
+    },
+    "multiarith_077": {
+      "question": "Tom had to wash 10 short sleeve shirts and 25 long sleeve shirts before school. If he had only washed 5 of them by the time school started, how many did he not wash?",
+      "answer": "30",
+      "audio_sha256": {
+        "neutral": "26e467365fd50036a4f4aa58861263966485cd46bb87042308b568f9be3de4b2",
+        "angry": "6aa58c9b9706bb37eb9bdd79dc24d178683e1faf9090998ac1d229cdbc1719cb",
+        "happy": "e94eaa05e0e60f096b9048f93162df90163a9ea15e93286a039c8fb0152ca9a1",
+        "sad": "5b4e49c99696c0fcf3f3a454c806e07a788fed87920aa39bb66fba8cb9896241"
+      }
+    },
+    "multiarith_439": {
+      "question": "A magician was selling magic card decks for 9 dollars each. If he started with 12 decks and by the end of the day he had 7 left, how much money did he earn?",
+      "answer": "45",
+      "audio_sha256": {
+        "neutral": "fbde6632f7b3ca7c0ddc30f69b4c2cd911f69c35783a27656b317c8936367f97",
+        "angry": "21966b55fda0f43b82bdc6314a3c8cbc04117bb2afbc2d1768e9d4f2d6ac0d2f",
+        "happy": "f52c28848bd7b8c6da1bc725de01db710e78c350e31f097c31c603fa4f3440ea",
+        "sad": "15375e0e7bcfdb4f4c0157d35030ab82fa145ee6a989e4db3777e90d02f7b4c6"
+      }
+    },
+    "multiarith_119": {
+      "question": "At the fair there were 12 people in line for the bumper cars. If 10 of them got tired of waiting and left and 15 more got in line, how many people would be in line?",
+      "answer": "17",
+      "audio_sha256": {
+        "neutral": "6b4acb0f3d15ef338669f0eead0351e9652c6fc8a3641d08fe4d2cecf90bb1c2",
+        "angry": "c3344fc42bccd3637f077bdde23cf7c77010d0e1de8afef0dad0b610929baa9a",
+        "happy": "7169c7c62593772b990ce781f66ba3fd2b81bcb9a30a51c28de5b8cea584b1f6",
+        "sad": "c4aecbade6c4ef0cdf9b84a4d14f0bee1da534272ce62a91855c96c758e615e7"
+      }
+    },
+    "multiarith_403": {
+      "question": "There were 11 friends playing a video game online when 5 players quit. If each player left had 5 lives, how many lives did they have total?",
+      "answer": "30",
+      "audio_sha256": {
+        "neutral": "5c861a98c16e73904b62a6065bc3e0ed176821477538e4ab04b78fe484fec635",
+        "angry": "f5b0e40b36f5a6576e6846952f884dae8c59e59e4b68d4e92ea8960ce598e872",
+        "happy": "eb838d1f3973bdf8e4da7abb26aca716981a18e0a0019ae9d8c8a1f4ec65df1d",
+        "sad": "adbb35eeb97a72bdccf8472d345665a93d7fff40c01614755c156536c97b5781"
+      }
+    },
+    "multiarith_594": {
+      "question": "Katie had 85 files on her computer. She deleted 40 of them and put the rest into folders with 5 files in each one. How many folders did Katie end up with?",
+      "answer": "9",
+      "audio_sha256": {
+        "neutral": "bcd05f9b5309ada870334e82c879b826494a85d5295ef3bb557e5dcf14ac3922",
+        "angry": "5c92b0c20cf278bbc086bf3fb3e085cc80702d97e8b7fa44d15ba632d1a209f3",
+        "happy": "3fd6d57481adf64dbc96c33d6f28be12096d1eacbdc7411aa0ecfa173a371e84",
+        "sad": "480b3f2d1b95511e35afdb3f2544f5e007568ee6dcbfae93e704c7d80caafdf6"
+      }
+    },
+    "multiarith_131": {
+      "question": "Zoe had 15 songs on her mp3 player. If she deleted 8 old songs from it and then added 50 new songs, how many songs does she have on her mp3 player?",
+      "answer": "57",
+      "audio_sha256": {
+        "neutral": "fe61a015a6903988004b9332d7c8a10f1ed1e01ab5f48de6e87f5017463db3ec",
+        "angry": "304ac6132ccddffa26a97f60e6ddbc1b2ed56b9a277a6fa28a99946e5d9fdbdb",
+        "happy": "dbf3da775690f8285687dc46d580166762af5d4908147c12326ba2a927a2572d",
+        "sad": "04d65de2499e4bfd3e25d3d38f2d6bdde5565c6c24ac3a4c0a45a9667c5d95ab"
+      }
+    },
+    "multiarith_273": {
+      "question": "While playing a trivia game, Adam answered 8 questions correct in the first half and 2 questions correct in the second half. If each question was worth 8 points, what was his final score?",
+      "answer": "80",
+      "audio_sha256": {
+        "neutral": "2d431959299444b21dbab4ce444c62ceec20c489bbdd3ccb269f5bae74d2efd1",
+        "angry": "478c40c236900e6598e7d016a238ec1d0c9e30ed59df3a5d62e6f51170b64388",
+        "happy": "5cc9dd4c6d5e81b160af3f55e3878faa4611589f08cb2216f54f7cd97ae379b6",
+        "sad": "cb66a982c6a18b5464c917b56f45577bb58b71a35a5b250d966fd53185f03a11"
+      }
+    },
+    "multiarith_365": {
+      "question": "Oliver was organizing his baseball cards in a binder with 3 on each page. If he had 2 new cards and 10 old cards to put in the binder, how many pages would he use?",
+      "answer": "4",
+      "audio_sha256": {
+        "neutral": "32d7a3fe2ebc74c2183390831fc1e158a008ae7caa5ae1293dedfd659b2f2474",
+        "angry": "6bc0a824b529dc78632cac5c7e8ae023967d0aafef1e16bca7e942a4e5911c91",
+        "happy": "3ed273b7f39cd68db56567ffcd47c6f5884317d636a6c584e92e8e3f5af98fdc",
+        "sad": "882183337f31ac851036374b1564256f7e21d78e7aac2ced2818a7ff37b2d112"
+      }
+    },
+    "multiarith_179": {
+      "question": "Haley was playing a video game and had 14 lives. In a hard part of the game she lost 4 lives. If she got 36 more lives in the next level, how many lives would she have?",
+      "answer": "46",
+      "audio_sha256": {
+        "neutral": "ffedba81c7b246804ec2f4ef9bbd4cc9eee511351190426d6a8d06e2a134f287",
+        "angry": "f28e24d08ad96222d382919b7160eefdf5039d899adcda0f5914b53c6acec205",
+        "happy": "2b8bf2198291577350ad72b31b58fc7ec150564ba75c72215d47366ab103907d",
+        "sad": "55f25c66dbe5ade14be6936453584bd1914eae03cf623b85d357ec588b64cd4e"
+      }
+    },
+    "multiarith_516": {
+      "question": "Tom had 57 dollars. If he spent 49 bucks on a new game, how many 4 dollar toys could he buy with the money he had left?",
+      "answer": "2",
+      "audio_sha256": {
+        "neutral": "67d0078a0a463afcf68258374522648666c3a1e00266f4390e8c5eb8c1a6195a",
+        "angry": "789f6dc3142859e58e35572d2412958009134f692423d6cee7cef44ca368eed4",
+        "happy": "35104987e450594fcfc715ede7c24e9ac5173edb6ecf95518d48273b3c1ac9d8",
+        "sad": "f26302fd9d4f8a8d406f5329a355adcc0b6bcfc3fb0b63ed63e6142a5f01f238"
+      }
+    },
+    "multiarith_034": {
+      "question": "For Halloween Janet and her sister combined the candy they received. Janet had 34 pieces of candy while her sister had 33. If they ate 4 pieces the first night, how many pieces do they have left?",
+      "answer": "63",
+      "audio_sha256": {
+        "neutral": "aaeb094252b3fc5a789ca015a0212f3caafd06f06e55972be064f9073790cc15",
+        "angry": "9fa0d25079ef5cdda9da9c2f7362549cf5daefc23b8b80e9aee5995b65d0e196",
+        "happy": "d0fd26b8fb4413df2e8c607b69640cc21c411186d4dcae5f732ea8ab2fc25156",
+        "sad": "8e418ada8161914c2f07c6c5c12f6eed4c5dab89fe665ebe6e742f661219a19c"
+      }
+    },
+    "multiarith_574": {
+      "question": "A pet store had 13 puppies. In one day they sold 7 of them and put the rest into cages with 2 in each cage. How many cages did they use?",
+      "answer": "3",
+      "audio_sha256": {
+        "neutral": "535711dca7f92faad8f29c37e2fb0dbddbdf3cd09b94967ac010c65bccab1a02",
+        "angry": "3167a87176b1adbc5534b6c5afa1581dae4d7c1e11691644c985406b81b10e8b",
+        "happy": "f4fc4b1ff927eec443835fc0c95a13d87d1c771449d5e68408a9c107c210175f",
+        "sad": "4e4b518ff08cf1c261e6899fda5fad16dd9f7bb17cf84cb7191d61cf844cf66a"
+      }
+    },
+    "multiarith_588": {
+      "question": "Jerry had 60 pieces of clothing to wash. He put 40 of them in one load, but decided to split the rest into 5 equal loads. How many pieces of clothing could go in each of the small loads?",
+      "answer": "4",
+      "audio_sha256": {
+        "neutral": "ca108ebafe532b1eca2841f6aae0e8d50768a48f332e90715ff1cfc9b1872d20",
+        "angry": "f9e90e532d02de66eb0fb3a577f25e7f04abe00d95b1cdc29d768824c8411631",
+        "happy": "5e84b3c8d5e229c9ef61e6d60c10b8ee06fa7174b2b16843dbcaeb76f144b0c1",
+        "sad": "4bd934cb74cf77c61bf400a46c2a6eb69869e8500a120c41d5b89e82f8f38755"
+      }
+    },
+    "multiarith_333": {
+      "question": "For Halloween Sarah received 66 pieces of candy from neighbors and 15 pieces from her older sister. If she only ate 9 pieces a day, how long would the candy last her?",
+      "answer": "9",
+      "audio_sha256": {
+        "neutral": "81b4c07ddf64a8868414d99f36e993c7b9e3ce44f7314f09fb18ab01e4d06930",
+        "angry": "2a3070219f60b43a4432239150b7d11ce8b9748267ef2f3ac48664933456e122",
+        "happy": "1cc37a1a37854885b80e3bbbdb1d43208042efabf1b2286995939cd7d3600058",
+        "sad": "ac62542e29cc702bf67cb853262390df36a8a2e190d8239dc7a58fa750514ca1"
+      }
+    },
+    "multiarith_036": {
+      "question": "There were 30 girls and 36 boys trying out for the schools basketball team. If only 10 of them got called back, how many students didn't make the cut?",
+      "answer": "56",
+      "audio_sha256": {
+        "neutral": "00c696beeb5e06886f4825faddbec83202431ae50e1d6d103219b19960bf410c",
+        "angry": "7c8698c46ef42d03f6699b2e92e6a2c48fb1b0c9f80c7af4ba875a7a0b606ae4",
+        "happy": "aef051281404560ffd9e601e25135661f9c3cf59c02bc3175d3a3334434be589",
+        "sad": "8b84a75453529c8de6f973e5cc13eae889688bbc09a5706f11c47f42f328df87"
+      }
+    },
+    "multiarith_003": {
+      "question": "The school cafeteria ordered 42 red apples and 7 green apples for students lunches. But, if only 9 students wanted fruit, how many extra did the cafeteria end up with?",
+      "answer": "40",
+      "audio_sha256": {
+        "neutral": "3de77b0c3747f47f695ef041427944297aeed97ed722dce84ff901440f4adead",
+        "angry": "46995151407d6bcac1e9e25a452bf8ba95f14182dd8de06918c46810cc05b5f0",
+        "happy": "7b5fbaad642db7cca15f6fcab8c9859bb029c0fba8d347a7f235644b8887f723",
+        "sad": "6ebcf1245b85e08b94732edf874e11c05ee6fedf9854b9373e8ee175c42e336e"
+      }
+    },
+    "multiarith_480": {
+      "question": "A new building needed 11 windows. The builder had already installed 4 of them. If it takes 8 hours to install each window, how long will it take him to install the rest?",
+      "answer": "56",
+      "audio_sha256": {
+        "neutral": "e3cf06dae742084c0b145e20cb9ccf78f0f894f4224a79df7f95996b59f5fe82",
+        "angry": "ee2a2a3c1d48962abdf049a168b5c3e27a9e7e1856447a4e90ace8efcf8a847c",
+        "happy": "b441fec730d650c7d378e5b14235303d96c7707a4f75e74def93f1c7504378de",
+        "sad": "787f1e97ca9aa54390eee7d25d3cabc18b40a85d0e8aaec90c1051155e430b49"
+      }
+    },
+    "multiarith_371": {
+      "question": "Robin's class is going on a field trip to the zoo. If each van can hold 8 people and there are 22 students and 2 adults going, how many vans will they need?",
+      "answer": "3",
+      "audio_sha256": {
+        "neutral": "8ca814de7c0be7b4810430f0b0cb26ba3c70c265ee66afdb6674dcd9939d32c6",
+        "angry": "9a2d10da9da7a70ddac6c4c74ede3b19c6ab1c22dac5528fe232fc5fa89be46a",
+        "happy": "25627fe40e072b4bd8b28ab84b3f7055187981a1d5595febb07b36e52ae9b5ea",
+        "sad": "06d8999b57594f84c7b1dcefc83bb36dc6f42729397bb2d400a9f1a195a86434"
+      }
+    },
+    "multiarith_518": {
+      "question": "For Halloween Sarah received 108 pieces of candy. She ate 36 pieces then placed the rest into piles with 9 in each pile. How many piles could she make?",
+      "answer": "8",
+      "audio_sha256": {
+        "neutral": "525deda00f2aa6d2a97a88e6e66b6b0ae9988107451d4e210c3ba11c7ae110c6",
+        "angry": "d49a667ba90730c05e312807a1cf655e962e11fea043cdf397c44345f3f511bf",
+        "happy": "784d44dbd7d19bed40481883aea7fd07e9725b8b6e778829b4e4738e4c04fac9",
+        "sad": "ae2701137e62ff8d3d536f272063eb690481063b1233957477c6bceeb392737d"
+      }
+    },
+    "multiarith_457": {
+      "question": "A painter needed to paint 11 rooms in a building. Each room takes 7 hours to paint. If he already painted 2 rooms, how much longer will he take to paint the rest?",
+      "answer": "63",
+      "audio_sha256": {
+        "neutral": "6587b5f1ee5883cfdd5f4cb547d16715e2b1a7891366f22048088d84657ba7a7",
+        "angry": "d6dce92e3c8150b7eaad167c3bc345a22354ab0e8c3b42f06213fb11e4725190",
+        "happy": "bfd6320d227f366bd0fe0748e09fc1b5a3134fe05f2fcb9531f2149a63f29b1e",
+        "sad": "039eeb5965b8b0228dde325d6170eeafc9f4ab8fdfeed4589b4830c9d377dbc8"
+      }
+    },
+    "multiarith_311": {
+      "question": "A group of 4 friends went into a restaurant. The chef already had 9 chicken wings cooked but cooked 7 more for the group. If they each got the same amount how many would each person get?",
+      "answer": "4",
+      "audio_sha256": {
+        "neutral": "dd67c9b4fb0b79046a6dcde3c66267bca27a527a9eaa2a9cf158c861a70d9c25",
+        "angry": "e54a2b03fd1953a1e6481589321aa04a7e140856aca4240360ad61c26c260cb7",
+        "happy": "ca2fb8a261f450501d4be8b798d4d9bef1af995c0556b57d5e4ee0e70d63ee8e",
+        "sad": "ddb12281269e679ddd08fc88cd2432a6503813268c6368d2e2b8d16f47ba39da"
+      }
+    },
+    "multiarith_010": {
+      "question": "Oliver had to wash 39 short sleeve shirts and 47 long sleeve shirts before school. If he had only washed 20 of them by the time school started, how many did he not wash?",
+      "answer": "66",
+      "audio_sha256": {
+        "neutral": "2cf518ad1d8d24edcf8e7eff67849e5f6137e3d547f9f02065d41439f96a2b3a",
+        "angry": "c4a276e2a3b8f7f077bc7542879e0ed21cd8b23beeb6b962564b41110596d287",
+        "happy": "25d3f5d96f199d3372700c6aefcc45947e2c5c517e6b5ac20571675e55dee19a",
+        "sad": "bf70c6bf2bddaaa31647f77460df5815291b3729061bae5a730bb24881432197"
+      }
+    },
+    "multiarith_183": {
+      "question": "The school cafeteria had 12 apples. If they used 8 to make lunch for the students and then bought 19 more, how many apples would they have?",
+      "answer": "23",
+      "audio_sha256": {
+        "neutral": "078a7fe2e69bbd80276882f9e8a931f4dbe90333523d37fc28daf7a7cce69927",
+        "angry": "0c092d3dda97c8bd821e1fecb5745f9bf30c04dd101bf6b6b1626e1cfeeaec4d",
+        "happy": "951ac8aea14c7ef6f2e6bcd6050ce4f92ab65cdc157918937e6ca74ae13f6b3d",
+        "sad": "59e7ba490d97acb3ab8f97eef8828fd661277c8a5743c82dfdf9abc04de699b0"
+      }
+    },
+    "multiarith_464": {
+      "question": "A painter needed to paint 6 rooms in a building. Each room takes 5 hours to paint. If he already painted 2 rooms, how much longer will he take to paint the rest?",
+      "answer": "20",
+      "audio_sha256": {
+        "neutral": "eea4ce82aef3c3add5618af846b106d2ae9c897036ca2d1b0d46ec7ffcae9c45",
+        "angry": "cb76e295196e396fc522f5766e928826d0c53b05d09c49d500675732ae62340f",
+        "happy": "dcfb4aa62441692acf5783d2fde04f2f459ba0743d092932b4f7870b06e7f98b",
+        "sad": "e3a08e3d67160630c06be90d94dcb680cf55ff91073d48901a4aac23b643b561"
+      }
+    },
+    "multiarith_125": {
+      "question": "In fourth grade there were 40 students at the start of the year. During the year 14 students left and 26 new students came to school. How many students were in fourth grade at the end?",
+      "answer": "52",
+      "audio_sha256": {
+        "neutral": "cbfca4bb802b1f119ba03a2110ecf0716cd2a09ee4f9a4637778ae18fcbbcccf",
+        "angry": "85ffc28f0452e1496c43b8bc0b1a66621025e9d9c93fbb5bac93c35a7c4ef8c9",
+        "happy": "e6f1069e864de1435f09b7142ce3c0fb5217f4ccc8cee2ff82ead10028eca835",
+        "sad": "c9e2255bab7d367afcec5bdc0b9a0a0966e8c9c462b586c88a3c1eec15a701aa"
+      }
+    },
+    "multiarith_492": {
+      "question": "A trivia team had 9 members total, but during a game 3 members didn't show up. If each member that did show up scored 2 points, how many points were scored total?",
+      "answer": "12",
+      "audio_sha256": {
+        "neutral": "287ee74f297c581d5501a6eb7b30f5621a93553bc8767668002f579f0e2e0048",
+        "angry": "8f315fc3571f196eaa0fd682b664ac54c3800613e4ba78ca7d906a958acf3ca2",
+        "happy": "2f8297e079ce4e9edebe790a832240eb526e8cb1aa8b25ccaa25dce0f8059fb7",
+        "sad": "5e2d5b177dc144bb2503d1fa66289f1e9ee4c595ebebb82af168d454a37fe6b2"
+      }
+    },
+    "multiarith_071": {
+      "question": "While on vacation, Haley took 50 pictures at the zoo and 8 at the museum. If she later deleted 38 of the pictures, how many pictures from her vacation did she still have?",
+      "answer": "20",
+      "audio_sha256": {
+        "neutral": "da93be0f92dc0a8573787f02c37545b769158ab498376e5a2d56e57cdd4c5b2a",
+        "angry": "051e74996b61de596e20d0274b41c3c28614c603639be8a431117c847f06f6c1",
+        "happy": "2f32e4c5a0e69caa3db6fde46e628c3490b9b94803e4acde9808944dc2c6249e",
+        "sad": "5118a0262753180df05c8eb71ab8f1bd055a02447dc9596e947ec783fa3d489c"
+      }
+    },
+    "multiarith_241": {
+      "question": "Edward was working as a sacker at a grocery store where he made 6 dollars an hour. On Monday he worked 3 hours and on Tuesday he worked 5 hours. How much money did Edward make in those two days?",
+      "answer": "48",
+      "audio_sha256": {
+        "neutral": "f0b31c7edc1c650e4f9902fbc598c3170b3962bca2cbbcc4c2f4f131041edc1c",
+        "angry": "c3102ec12ce09d506c9169afefc18f2f6db0741cd912683eddbb773e02c0e088",
+        "happy": "be77e5dbfb4ee1a87acaff82a287b1135d88d2af968329c1fe16c89b3dbcd46f",
+        "sad": "483c9a1144001bfe2717b0bd110beca239576968fa5a95046664a9000b83f8f9"
+      }
+    },
+    "multiarith_274": {
+      "question": "A pet store has 4 bird cages. If each cage has 8 parrots and 2 parakeets in it, how many birds does the pet store have total?",
+      "answer": "40",
+      "audio_sha256": {
+        "neutral": "89e7f4f08b2e2c6e469f040bd7320f4c58c2a360caa2e541c5d68a62e9cbc7fa",
+        "angry": "85c11d0c61dc9ef86c87bd55ae6a78b486501dfaa585c401f92b52fe95a8bfa6",
+        "happy": "37f5a655d8f54afd279ae41da4237fc0117a69a49b4f98f204abc505c367577f",
+        "sad": "86047587150a679fe2231d790fce0db0a2297822f70a43d7521aba762bcd1416"
+      }
+    },
+    "multiarith_234": {
+      "question": "Maria bought 2 new chairs and 2 new tables for her house. If she spent 8 minutes on each piece furniture putting it together, how many minutes did it take her to finish?",
+      "answer": "32",
+      "audio_sha256": {
+        "neutral": "6a144e2eeea661dda71eabcdc208c125c9074819574034b76be859976df15255",
+        "angry": "6e06d20a08c9a57d9bc9a0e0d0848a70580948e1a96c2385805dc885e2edd1ad",
+        "happy": "7a9e1ebaf31f4d4569ba78d7c58a9957b3f073992d6f9f7f6dc3710b57719b60",
+        "sad": "1ff8ed83590dea62402c9966557e597cc3575e8b7287e0acd59b51d2068798d5"
+      }
+    },
+    "multiarith_424": {
+      "question": "Will bought 7 boxes of chocolate candy and gave 3 to his little brother. If each box has 4 pieces inside it, how many pieces did Will still have?",
+      "answer": "16",
+      "audio_sha256": {
+        "neutral": "a5860b5f311f53db3ecad500d6619e3c118ddcb6631c9450aaa6cf27fa43de19",
+        "angry": "fa01892aa6f592f9d65ba30ec145927ac2530490074f3ee87fdfa3d7aca69d19",
+        "happy": "2274fcd5a090ee39c2c24fbd423263d3f3b3ace4c2b40bb47f93432ff53179dc",
+        "sad": "3b93cb6e2f6a2ec533aee77608302bdc3b47daabc35a258e2bd90365dcfeaceb"
+      }
+    },
+    "multiarith_342": {
+      "question": "Olivia uploaded 5 pictures from her phone and 35 from her camera to facebook. If she sorted the pics into 8 different albums with the same amount of pics in each album, how many pictures were in each of the albums?",
+      "answer": "5",
+      "audio_sha256": {
+        "neutral": "94a73e7aadb04369221f0a7ae6f8b6f44e47a2a73a877ba1f33189830590105d",
+        "angry": "a6e0ae7cf37cb5561504770044e28e1bfa3f0809a6d8db0f974466b21407165a",
+        "happy": "973bf23afcb502aa3c86a156191e0fd9223fba5575587d31a9d317e3befb4b40",
+        "sad": "eb375932bdd24e62f155705094e3806bc12a213cde59867d899600ba8757819e"
+      }
+    },
+    "multiarith_363": {
+      "question": "Bianca and her friends were recycling paper for their class. For every 3 pounds they recycled they earned one point. If Bianca recycled 24 pounds and her friends recycled 3 pounds, how many points did they earn?",
+      "answer": "9",
+      "audio_sha256": {
+        "neutral": "a8733cafd90d81ef4bc8962743af17c0721608a10b554bd8f120da22721ff2b3",
+        "angry": "c4faac11b44e44a4ea561f0dac3d2071ca704c9b239ce263d1b0b715e00b9b09",
+        "happy": "1b7eadaaed25d51089da58123f1e13c0bca884216dc80290dfd3d897ad52f6a8",
+        "sad": "9280b1440c9239d444b625dba8004058c404f6eb6db932204f1aec5cc304ff7b"
+      }
+    },
+    "multiarith_482": {
+      "question": "John had 6 action figures, but needed 11 total for a complete collection. If each one costs $6, how much money would he need to finish his collection?",
+      "answer": "30",
+      "audio_sha256": {
+        "neutral": "5822cada8fbc36661ec99c024209c6b8ba563978eefbe1739a4d143c833f10fd",
+        "angry": "f9ef904a1cb0b624ac63982982519505bfdb58c2d6e293b7faf88d71aed25cb7",
+        "happy": "faa943ee7da64ea768b1fafa078473917f9a14646480655cfe8c6f0e81eecc2d",
+        "sad": "59393282b63c9c9b55976714f9f2199758d61171e96e1b29a30f6a0005c1b693"
+      }
+    },
+    "multiarith_571": {
+      "question": "A waiter had 22 customers in his section. If 14 of them left and the rest of his tables had 4 people at each table, how many tables did he have?",
+      "answer": "2",
+      "audio_sha256": {
+        "neutral": "2a0cf0568b81348530679fa56b27bf3ea2d651c265b046be94404aac3d925e71",
+        "angry": "7503dc9f3ae329a83c484d437593b2922d72c98a820bddb4499a3f4d87242b66",
+        "happy": "0bfa6f0a74d6ee82822f95fdc0b4226d9544cbd35211feb5b7a71ccb4e0fd73b",
+        "sad": "55192b34b275f072cd12fbd555a945a5b1e6b4095a572c8379da9ab32479a386"
+      }
+    },
+    "multiarith_385": {
+      "question": "Vanessa and her friends were recycling paper for their class. For every 9 pounds they recycled they earned one point. If Vanessa recycled 20 pounds and her friends recycled 16 pounds, how many points did they earn?",
+      "answer": "4",
+      "audio_sha256": {
+        "neutral": "2c39a4e72598f63e44dae42cb0b063817e555042a80090597fc80602dd873aca",
+        "angry": "53ee35e507cccbb7127211807a79c329bc4eceb62a23c3f80b01a9fc38c0c85d",
+        "happy": "f0fe22a207f38f88cc0e8fdc581db5a9cefee8b850c691150b7d2eb338bf6c9d",
+        "sad": "9c8dd966bde7fbf03705ad0154ae3bb50d934e8ad9d0d4277edc2f35ec1c4b53"
+      }
+    },
+    "multiarith_112": {
+      "question": "Maria picked 48 carrots from her garden. If she threw out 11 of them and then picked 15 more the next day, how many carrots would she have total?",
+      "answer": "52",
+      "audio_sha256": {
+        "neutral": "6a9ba78a45904738e6281fd3bd26f42817ef0e3a3d68c0c3ecf2c66ab07f2bab",
+        "angry": "561e687cdf23c70e1645840120b1f380f1d9a6de2ccb17f4364d01473bc3e4ee",
+        "happy": "562696f7ca05d756771c9d60a57c7180de2a3399aad2f922cd26f812b312885e",
+        "sad": "af5c2bccb7cb2bb92b3dd457301781f2c9a03cdbde81361f7fdccb93f69f8971"
+      }
+    },
+    "multiarith_373": {
+      "question": "There school's baseball team had 2 new players and 6 returning players. If the coach put them into groups with 4 players in each group, how many groups would there be?",
+      "answer": "2",
+      "audio_sha256": {
+        "neutral": "9e1e07e93a8a5b3ad27570e9fa49fdfcfd684543f07d28e4d7e908775134c4d4",
+        "angry": "ba7d0396b8383360042448f05cbafa8a894f020351a996601cbf7f60ec600266",
+        "happy": "f7c4580bf9527f2ec5f49b363ed7371074b65bbeb94fbb36f1e97a7ba8907d27",
+        "sad": "4804118e5456ebd124c71f3bdd731b21b486f8aaaaa5436605c39419eed97302"
+      }
+    },
+    "multiarith_421": {
+      "question": "A trivia team had 15 members total, but during a game 6 members didn't show up. If each member that did show up scored 3 points, how many points were scored total?",
+      "answer": "27",
+      "audio_sha256": {
+        "neutral": "266126a7c75ee069f4ac3c6a1dd78fa7f74890dd6298c48cf4f5d1977fc586b2",
+        "angry": "0fc9717c42e0172402c1915f63a5b33a96c13f1f07124faa8e9fd489e22d6c15",
+        "happy": "e5b5dbe126da4b3ec732c5a821bbf45a0c15d27c82276f78fd334b268ccf6f09",
+        "sad": "bfee9501389369f69b509284e18e5554d4aaa79741a8837d5b6963fd742fb52e"
+      }
+    },
+    "multiarith_503": {
+      "question": "Edward bought 79 tickets at the state fair. He spent 23 tickets at the 'dunk a clown' booth and decided to use the rest on rides. If each ride cost 7 tickets, how many rides could he go on?",
+      "answer": "8",
+      "audio_sha256": {
+        "neutral": "2770bd9bfc2af61a97e2de658963c19ccba86e4ad64ddf77212c7a4628115679",
+        "angry": "c2385c0c98ef7e05656578f21939dde450721adcba1e05a195d933f1c9718b79",
+        "happy": "6eda8568d4712e0c84ea3e2f23841d05528e772bcfe94ee62ee12ce7e5d33e80",
+        "sad": "bd099d535759dfe697c1a31e76edba213f9f0f7c6e9bbccfb4a809eba0ce5159"
+      }
+    },
+    "multiarith_466": {
+      "question": "Gwen earned 8 points for each bag of cans she recycled. If she had 4 bags, but didn't recycle 2 of them, how many points would she have earned?",
+      "answer": "16",
+      "audio_sha256": {
+        "neutral": "6dba1b7cb18bd2bcd3d9f4c83cd319fd683dfadf7e09dbaeb9fc792ba9901010",
+        "angry": "68ea0a6b2456204e45f8726e7a02eb1ddc77ba370e925969c758aa07ef3e2da8",
+        "happy": "5339c7a29f9742b8875bf088b0a744f2ce03d293d6fba2673d7d97dc88e57d46",
+        "sad": "2bb2f9c78b13e8f2c5a35c8ce4a002d7b07df792b156cf62b3def87bba630568"
+      }
+    },
+    "multiarith_320": {
+      "question": "While playing at the arcade, Frank won 33 tickets playing 'whack a mole' and 9 tickets playing 'skee ball'. If he was trying to buy candy that cost 6 tickets a piece, how many could he buy?",
+      "answer": "7",
+      "audio_sha256": {
+        "neutral": "77dc0c404b60a309195d5dce7825a2fc83d721626aee0f1f5a94b201f7b17a23",
+        "angry": "ff290a9614ff64d8b44c3c1804c0dc7f934c9c28537d0318b31a998cb1464c27",
+        "happy": "cccee607a7c407d614c53262f0d5cce4fc4fcfa8ccd34ab2f5bee1c082ab65a5",
+        "sad": "d827f59f6601bac805dddabe8e0654e4a5d54a2bd533ab387fdaf8bb94e4eea3"
+      }
+    },
+    "multiarith_459": {
+      "question": "A worksheet had 4 problems on it. If a teacher had 16 worksheets to grade and had already graded 8 of them, how many more problems does she have to grade?",
+      "answer": "32",
+      "audio_sha256": {
+        "neutral": "974b783a8b20d87c393aaa53e732ae9725adeb8a753511b03efeb6db377726c1",
+        "angry": "5243064b364765685cba886e32aceea12a90a9ca908615f4076beb038351cd47",
+        "happy": "c95fd198c18da3c7bb3de3eb616b2a84072643f32e1f76f937efc42892c8ac51",
+        "sad": "de249337faa6cd206892ceaeb966d6ab789d9c164488993a09ca1e26b88c063b"
+      }
+    },
+    "multiarith_494": {
+      "question": "Edward earned 9 dollars for each lawn he mowed. If he had 6 lawns to mow, but forgot to mow 2 of them, how much money did he actually earn?",
+      "answer": "36",
+      "audio_sha256": {
+        "neutral": "82d6519020e662a64f67d7d4d08e4aaff8d67e6c61ec927b57250b767d7efb01",
+        "angry": "ac0c1de1b6537ab336d1cf464f19da29b7ad617ac6dcc561127378ebe5f7e88f",
+        "happy": "169a958beaa8938c54d7db83a88d08bf7c3aa85c985a2a4522a30dc545b694cd",
+        "sad": "e86a1a1d15ff4f2dfd5556c4b3343c0f25e77b9dfd4ab3d1aea974ba8b34ca65"
+      }
+    },
+    "multiarith_094": {
+      "question": "For Halloween Katie and her sister combined the candy they received. Katie had 8 pieces of candy while her sister had 23. If they ate 8 pieces the first night, how many pieces do they have left?",
+      "answer": "23",
+      "audio_sha256": {
+        "neutral": "edc20c554021c0eaedad258d8df1902ae474109efa7ad4ad2d8366a67566c97d",
+        "angry": "34459512f2589df4c611feee5374e151d2e2ae3d66498062bcd9449fdbba06cb",
+        "happy": "e91ad175c3acdc7851b1a783568808ec35ef126e76f910f9d1a655c53b94e537",
+        "sad": "45419dd874f7df54e1b8186209a76aa25a9caf112bc197e1507dfb7c63cb1666"
+      }
+    },
+    "multiarith_597": {
+      "question": "The cafeteria had 75 apples. For lunch they handed out 19 to students and decided to use the rest to make pies. If each pie takes 8 apples, how many pies could they make?",
+      "answer": "7",
+      "audio_sha256": {
+        "neutral": "8b2ded92fa9dabb00e3eca6133a4df188a1aaf2ccde58245fc93cf205a7e1a54",
+        "angry": "f8418e93cfda464700200ca8c21aaca3b0df474933dd182c2dfb44b3a652994c",
+        "happy": "b58d6acb833fbe3ea30b25ec854e3b53a8b0704414033eafba8bf527712e3358",
+        "sad": "8cd3791a04e2f1bf37e57ddbf87686a284c70b0ddd861d6f48f782a96dc1c03c"
+      }
+    },
+    "multiarith_253": {
+      "question": "A pet store has 8 bird cages. If each cage has 2 parrots and 7 parakeets in it, how many birds does the pet store have total?",
+      "answer": "72",
+      "audio_sha256": {
+        "neutral": "379998c906197c8f493a39c5714d512374d4dcb59185648c00fe79c8fb5f6692",
+        "angry": "0caf41dbfe6595d45e4dc4c9bfa30eb9d1c316a515b66c88de8fd2d3acb4aa6e",
+        "happy": "0032c37d1c98af4598198813694a80c53e9bd7c35f3fd9a7f2aba01dd3ba1767",
+        "sad": "22cf2d33c308e0c5fc9753f8d767342dc579cd1e492e2678e689e50d5db376d9"
+      }
+    },
+    "multiarith_347": {
+      "question": "A pet shelter had 17 puppies when another 55 were brought in. If 8 puppies a day are adopted, how long would it take for all of them to be adopted?",
+      "answer": "9",
+      "audio_sha256": {
+        "neutral": "2fcb2270c8365520e8ed579bbc04632bb32788dfbd8a4c02d264f3fadbafa13d",
+        "angry": "60e9482867eddba31caf0f449f7627a4e3c6abc59e74956a96382eb312701c96",
+        "happy": "d4016bb0c97fa36e48a0a06f62b0fcae7517e2387f37e7997424ef6dfb1a2583",
+        "sad": "d51d200b66371eb979bac1c7a3e48cbe5fc5a6be114d3a3c23dcaf0e00b2c7f7"
+      }
+    },
+    "multiarith_075": {
+      "question": "Nancy and her mom were picking carrots from their garden. Nancy picked 38 and her mother picked 47. If only 71 of the carrots were good, how many bad carrots did they have?",
+      "answer": "14",
+      "audio_sha256": {
+        "neutral": "dd7cf980670ca5ce8409c741c299c925b550c40443566ed1a228aeae45acadc6",
+        "angry": "a66ed247b726bfb33115c2c6218881615d4918722c210ae94e4ec66e227845bf",
+        "happy": "81d979bff9d1da6481035c6a09729cc6e2ffeee9533fbed798f9115c337caf1f",
+        "sad": "93b2aa01ecb2d02f745eedcea7281841b7e50016ce15d26ccff31b92b0826264"
+      }
+    },
+    "multiarith_074": {
+      "question": "There were 17 girls and 32 boys trying out for the schools basketball team. If only 10 of them got called back, how many students didn't make the cut?",
+      "answer": "39",
+      "audio_sha256": {
+        "neutral": "7df3da1257bd9f6c0db4b21a990763195f6bfdc50a498302d2d94e4a29da5f03",
+        "angry": "054e3b3c0cbf0c0e0379c5b1243e0f422f0d21609e148d5b786748e0291ee24a",
+        "happy": "c495f0224de01f7aa72e6a3fe3448590f2c4475f19d15c0d3a35dc9e5edef063",
+        "sad": "4a8cfadbce8255e8fab091bac5170160e4ee31a8e7df023601229b8713cd005c"
+      }
+    },
+    "multiarith_282": {
+      "question": "A waiter had 5 tables he was waiting on, with 5 women and 3 men at each table. How many customers total did the waiter have?",
+      "answer": "40",
+      "audio_sha256": {
+        "neutral": "74f606355cbfd0ee433691757f503d03e0df9a6784ca4d9d13d20e086db6aa1a",
+        "angry": "19a3bdd4af091fab963c10fcf99ae9a285cebb4efb8eda9209a37a0c3a7b9458",
+        "happy": "256128cbc0868da2ab1b186fbadca3276a1d47e45b894b03e0c2f4c2827ad64b",
+        "sad": "0886d4f913176e81555ef42a26a5514c653fdeab19a9ef34b4a6c9b7ddc9b657"
+      }
+    },
+    "multiarith_035": {
+      "question": "Haley and her mom were picking carrots from their garden. Haley picked 39 and her mother picked 38. If only 64 of the carrots were good, how many bad carrots did they have?",
+      "answer": "13",
+      "audio_sha256": {
+        "neutral": "b1ad7d841404ee0003f8003648f81b7290114db112e343cb3561472fb0f63d50",
+        "angry": "02a4a136e84b2a7b4dffc8114a928849768b1d10c3c41f6633516d841f023a12",
+        "happy": "b85e395201bd3e23a43b6ed31ef560be3d706af052da4bc4a60e6d83b65bc5cf",
+        "sad": "ccc5f9e5d899a4f6534466d9995643d4f5fdc0c6e7498e2ef0856c9de9d5ee98"
+      }
+    },
+    "multiarith_258": {
+      "question": "Megan was selling her necklaces at a garage sale. She sold 7 bead necklaces and 3 gem stone necklaces. If each necklace cost 9 dollars, how much money did she earn?",
+      "answer": "90",
+      "audio_sha256": {
+        "neutral": "cd1d645af6a6af67edcb80c6c8e1584df58d3a6a688497b04cb7344eb420ff82",
+        "angry": "d2d796a15b20c973f447854976e3bcf7f7abbc165e31cedd563c87429fcb9567",
+        "happy": "5951713ad3e2687e4f7cbcac7b24a123ae516f8f83178f25b2fe75764782ae97",
+        "sad": "4f9a5f4492cabbbd7832b1fa16eb63577bc71baf263df3334ec1c6e4db274c8e"
+      }
+    },
+    "multiarith_394": {
+      "question": "Victor was helping the cafeteria workers pick up lunch trays, but he could only carry 7 trays at a time. If he had to pick up 23 trays from one table and 5 trays from another, how many trips will he make?",
+      "answer": "4",
+      "audio_sha256": {
+        "neutral": "5a32549a92ff96b79501e9b030e8466828d52b1fbec7aec19435b4175058e7bf",
+        "angry": "d610eed21370af3c433bee617aad15bb9e8c89ec8a2a39c6986099e4a285f564",
+        "happy": "77fde7fac4ed158ae8f7b2dcf66f23d30705737149e4e67a117df69c7bb0a35c",
+        "sad": "09c06ec50c7fbcbbbe40284e0c050d71b32be89a6f02b008315e556c2f5cc611"
+      }
+    },
+    "multiarith_043": {
+      "question": "Emily was playing a trivia game. In the first round she scored 16 points and in the second round she scored 33 points. In the last round she lost 48 points. How many points did she have at the end of the game?",
+      "answer": "1",
+      "audio_sha256": {
+        "neutral": "259cd242128818de5e2a8d004b9775bb82c1d92c5a4b59e19176f0d10ec5b389",
+        "angry": "971ef53048958c1dff4637abb4de4fc9cbd2ec02c8c71cbeeaf9d884338be182",
+        "happy": "7d3f9910fcc969bf85ed6c7ede0b8b36c5e4f1f2f3fc95139fc68d05efd7e353",
+        "sad": "2bf348902c1d9e2a81bad151fae89b8e7a9710f95df01ebff30bc2e595c275ec"
+      }
+    },
+    "multiarith_040": {
+      "question": "At the schools book fair Sam bought 13 adventure books and 17 mystery books. If 15 of the books were used, how many new books did he buy?",
+      "answer": "15",
+      "audio_sha256": {
+        "neutral": "352d2e839ee4297f336a64c5742401523a34d0c3d46126b3a419056ed812e98a",
+        "angry": "21c1814f6a3ebfc3d23eecfb845e38f5edf63ee04e3eddc318edc5d8cfd199f5",
+        "happy": "f85b66e28886a9a5a4511e090972b836c0262e65a96ed494cf9f9f0621e4f182",
+        "sad": "46fbe73e6ec085ab4a1713236695bdb6ef10cbe08e980fab9148f2d449adf8cb"
+      }
+    },
+    "multiarith_507": {
+      "question": "Isabel had 72 homework problems. She finished 32 of them but still had 5 pages of problems to do. If each page has the same number of problems on it, how many problems are on each page?",
+      "answer": "8",
+      "audio_sha256": {
+        "neutral": "a2a9c3a44b5949a15f062207b3d5e891b49ca4a6523debf8055bb2173570a8b5",
+        "angry": "cd0290b9a60cb32eaa40d221abd9d7d278aaa617245dd00081a3a97df16f0a86",
+        "happy": "8029b27e0f55e9e1702e16a7f53ba36bcb8a1e97ab40e9775789af9f3234c18a",
+        "sad": "fa3d3ff50ff06b3ee29d615c08f198a740785aa7d202db7369b570950396e628"
+      }
+    },
+    "multiarith_133": {
+      "question": "A store had 31 oranges in a bin. If they threw away 9 of the old ones and put 38 new ones in the bin how many would be in the bin?",
+      "answer": "60",
+      "audio_sha256": {
+        "neutral": "bd99eafae9ce7c526fad059c20aaa067b50cf522ec8d1fbf064a3871e6922647",
+        "angry": "493613bde332026b981eedd0abb90b6cb78ca579fd6102744fc981b62f897112",
+        "happy": "e3eadb97a5c545fb37dd93a2440ccb1e8745a0eecf274afcad9ae0184ebd2621",
+        "sad": "b9bf445acc15a244adccde1c0a9ed6e3eca214e187d8b28759630c0aeb54f653"
+      }
+    },
+    "multiarith_029": {
+      "question": "There were 39 girls and 4 boys trying out for the schools basketball team. If only 26 of them got called back, how many students didn't make the cut?",
+      "answer": "17",
+      "audio_sha256": {
+        "neutral": "0c4a4e7fdc9d39213cc71ffee9f0c16a2d196beaae50cbec3a53714fdbfd1f60",
+        "angry": "33bd070874447d3e962e01e12ee29d5366b97db8492cc7f2088b0baccdc6aa4a",
+        "happy": "c804a928b8acab0a9bcf041dca988e20451bddfcb8b15360d9dbac0e40749b86",
+        "sad": "e8887b96c494242752ea07cb9b313c6467df3cf1d3897811b93be735120ee92d"
+      }
+    },
+    "multiarith_132": {
+      "question": "At the arcade Jerry won 4 tickets. If he spent 2 tickets on a beanie and later won 47 more tickets, how many would he have?",
+      "answer": "49",
+      "audio_sha256": {
+        "neutral": "29f61911157d0fbd4efea5234b24d71b1a034083f39c70f312d5b34b47c5147f",
+        "angry": "00a966c06905fbc4c415a69d029027891de997904c5901d5b977165c5870f13d",
+        "happy": "1c2dc1b8195510dfb8390fa6a2e4de30c659a9d020e31725b65ee04b0ed26e48",
+        "sad": "d45926dc3cf8cf05745b8e1d6b498e9ea6a777173d102ce5bce9317830dc085f"
+      }
+    },
+    "multiarith_167": {
+      "question": "For the school bake sale Maria made 19 cupcakes. If she sold 5 of them and then made 10 more, how many cupcakes would she have?",
+      "answer": "24",
+      "audio_sha256": {
+        "neutral": "b5c7c6f35deea2bbd88c3d5d3b3d2027114dda8c7b533717514f5d14344dafc5",
+        "angry": "d6b48bc1effb44e72b42c90746141cba3094778bf9050f04df6b55f5990af73b",
+        "happy": "6788c085d4bfc9102899b0acd491973aed626901d6da2840aafafe05705a85c6",
+        "sad": "0460cf563fc3aaba2fa1258fc294383add8cfa1707794ddfd39fd9d2bf2b09fe"
+      }
+    },
+    "multiarith_481": {
+      "question": "Tom bought 12 boxes of chocolate candy and gave 7 to his little brother. If each box has 6 pieces inside it, how many pieces did Tom still have?",
+      "answer": "30",
+      "audio_sha256": {
+        "neutral": "4b615c1220ae14f627bafa6a953335859691eec31984edeb4201cac304ae1132",
+        "angry": "83865a4c10298109f02ea3c9b0a1928ce6d70aa514e20f930dd31399f726a7e7",
+        "happy": "8687792c6d5f6bd4364b5c00653e658111fdacd0b87bfa64e0f952016fd5b9f0",
+        "sad": "b5b0e074eeb88a840b25bb0ba23116ae3af255ebffb528e78cc9892165b12107"
+      }
+    },
+    "multiarith_445": {
+      "question": "At a restaurant each adult meal costs $7 and kids eat free. If a group of 13 people came in and 9 were kids, how much would it cost for the group to eat?",
+      "answer": "28",
+      "audio_sha256": {
+        "neutral": "c1db3cd75c01c695bbe06d77ed27e9898a5d76a96a33c87234f0c4780d3ecb30",
+        "angry": "c486cc349c856be269551f530a1e31a808de5ca698154a7d27329d6ae3e25c75",
+        "happy": "b0b84a20cfb7a56df36623cd16e424dee83490485a2b8a551b28eff8a8afd8ad",
+        "sad": "6bef3513a77079744e9c76d139680a925aef4124d94b33a36091986d3aba29e1"
+      }
+    },
+    "multiarith_009": {
+      "question": "Ned had to wash 9 short sleeve shirts and 21 long sleeve shirts before school. If he had only washed 29 of them by the time school started, how many did he not wash?",
+      "answer": "1",
+      "audio_sha256": {
+        "neutral": "cc52f87fbb8b773a5f1fef32469e2f8ace4d53b72abed42df2c6c14a9ed98d28",
+        "angry": "bc040a02cb008fe25ea6a4de81e134b207cbfade5893a4f092148db399e58605",
+        "happy": "0f3c4ce7b12f79d5bf2edc4084f2759c43926a6e7782f38b1525f3f7b88911d7",
+        "sad": "b69dc6aa4c7de9c855ba649d18a1c552510ce0fcb0d3f1240352ac00e8bcc83c"
+      }
+    },
+    "multiarith_535": {
+      "question": "A store had 40 coloring books in stock. They ended up putting them on sale and getting rid of 20 of them. The put the ones they still had onto shelves with 4 on each shelf. How many shelves did they use?",
+      "answer": "5",
+      "audio_sha256": {
+        "neutral": "353fc586259da361b06608b71b2273c2dfbdca5c49d4435fcfb2228a841af561",
+        "angry": "00a4687a448758347efc73e774911ed478d5ed0d3a5887c45bff50c476553198",
+        "happy": "e5105078b4b97f210bcba6c583bd2653d018f53aaa0590bf530bba699eaf2034",
+        "sad": "0f5fe93c2742432fe37cfd59c45573dbe835379556c2935ddae211b20389ddcf"
+      }
+    },
+    "multiarith_175": {
+      "question": "In fourth grade there were 31 students at the start of the year. During the year 5 students left and 11 new students came to school. How many students were in fourth grade at the end?",
+      "answer": "37",
+      "audio_sha256": {
+        "neutral": "bf65ecaff4cd5b6d1cf29a214a29d095dfaec327578e32068b5798bb37bbe53b",
+        "angry": "04e23b89c5e56767e6de34dd3f34f27101902dff35d66581474d1a6152f169d4",
+        "happy": "8d0a1767c2c0b76ee4cc36732caa8fcfb719dfa71a9afe2882aab38fdf22f679",
+        "sad": "856ed404730b7311ddb5852ce789dea5dee7d4d7331a1c03f21f2934b37a21db"
+      }
+    },
+    "multiarith_316": {
+      "question": "John made 6 dollars mowing lawns and 18 dollars weed eating. If he only spent 3 dollar a week, how long would the money last him?",
+      "answer": "8",
+      "audio_sha256": {
+        "neutral": "4510a88e46b98abadb3bb65afe577557e2c49d5fd5b85b3e3b147fd576e306ba",
+        "angry": "1b9a54268d925bee9f54e6c0475de311978dd171ea329f119cbf807d6e730f9d",
+        "happy": "92356b99672c3d6355c457f4a9a3abaf841fe1a66ac62fa609d85d969e9d5c40",
+        "sad": "db4ddf2dfd0c65b3ed0cf9056b79b8d64486051fa6979062780418dcb5847121"
+      }
+    },
+    "multiarith_000": {
+      "question": "For Halloween Debby and her sister combined the candy they received. Debby had 32 pieces of candy while her sister had 42. If they ate 35 pieces the first night, how many pieces do they have left?",
+      "answer": "39",
+      "audio_sha256": {
+        "neutral": "ffc74e6b0382d52702c477a1435772a753072db96f97561f02a3c6b37bf3576b",
+        "angry": "0e17e1cae7529d60696f2dd8341f9fcfc0d5c96fee56a6929e4bf4bf0d952c52",
+        "happy": "24ed3fa1fa3d4b3fe8ed9d55d174f5f163dd6de33f9130f7db01880fd8d2820d",
+        "sad": "8db69dad095af9fd7c870041fd3bec8fcf774e842b1c944cc3bcdab9de3be5de"
+      }
+    },
+    "multiarith_281": {
+      "question": "Frank and his friend were buying trick decks from the magic shop for 7 dollars each. How much did they spend if Frank bought 3 decks and his friend bought 2 decks?",
+      "answer": "35",
+      "audio_sha256": {
+        "neutral": "343050036b26af93a70ec8bb59c0b1aa637dcbcc50b54ce1d1728ba396194ec0",
+        "angry": "2c0348815c0b78bc3c2001f58b525a80e8378fca398c310f4df4a91245d78767",
+        "happy": "cd31dfd61fb30739fc64091f551e4ea2925eeba88ce8302dee963da8c8ca5cf6",
+        "sad": "400b3372bcca4cc4fa9c2dbdeb4123e454ee6bbe895281117dd0782a5158726d"
+      }
+    },
+    "multiarith_418": {
+      "question": "Mike had 16 video games but 8 of them weren't working. If he wanted to sell the working games for $7 each, how much money could he earn?",
+      "answer": "56",
+      "audio_sha256": {
+        "neutral": "04b00d644a7fcc3c7bf0267af9a2afca37ab1eb569ab58bc7266ce014211d18d",
+        "angry": "0ecd1859c2edb04ef963135435e04c6dc819437b6d0c83b7563d7409f8014cde",
+        "happy": "5b95ff293362d69f8b45bd81e1ff70daa6ecdc36f7287239150975715d75dade",
+        "sad": "0f621933b13ead48305f6d00034f1f329b111f81b86952bb19768020e2380ae3"
+      }
+    },
+    "multiarith_531": {
+      "question": "Bianca uploaded 33 pictures to Facebook. She put 27 pics into one album and put the rest into 3 different albums. How many pictures were in each album?",
+      "answer": "2",
+      "audio_sha256": {
+        "neutral": "50f516d8cb97be17deeb7aa369225dfcd15665e2bca7c25d15a5181209fccacb",
+        "angry": "36455049166cd4ae48dfac5375236b9662f9a0433ce057f2bff0399e904167fa",
+        "happy": "3612786588f71992283d9f9c49c248cb5dc0200cf2b36a1b23538df0ae447081",
+        "sad": "f373e81c3cf62019323827441d79359fdfd0f534212ec5af099d08bef11e32d8"
+      }
+    },
+    "multiarith_092": {
+      "question": "Rachel bought two coloring books. One had 24 pictures and the other had 39. After one week she had already colored 4 of the pictures. How many pictures does she still have to color?",
+      "answer": "59",
+      "audio_sha256": {
+        "neutral": "76ada6866d8758f730b62ebe1f9702ba61dec519e27cbd6e31b6134cfba5b2f9",
+        "angry": "6548143a499c783ccd46fcc5fce0787355fd846e7f7b33d2351957fd78a35da4",
+        "happy": "8e53379c97f587a535847aa7d8d1fe2c1a3260057132234dcf5edbdfdb3e2f04",
+        "sad": "2ebfffaf39c4b2af57a33360ddbc81aa1a5458ca3db8d0e6375feb501c808631"
+      }
+    },
+    "multiarith_435": {
+      "question": "Each chocolate bar in a box cost $4. If a box had 8 bars total and Emily sold all but 3 bars, how much money would she have made?",
+      "answer": "20",
+      "audio_sha256": {
+        "neutral": "14ea8ff432cc44379705f7fd4e7515d46c8abe9df47a8c97470e9db10f745a51",
+        "angry": "fef8ea298aada1c61118412577ae53752c7741ca8a71389affcf65ba2532c78a",
+        "happy": "8f67a8d078d0958cc9c088a86ca2d989759c283ef79b78da217ac4369aeebb15",
+        "sad": "ac48173b2dcf5d904d0dd4fd5e41155b378abaefefbfbdbead1178c712d425d5"
+      }
+    },
+    "multiarith_201": {
+      "question": "Chloe was unboxing some of her old winter clothes. She found 4 boxes of clothing and inside each box there were 2 scarves and 6 mittens. How many pieces of winter clothing did Chloe have total?",
+      "answer": "32",
+      "audio_sha256": {
+        "neutral": "142cb82f2bdc67048af1a5efcbc37c4d151e9a2f05d98e403be9e4118c59b23d",
+        "angry": "6cf873a595276a530286c53489fe8c6eab5a9ce1b1278a478c76022c09b89df4",
+        "happy": "17454d305361e31b026231e165217f82ef1bb15f4dc8cf44e7187eab2b6abba2",
+        "sad": "be4b3c77ee7aa8c8b300b6b01730c2964a8a6c255206108cb58c8b0df3d3a867"
+      }
+    },
+    "multiarith_471": {
+      "question": "A trivia team had 11 members total, but during a game 6 members didn't show up. If each member that did show up scored 9 points, how many points were scored total?",
+      "answer": "45",
+      "audio_sha256": {
+        "neutral": "7dcc8647850898e05825dbdd4575e6f7f2bad7f3a65dc651922db5dec7dbe1bb",
+        "angry": "4fff5bdf067a269a2d4872ea3e17b56dacd25208611e6074b79b351515b982ce",
+        "happy": "edbb322159ae7f35286bece3820dbd8e1daf4d985c136f0a770b41b28500325c",
+        "sad": "c201747082a02441ec506f1a389ea443796f00588be271da9939571cdf56fc4d"
+      }
+    },
+    "multiarith_111": {
+      "question": "Paige had 8 songs on her mp3 player. If she deleted 5 old songs from it and then added 30 new songs, how many songs does she have on her mp3 player?",
+      "answer": "33",
+      "audio_sha256": {
+        "neutral": "2e84782f672419d76b9dd7981f76be16b97214bbc391ea080fd50d7c55cd7ab0",
+        "angry": "aebf4a075725a0d83548223d9d8cf2ff91cc9b59ab31429e58e10fff153055e6",
+        "happy": "aa2139fe61124b00dd0cedbabd3a62bcfdd6c7b746dd699904b457bda05ff1b6",
+        "sad": "628c9f4550d12c51e19d51983169814037c8e187b6a59ea1d1e7b2a0ebc04fcc"
+      }
+    },
+    "multiarith_321": {
+      "question": "Mike made 14 dollars mowing lawns and 26 dollars weed eating. If he only spent 5 dollar a week, how long would the money last him?",
+      "answer": "8",
+      "audio_sha256": {
+        "neutral": "37f6268a1284e13a2c91ffd41bfc5b0021a4daf5cd8a023de323c9f3e2b51cca",
+        "angry": "558c06eaa31c091b817312e37859e6e54bd4892049145599adabc130cf4c2363",
+        "happy": "8f1fc9afc520685523b153beae31d1928614ddb5348ae3ab742ea919330fef8d",
+        "sad": "8aea85402d6fffb0fa7c5a08b09df6f896ad261fe6b4c510397b32611959895f"
+      }
+    },
+    "multiarith_433": {
+      "question": "John had 5 action figures, but needed 7 total for a complete collection. If each one costs $5, how much money would he need to finish his collection?",
+      "answer": "10",
+      "audio_sha256": {
+        "neutral": "221593a251c4f10cc44b22ebeeeb91804f675c24039ad343217c36779718bd4f",
+        "angry": "72ccc4eab78a8ca537a2fbb77f1093365520e4870810bc90af159f4c11ca5b89",
+        "happy": "b973f5864daa235c0ec69b2eaebda3604fc6b3a6a00783509bf2a6aa7907b2a1",
+        "sad": "c5467f5647201785b671c2fe858fb1a8aaf1097e002a86ac6b65b1adfbff2f30"
+      }
+    },
+    "multiarith_528": {
+      "question": "A company invited 18 people to a luncheon, but 12 of them didn't show up. If the tables they had held 3 people each, how many tables do they need?",
+      "answer": "2",
+      "audio_sha256": {
+        "neutral": "de48c16d4941b5379e094c3ffd36496538ea363a1adb2c8fdb4f98ae85298b34",
+        "angry": "bf15abe2ae54bb9bb0fdf047108ee784ad69af40e7ad0b166776b3f49f1fc42b",
+        "happy": "89f4b4dcee4f73e5c239a9249e3877545f74b73cc9f4e1cc5d81fd8b97253401",
+        "sad": "c62a456e18cff772f3f33d529bee564dc08410ab7f6d869783642836eae13c05"
+      }
+    },
+    "multiarith_162": {
+      "question": "Janet was playing a video game and had 47 lives. In a hard part of the game she lost 23 lives. If she got 46 more lives in the next level, how many lives would she have?",
+      "answer": "70",
+      "audio_sha256": {
+        "neutral": "23becbef23698fce501dbb25d7c0827caea3f5e9c55790cba37049ad83df5288",
+        "angry": "292056dfe410b78744f3762b20bd9d508d85639a52fc89d01d915d1bf3f18155",
+        "happy": "1adae26b503738edcadc65540d38ac03f7145e17d89a1a9e53b9ef1cf107281f",
+        "sad": "dac8128b34eafe41dc9ef7df89aaff57118d5e485a0b698179db781e6c6d3af4"
+      }
+    },
+    "multiarith_330": {
+      "question": "For a birthday party George bought 10 regular sodas and 22 diet sodas. If his fridge would only hold 4 on each shelf, how many shelves would he fill up?",
+      "answer": "8",
+      "audio_sha256": {
+        "neutral": "631ab28da29192f6490ea22924fdf5fd39f3da54d20277356217c0313c3bd8a8",
+        "angry": "39387c42df8921a0aef257143b9596b653d86756b83b67432f8bf743af326531",
+        "happy": "18fab9bbc5939795c0a0637cad586935bc531393fa686676f7bf5d4389159d01",
+        "sad": "e20691283b6386bd51136df47abe55eb9f21b708b5ed1e9cf75163b927da90ad"
+      }
+    },
+    "multiarith_064": {
+      "question": "Edward started his own lawn mowing business. In the spring he made 2 dollars mowing lawns and in the summer he made 27 dollars. If he had to spend 5 dollars buying supplies, how much money did he end up with?",
+      "answer": "24",
+      "audio_sha256": {
+        "neutral": "78708e7149c58beced3c0e574a860c78ad37486608ca6c08029d228e03a4e934",
+        "angry": "bb646e1dd0dc38497b10b88fadaa50c6f3cb464a6181cf93ec88cc14c53629c5",
+        "happy": "32116c1bf9463fb0f6950fb20240e82816695d239db1f54d098a8a2d09cd40b8",
+        "sad": "476b91abe79c3b7d6c090044f57d19842883ba61b4c4211f04b4b8b919a8d348"
+      }
+    },
+    "multiarith_269": {
+      "question": "Frank was collecting cans for recycling. On Saturday he filled 5 bags up and on Sunday he filled 3 more bags. If each bag had 5 cans in it, how many cans did he pick up total?",
+      "answer": "40",
+      "audio_sha256": {
+        "neutral": "4d9af3d93894be10eceb43b44042cbe6a54f9f3aaeafe0b1ddc918cbbfb6073a",
+        "angry": "80e2e6a4e0eb37cded08149afc2a6ba66227a06439f9dd63d84bae951c27a929",
+        "happy": "6867b4532957b26ac6f674b800272e2a0eaf872babcd15f5f56f089de0c26d9a",
+        "sad": "06f9bee8547e42d045ef9685f367f90c44c5713918f592d82b5cdfcaed028faf"
+      }
+    },
+    "multiarith_101": {
+      "question": "For Halloween Faye scored 47 pieces of candy. She ate 25 pieces the first night and then her sister gave her 40 more pieces. How many pieces of candy does Faye have now?",
+      "answer": "62",
+      "audio_sha256": {
+        "neutral": "8a7caa32d716df6b2498edfbc078ba24808de21a26e449c90e6f11cb42113562",
+        "angry": "45395362466f1ff9192306c4572cc417557d12d6f6e531ee550e5fffff1bd173",
+        "happy": "af2a32f35a34a9a22c619b92e20f96800d3627759c5408f8d751e22aa6764b50",
+        "sad": "2bb9d009aa55e02bc7a8dd6ee9c636c8c9e00a3483776a597bfe66a243292f24"
+      }
+    },
+    "multiarith_410": {
+      "question": "Kaleb bought 14 boxes of chocolate candy and gave 5 to his little brother. If each box has 6 pieces inside it, how many pieces did Kaleb still have?",
+      "answer": "54",
+      "audio_sha256": {
+        "neutral": "3f11e5d9a300b12ed515ef2eed3692f6affa25a27df02660017eb2c96dd8f4dd",
+        "angry": "0d7fda52227d64158bb19557b26deb4712afb5d96ba814c8f59388b42cacccda",
+        "happy": "4f5e17900f1ac25d88180733cded8ebd2af5e6c0f44cc2aaff25194d57cafe5c",
+        "sad": "a8c17ec42facc01384e09238c7d08c7d70b080bbb67cb2dd7699e9e711d12699"
+      }
+    },
+    "multiarith_266": {
+      "question": "While shopping for music online, Zoe bought 3 country albums and 5 pop albums. Each album came with a lyric sheet and had 3 songs. How many songs did Zoe buy total?",
+      "answer": "24",
+      "audio_sha256": {
+        "neutral": "11402ab08cf575dbac8dca49d8ed44ea7d53af6ebf3a69a9d34bf6a797f73ede",
+        "angry": "2555509074d2a7b127010cdcdf3367d669a06baac97afe99f6178f81e4a29b29",
+        "happy": "19bef1e4f76f5f66680156f2090ac51373e3f3ab9d93329007fc8d47f420682a",
+        "sad": "35dfe4781726aeae5beeddc3791abfa2050ed2bab89cb851144ae7856d355ba1"
+      }
+    },
+    "multiarith_498": {
+      "question": "Sam invited 9 friends to a birthday party, but 6 couldn't come. If he wanted to buy enough cupcakes so each person could have exactly 2, how many should he buy?",
+      "answer": "6",
+      "audio_sha256": {
+        "neutral": "f369e20e764ffc1418595b2e12b8df83625c317bd76cd2987ba964571f0b6e39",
+        "angry": "faa4601d6e4466b3c8970728296a7fb14fc8bf2977f9155060c1725f4ee77f13",
+        "happy": "373737dba159c5c46ffe1f19e60fe7ed02ec6021c8846643fd828f1e62a3e123",
+        "sad": "7e205dad6c343b3a8dc652e9c9dcdfa5adf042e0aa22a9fa81d2c0862cc023a4"
+      }
+    },
+    "multiarith_388": {
+      "question": "John was organizing his baseball cards in a binder with 3 on each page. If he had 8 new cards and 16 old cards to put in the binder, how many pages would he use?",
+      "answer": "8",
+      "audio_sha256": {
+        "neutral": "82e198af50e9c45c68e7f62caf6ec8c49ad06af870a8867d38399e6f55ddb12d",
+        "angry": "181f7cfcc86629e5f20969c689bfff6fa7782ea81869a66515bf574bd8c93187",
+        "happy": "ca102d70c2c74542f20f591e7832f2ca5e163f45ad6c3a35ffff0e3cbe64f02a",
+        "sad": "1d5dca1c9adeafd26f9a0a82ab2e58510512931d9308fa31d5f293431c966973"
+      }
+    },
+    "multiarith_454": {
+      "question": "John earned 8 dollars for each lawn he mowed. If he had 15 lawns to mow, but forgot to mow 7 of them, how much money did he actually earn?",
+      "answer": "64",
+      "audio_sha256": {
+        "neutral": "3d3a58c04684ca0e5e080710e34fb73321b1604f4b0b56b26f9c2d985baa9947",
+        "angry": "b7d4108692e74b555b889486babadcedeac6c7ea7fc2faf70c04a2af3fd0edc6",
+        "happy": "1e05aa8727ff37f1a428002cbc162c80844ec6894f27f8f7e7e0b0003391e15c",
+        "sad": "a1a242e271fcbbd9fb9efb53e19ab399fcd63d5e079c091a6f547a6ceceba22a"
+      }
+    },
+    "multiarith_001": {
+      "question": "A pet store had 13 siamese cats and 5 house cats. During a sale they sold 10 cats. How many cats do they have left?",
+      "answer": "8",
+      "audio_sha256": {
+        "neutral": "d494263152901e4f8777bc5f15f64e626aec5e177b8984372f6bf0b4d04d6869",
+        "angry": "9a557af7a44b6ee9d35c8322bb0782b59151dd06f7f976e7b312d1f36d2c747b",
+        "happy": "61c3c07802aba9f8d3f137c65609a3810a8811efbc32e17a34fff0c9240c1b3f",
+        "sad": "f05a8e3ab9be9531763d61ab96285302ce4bf1db437c33f6033dee3a5c1d8f24"
+      }
+    },
+    "multiarith_242": {
+      "question": "While playing a trivia game, Mike answered 3 questions correct in the first half and 5 questions correct in the second half. If each question was worth 3 points, what was his final score?",
+      "answer": "24",
+      "audio_sha256": {
+        "neutral": "24797241fef87b435d2499b707ffac9851feeb356b195f79335bca7c744c4772",
+        "angry": "8cc3c6926965d37589c8c2e70ab11307757b9594862b6f0c546eba16c183fa8b",
+        "happy": "3f4bc7c66c4c5bdf7e25a0bdc8d67282292943ae09a3e57c3693cf6a9b37e022",
+        "sad": "996e77a3522d2a5eded31e2021f34147f67f6d2e5dc6a24f180382ad21a5a32a"
+      }
+    },
+    "multiarith_557": {
+      "question": "A store had 86 coloring books in stock. They ended up putting them on sale and getting rid of 37 of them. The put the ones they still had onto shelves with 7 on each shelf. How many shelves did they use?",
+      "answer": "7",
+      "audio_sha256": {
+        "neutral": "a76ec6159748cf72fe34c9ee6a2c45ffc3bc07cc50bc36cd1ae2d0d3932f7de8",
+        "angry": "dc9b3e2dcb628fec82a198a6f8bc5d73c4696263adc4d84a1ccd598aeaa021e8",
+        "happy": "1921e511e2fe14840a3534211f3a245bb2c204c3e5ea7e8c317c4264db38b50f",
+        "sad": "b0e79fc4f408117ea72a198c0daaa03284a5d96c94c1800320b567d3b2b8ff0c"
+      }
+    },
+    "multiarith_232": {
+      "question": "Victor was working as a sacker at a grocery store where he made 6 dollars an hour. On Monday he worked 5 hours and on Tuesday he worked 5 hours. How much money did Victor make in those two days?",
+      "answer": "60",
+      "audio_sha256": {
+        "neutral": "4767fc801902c5ce2e6f889a53e66ee0004c810637c64bf3d0368d29086d0109",
+        "angry": "bbd8417814b35311b874286fe3135c3a86aee5dba1b011481323064bc0dac0f7",
+        "happy": "1e0e44d1140d217dba43a58c6ff0f72e2890f9cb512e770b954687d8ecc87728",
+        "sad": "68b7cab146af671a3b99749655da330d03107fe88dad7af1ef99ea05f17e08be"
+      }
+    },
+    "multiarith_160": {
+      "question": "Roger had 45 dollars in January. By March he had spent 20 dollars. If he got another 46 dollars from his mom, how much money would he have?",
+      "answer": "71",
+      "audio_sha256": {
+        "neutral": "a475bbc0c9416d0df61bb5eda137ff9024976556f3133bdd84786fb0b1fb08e2",
+        "angry": "e63926249e3aa448efff3f568bc0206db4d6b6b9923a7c9a432e061efdeab9ef",
+        "happy": "39668a59c62b38fbf078594dabaf9d9512776cef0a0db2099faff9b2729298e0",
+        "sad": "689e5b4312a8cdf25957bf5101334174972d48791ebc7756837e9707ce817345"
+      }
+    },
+    "multiarith_067": {
+      "question": "George had 30 dollars. For his birthday he got 16 more dollars but spent 38 on a new game. How much money does he have now?",
+      "answer": "8",
+      "audio_sha256": {
+        "neutral": "b1c2fb9a69ad2abc3c6a90c2a78cac05c86ba82ed43c0438e34a02cee65e113b",
+        "angry": "adfce9989ca9001615246503d9db98f7fe0098bde66df2b5ca2febf5db48a123",
+        "happy": "039d79a77f8bf2402a582317f6c0c5f5e85488c0b97195ca8f00fc98b6fe9b45",
+        "sad": "9d835a15e8608e25bd3835cb386a25b80ab591165a324d1446781e3cec71a7b0"
+      }
+    },
+    "multiarith_184": {
+      "question": "At the fair there were 31 people in line for the bumper cars. If 25 of them got tired of waiting and left and 25 more got in line, how many people would be in line?",
+      "answer": "31",
+      "audio_sha256": {
+        "neutral": "1994d31553dc642c5facaa231c9f0b98677bf21fdd8d004148b8657e581c0995",
+        "angry": "8ba074c291447de29d9a705ed8f5f28dca1fb8187e3d09fe8bf94761984932a2",
+        "happy": "13109c69dbd64e4d23b09090f2ac013e9c21d0a7c6eb80366b55c0036d5ea6c1",
+        "sad": "83d49225dc7d376a65836d4159fbdd6f77f3696239d7855e4303a5f09b14de2c"
+      }
+    },
+    "multiarith_338": {
+      "question": "While playing at the arcade, Edward won 3 tickets playing 'whack a mole' and 5 tickets playing 'skee ball'. If he was trying to buy candy that cost 4 tickets a piece, how many could he buy?",
+      "answer": "2",
+      "audio_sha256": {
+        "neutral": "03ff8762b739ab38c1d91c221217520ca76238ee9308e3187a8a8d093b14b674",
+        "angry": "2cdf283c51e99cdb1c66a2d3e5c1745d3b6d6668c020d49d405326a8c2be591a",
+        "happy": "db5a3a48799a05c4e5dad6090a24cd46600cdc699902e4921314912375751506",
+        "sad": "6eb8eb9874ac5e2cd7e96143d869be91a797fe5a67a9b090387bc69ec3abeb40"
+      }
+    },
+    "multiarith_521": {
+      "question": "The cafeteria had 96 apples. For lunch they handed out 42 to students and decided to use the rest to make pies. If each pie takes 6 apples, how many pies could they make?",
+      "answer": "9",
+      "audio_sha256": {
+        "neutral": "b329cf498c08343d0fc9370b65a6a82bd11dc40fd8b02b93ee15c09d2a6c70e5",
+        "angry": "b123601b938cd73994db01170928b815359ff5ded8f821b3ac25610fca62a74c",
+        "happy": "4f1165f4bb0e3db69e58073f66ce5ca9dd6fc1addf71f539888977eae351e048",
+        "sad": "3f5df8bb258b0b407902cd623a21d208bc62bc711db7517c90fc002bf5e07850"
+      }
+    },
+    "multiarith_146": {
+      "question": "For the school bake sale Carol made 19 cupcakes. If she sold 6 of them and then made 27 more, how many cupcakes would she have?",
+      "answer": "40",
+      "audio_sha256": {
+        "neutral": "b7614a9ac02265889bfbd054dcdcc8a7fc83459f84a69e910a9f72942a59cde9",
+        "angry": "1cc73e24cc966459da1202bd0bbb4dae203569db8518689a92816cfaf52a6eab",
+        "happy": "9db549bb37e94251b93c90d6b5b508af527a289c11f4baa29b745b5623759b90",
+        "sad": "2c40011c17e4924cf1957a29a3b3d8d02444d4b82a1d481516c9e5aa411a6be1"
+      }
+    },
+    "multiarith_404": {
+      "question": "Henry earned 5 dollars for each lawn he mowed. If he had 12 lawns to mow, but forgot to mow 7 of them, how much money did he actually earn?",
+      "answer": "25",
+      "audio_sha256": {
+        "neutral": "9a0f399b8f70024bfd67202b0abb7159005dda996e0596b64dfa3af421fe2680",
+        "angry": "f6969c2796c98cf2e360f3fcf18699af5da19db68825d64c0556832a815606b5",
+        "happy": "d40ff8d7a5b0dcc4b4479144605cd2366972b7f0c634530f7c5513a3d7104baa",
+        "sad": "aefdf96cde6eb379ea8f7e22563151014f04bc34ede511ac120b6abce4435a3f"
+      }
+    },
+    "multiarith_284": {
+      "question": "Sam was collecting cans for recycling. On Saturday he filled 3 bags up and on Sunday he filled 4 more bags. If each bag had 9 cans in it, how many cans did he pick up total?",
+      "answer": "63",
+      "audio_sha256": {
+        "neutral": "362ab51da8e94c85c34bf13cb490c5980b17c64f04b99979ba486d3e59078cb3",
+        "angry": "96f312f1181ac9f9bd6872b48df2a39f23aaca3def253b8029d5179f12af3b97",
+        "happy": "8da7bc7ce2829530d1ca5d8e5f59e7fa1d0fb518b5e189b42eaf133bbd52bd16",
+        "sad": "cd5f37e15f4ef39376a284890d944affc8132b9b6d80f1175a5445fbb9774174"
+      }
+    },
+    "multiarith_369": {
+      "question": "At a company picnic 23 managers and 7 employees decided to start a game of volleyball. If they split into 6 teams how many people would be on each team?",
+      "answer": "5",
+      "audio_sha256": {
+        "neutral": "fc874ee3bc1da3c6c478e1f5d7bd6ddb4760cdeb95d9e867471baca086246279",
+        "angry": "100a8edbff0f419baf8a65f4d6360674bba484a99a5d0b2d675eb160794432d9",
+        "happy": "c3216d248c558b0bd584fac92060b3b7254502a9e247f837556b8c9a3cb841eb",
+        "sad": "6d915025fa6439b397f92af0af83d6f6937289d08f357795ae771df88d10da36"
+      }
+    },
+    "multiarith_068": {
+      "question": "There were 6 girls and 48 boys trying out for the schools basketball team. If only 7 of them got called back, how many students didn't make the cut?",
+      "answer": "47",
+      "audio_sha256": {
+        "neutral": "5522c4548019f0c53c91892c3bde3b6e5ceada40192fb147f2f96afd29834ef7",
+        "angry": "e2299765a655d80c4620068b8d4540982eae457eb8e45a3d28a9862ee95e2dd4",
+        "happy": "8f53547012ee69c4b98c082d4d49077bc839848832555152a18b2e52343a4a4f",
+        "sad": "ee69e38c552b3f31f177000a86391a1429d62102bbdf4b86ff82dc58e593b59a"
+      }
+    },
+    "multiarith_389": {
+      "question": "Wendy uploaded 22 pictures from her phone and 2 from her camera to facebook. If she sorted the pics into 4 different albums with the same amount of pics in each album, how many pictures were in each of the albums?",
+      "answer": "6",
+      "audio_sha256": {
+        "neutral": "05bc65ca866e2ea40a50ec92f3600881461f0f1c6d7b653a5158f45f8b11d0d3",
+        "angry": "f79cb794c75734f8fe7e02f5aba383c371ed5ec5961fab4c3f569a46c6468c31",
+        "happy": "738210b611b43b9d9e40dcc74b263f33cd23bec8f21886ef63231e0c7722ee94",
+        "sad": "29fee5b6e42e19917bf7946370941025ba3e2f105bd57bc0237d2417cf042596"
+      }
+    },
+    "multiarith_467": {
+      "question": "A new building needed 12 windows. The builder had already installed 6 of them. If it takes 4 hours to install each window, how long will it take him to install the rest?",
+      "answer": "24",
+      "audio_sha256": {
+        "neutral": "873fcbf2377a2d8255d3b920d31386d85bc5c9a5671888b3ef0015338d68c177",
+        "angry": "96840e33d8e2b53eac38c4d6e6e0557df6d3f42647d7c635f15c27316a55152c",
+        "happy": "53dd0ae979c04b660c94b15c452eb1729c557126aa51d75e4ef8201cb7288d9c",
+        "sad": "10938ca19ea057ee0d6af667c18c24c2394beabe96e7a17df1c49865069e1daf"
+      }
+    },
+    "multiarith_005": {
+      "question": "Carol and her mom were picking carrots from their garden. Carol picked 29 and her mother picked 16. If only 38 of the carrots were good, how many bad carrots did they have?",
+      "answer": "7",
+      "audio_sha256": {
+        "neutral": "3cc64bfd298ac397c9cc35fd693464dcc0b10ae7d729473159d22459b1511b65",
+        "angry": "a606248b3dd6381dece87cdf1c4e2cca03b69a7b7f05dbc01ef15b524e9c07b1",
+        "happy": "1433609ac8b0d7ad0624b1c627b3c29e60aa70d05c943ccf44a5b3d676bc291d",
+        "sad": "9c4d100110551f5cc7996c3be0697934ded95dc59886bf637a43fd9198d39e81"
+      }
+    },
+    "multiarith_293": {
+      "question": "Sarah had 4 pages of math homework and 6 pages of reading homework. If each page had 4 problems on it, how many problems did she have to complete total?",
+      "answer": "40",
+      "audio_sha256": {
+        "neutral": "988828c939c3ffbfa05586de159a0a7e0b9c225503615e2313a85e39a55e5b84",
+        "angry": "0ab1950a5f3915e007c08cd6ba3d1148046d0fb1ff1a2ddb637db8854e23b2fa",
+        "happy": "7dae7f767bc865c1bce44743ba1553143181a98b250666872df7f8b3c096b154",
+        "sad": "803837891fe070b3e71de06d9784edae1b2a3965e9d82e88a6f6cf949831b952"
+      }
+    },
+    "multiarith_138": {
+      "question": "For Halloween Robin scored 23 pieces of candy. She ate 7 pieces the first night and then her sister gave her 21 more pieces. How many pieces of candy does Robin have now?",
+      "answer": "37",
+      "audio_sha256": {
+        "neutral": "5a6752be2e7a0feb9948b52d816f1a296665b0f008490df4cb74f4079fda6bc4",
+        "angry": "c638032e209f6b506f70bb03fc043acd4e79f43bf58e86b3b547f27804d9f896",
+        "happy": "1a605537019f088f83558c34e7ae17eac72b625e568774879f399367afb5b42f",
+        "sad": "90592e0578426fad1b48256b78b7a3bec4bd0537dd30fba570eb8ae383411b6e"
+      }
+    },
+    "multiarith_562": {
+      "question": "A company invited 45 people to a luncheon, but 35 of them didn't show up. If the tables they had held 2 people each, how many tables do they need?",
+      "answer": "5",
+      "audio_sha256": {
+        "neutral": "bed19e1a9426908846af863ba18a86441852aaa0294d881df4fe7ecd5108c927",
+        "angry": "f07d73a834e2fc550e314109dc120ed9778b0afd344eac0c3dff0cd8fecfdc79",
+        "happy": "528271c7a11723effd13953949bfa7d37abaeb5485f0a21c33fd0f5ed68959ac",
+        "sad": "3f72112f9c9dd4a522d24499315ef2d42043afa81a018b4347513a2b7b6672df"
+      }
+    },
+    "multiarith_249": {
+      "question": "April's discount flowers was having a sale where each flower was 3 dollars. If Robin bought 5 roses and 4 daisies, how much did she spend?",
+      "answer": "27",
+      "audio_sha256": {
+        "neutral": "b4792f917d0df8195056e87b44168d01fc0174a0d6eb3b0119c90b41b6eb0b34",
+        "angry": "5c3119e8ebea9340a2f63fef223aec8077a77118c08489caa4ddacd422bc97f9",
+        "happy": "d162df16d1e758408e76ce57443c5760772d7dbd5855e4eb7eb58df30fd042dd",
+        "sad": "02ea8caad60a2fb2dbb6b2e2290f49705073bcc47e0c2b2a8683cfc12ad48100"
+      }
+    },
+    "multiarith_465": {
+      "question": "Each chocolate bar in a box cost $4. If a box had 11 bars total and Vanessa sold all but 7 bars, how much money would she have made?",
+      "answer": "16",
+      "audio_sha256": {
+        "neutral": "666a3b257b132a0f4c8ddb78d62265fefb2ac2fab02ac9da48eb5804c8b83510",
+        "angry": "17ea1285e50e5be779ee2dcf0fc75895765584a05ab9fe25ba67617dfc5a341b",
+        "happy": "766099e459068184ce19d4291a5819b5d5f15c20d81d1cc44316c6182e09d63b",
+        "sad": "0d9dddb724f129b261723cf131be323af995160b5be1720ae637b85be3db696b"
+      }
+    },
+    "multiarith_205": {
+      "question": "Wendy was playing a video game where she scores 5 points for each treasure she finds. If she found 4 treasures on the first level and 3 on the second, what would her score be?",
+      "answer": "35",
+      "audio_sha256": {
+        "neutral": "1b16335c53c305379903e976510443e3799bd3dff0a6ef0a10f9f10f82ea612a",
+        "angry": "6c03a999d41f70b14dd9d37906babed44f24e5e49194668970bb88495ef49c8d",
+        "happy": "89704c7b2faddfcd708c88484c01dfb7854f7e37ac2f0a2baebf5d8cf67dc31b",
+        "sad": "6cf3cf2f3d9df89298993c96722a733ca45f489d0fe70e3f6cedd6725654d285"
+      }
+    },
+    "multiarith_207": {
+      "question": "Paul bought 6 boxes of chocolate candy and 4 boxes of caramel candy. If each box has 9 pieces inside it, how much candy did he have total?",
+      "answer": "90",
+      "audio_sha256": {
+        "neutral": "1e2738c7de783e1a5a2e6898e61727d9e2377a0ded5f3b60081de45f40401e23",
+        "angry": "650f8a7a69705393e82573b21820545df3dcc06d947043b2a7c5b5d94a422b99",
+        "happy": "72e2030805b291e0e083928b62bb75d1cc1d4a71ffdb3246a80d67d52659a611",
+        "sad": "2398740f9c4028078b0b90591b00be9b812f168797f8a237b9c72996dbaf0c42"
+      }
+    },
+    "multiarith_589": {
+      "question": "Mike made 69 dollars mowing lawns over the summer. If he spent 24 dollars buying new mower blades, how many 5 dollar games could he buy with the money he had left?",
+      "answer": "9",
+      "audio_sha256": {
+        "neutral": "f087b88012ba109c08a53b51be361fd2208c38356892e4b08586d5880b5d42b4",
+        "angry": "fc6e4e3d7b51be599d8c59e9f4ae92de34c923718b261de86902b31890950f78",
+        "happy": "f476ba5b393faa0302ff23f8aab92166e9d4d149c7f87d395f42d6ff944f2ff5",
+        "sad": "a142dbfe69d0e019c10735bf90e2925f602a4243ae909bab7c90091c8f98c8b2"
+      }
+    },
+    "multiarith_315": {
+      "question": "A toy store had 4 giant stuffed bears in stock when they got another shipment with 10 bears in it. The put the bears onto shelves with 7 on each shelf. How many shelves did they use?",
+      "answer": "2",
+      "audio_sha256": {
+        "neutral": "20a0c6f1153d6f2d2dd8b9f018486f232d5345e205b4160de61422118a6a04f8",
+        "angry": "d5656a8790ec8cf188ea69c3d1fd39f5eceb5a3d301fc41bbf41be9564c52574",
+        "happy": "2cca5d6c2785b9ad0978ba8de30b69f5b58ef8b7626e461a6c7678908ae483c6",
+        "sad": "48377346915af87811519ebf86794da53385f64bf3bf8d83a45560f6bcbb292f"
+      }
+    },
+    "multiarith_226": {
+      "question": "Sam was collecting cans for recycling. On Saturday he filled 4 bags up and on Sunday he filled 3 more bags. If each bag had 6 cans in it, how many cans did he pick up total?",
+      "answer": "42",
+      "audio_sha256": {
+        "neutral": "a3cd00002d01888bcfd6f31a8a16bb969995d88920b15390470e8ddf7b2bba42",
+        "angry": "d7f04bbb4249210e732cc104e803b10b05f11141127e94d236b42ee699990dfd",
+        "happy": "7626aeb368b1862ea647d9baab8e441662dfd39166d303a7b4458d7b17918769",
+        "sad": "ce12d2bd85e2a18ab18e3b12b300851dc35b505841e18c8b52e57886066f3180"
+      }
+    },
+    "multiarith_573": {
+      "question": "Haley baked 20 cupcakes for her school's bake sale. If her brother, Todd, ate 11 of them how many packages could she make if she put 3 cupcake in each package?",
+      "answer": "3",
+      "audio_sha256": {
+        "neutral": "942d112e4df2db63793aac33d5ac8c677e434b87b346bac2f94c101aa1674732",
+        "angry": "9703afa933fd6668fb427c5feff486d883dd4b0f7b00a7cbae2455171d7b8a3d",
+        "happy": "dca00a58f83f936716f915d064f79f81ae3fbd69c4f690d816f7a4bbd27711d8",
+        "sad": "a5b7442137dac5d16a48f8d10d330e783fbb9c5919eaf11ae562c73e03ff0030"
+      }
+    },
+    "multiarith_425": {
+      "question": "Mike invited 13 friends to a birthday party, but 7 couldn't come. If he wanted to buy enough cupcakes so each person could have exactly 4, how many should he buy?",
+      "answer": "24",
+      "audio_sha256": {
+        "neutral": "a87067fec029a6058ddaee97ab3e7a314110708c20f026ae947e1b7ce7a6fec9",
+        "angry": "30b81fcbde9bfb0093f6ac90f6c67a80e4c7c1d6220e525efdea412d1ab0432b",
+        "happy": "4927d2c0c3c0c70330e4a9362d3081df783dc00d7872e879614487fdba29a373",
+        "sad": "987bbf34d1d1c4aeb049cdc732e9180f5b4693d9805794135359c68fadcc4354"
+      }
+    },
+    "multiarith_549": {
+      "question": "Mike made 42 dollars mowing lawns over the summer. If he spent 10 dollars buying new mower blades, how many 8 dollar games could he buy with the money he had left?",
+      "answer": "4",
+      "audio_sha256": {
+        "neutral": "2bfa2f02d38a522ea432a120893cb81990e45f6892acbe3eacffbaf5c350d9fe",
+        "angry": "30943683818720cac24083840f2171f97624ababc11d9aa42e7e8854e7f751c0",
+        "happy": "b946337bfb2cbad5f6cc248cc469ad8030fd466be25b328ccbf9c9474e4e1c05",
+        "sad": "7e947533c8c5241d4502f5c9c622a0938d87ad7351a492758cb611671725f53b"
+      }
+    },
+    "multiarith_331": {
+      "question": "The schools debate team had 28 boys and 4 girls on it. If they were split into groups of 4 how many groups could they make?",
+      "answer": "8",
+      "audio_sha256": {
+        "neutral": "11dac47f07a720785f50bea7d328ef31ac0c38f678d09f5460d48d05191a41f2",
+        "angry": "348cb612564bbd2beaa4c1901db021b1e7d5118b9f14fb5b81a78b3105399bbc",
+        "happy": "2d0b5490aac7a78c1f5db69e0ca50c081a74df73048dcdb9b1991837b12abca7",
+        "sad": "24c2e489061c287bb96f863b17dc4effcc05529a6a72f5f8106fdbe476a57362"
+      }
+    },
+    "multiarith_088": {
+      "question": "While shopping, Maria bought 40 green towels and 44 white towels. If she gave her mother 65 of them, how many towels did Maria end up with?",
+      "answer": "19",
+      "audio_sha256": {
+        "neutral": "2d3864080ffb6fd909b2f14004718063ba3faaef6d6c2fd763346523aaa672b0",
+        "angry": "ee50bab33c8937d678f3e251480f64fffbe15b9b9eb63bec242bac873a5ce8b4",
+        "happy": "61de42810c48b7c1552770967baede4eb709b60cd53cc438a7e4d423b70f5a85",
+        "sad": "f6e262464d767d8a5946c5bab2f38f6bbfc726bc98a6ff2131b6f0873454fbca"
+      }
+    },
+    "multiarith_066": {
+      "question": "Olivia and her mom were picking carrots from their garden. Olivia picked 20 and her mother picked 14. If only 19 of the carrots were good, how many bad carrots did they have?",
+      "answer": "15",
+      "audio_sha256": {
+        "neutral": "ca7b638eed6de3274bb4ab9b54857c22af2fa50b5d1f25547b0cb698f3fed7cc",
+        "angry": "ccd8567eaf5af3fa0ba2c26eec61c91bc9fca5ce8523ef32d99fbca0e494718e",
+        "happy": "5e2f3cb9a5b84a1d2c2a3b2970e4acc8da1706e77f96cff794f45811a8c9cab7",
+        "sad": "b0611848f51d647ac6fec22bff2443b6684d6fe41893a3858c5f3e21ec2e919d"
+      }
+    },
+    "multiarith_460": {
+      "question": "A worksheet had 2 problems on it. If a teacher had 14 worksheets to grade and had already graded 7 of them, how many more problems does she have to grade?",
+      "answer": "14",
+      "audio_sha256": {
+        "neutral": "6f98cb8f96e9df273f3974f03e861117ab1a79c9fe4ccfcd02d446380ba0ab01",
+        "angry": "80820dc80dec900699bca496d87e6adb2b5c741358b8a972842124bef7907328",
+        "happy": "a678377a9f79b3c6fa8c4a8247202dc74ddec30885c86b167470f2f2531d7472",
+        "sad": "fb636b19931a0e94410437a48b64a9a3601573c65b4b9d13145946c1ac9bf435"
+      }
+    },
+    "multiarith_024": {
+      "question": "While on vacation, Gwen took 41 pictures at the zoo and 29 at the museum. If she later deleted 15 of the pictures, how many pictures from her vacation did she still have?",
+      "answer": "55",
+      "audio_sha256": {
+        "neutral": "a21b4734a856dd9283f7d2f773f6839045d8c13c65341accd9cbfdb272f70a7d",
+        "angry": "29d159c6f8deba476c5800085d19393b17ae6a7c833f3a7346e63e99b77c7647",
+        "happy": "32a84e857287a8e33aa26d8d2ffebcb7ef9130217bd5c5e752edb8096cbe8241",
+        "sad": "1f5fa54e1ef1e62cd3fd5012823470de59f45f882593239ee2e9ed1f1eb6dcdb"
+      }
+    },
+    "multiarith_406": {
+      "question": "A painter needed to paint 10 rooms in a building. Each room takes 8 hours to paint. If he already painted 8 rooms, how much longer will he take to paint the rest?",
+      "answer": "16",
+      "audio_sha256": {
+        "neutral": "f124835fc02922ca7b9f7dcd32fcda34410081633d90dd778a7a094803f8620b",
+        "angry": "e5967efd4c4d16f88ba093dfd2bcdb8ed1e243d5fa9ad0e2b0501640b41623f2",
+        "happy": "dd8835e9203be634aac7fc7a1f5c302b0918fdb31e56cdca0356c091b22002a2",
+        "sad": "990097a5156eefe4e5a3746d2fd16ba6094b8a0441327667d79bf4f079814d9f"
+      }
+    },
+    "multiarith_552": {
+      "question": "Emily was planting vegetables in her garden. She started with 42 seeds and planted 36 of them in the big garden and in each of her small gardens put 2 seeds each. How many small gardens did Emily have?",
+      "answer": "3",
+      "audio_sha256": {
+        "neutral": "f09aa7674ecc6ee21ff42f4511d3ebaaa3479c7e8f0afa5e39037f8e0fe093b9",
+        "angry": "ab893b318753cf66a9cd3daafbf1ef9a6c1d2aa17d3e3dfa3796e724fa6f0750",
+        "happy": "61038d94a6baf15d7f8d789eecdf99e41073d55d66bff24c17eee12aac7b9bec",
+        "sad": "4735eb220a7d67e07dbde606a1cd3991ed91dbf659f14d81e54379a15015208b"
+      }
+    },
+    "multiarith_262": {
+      "question": "Roger was putting his spare change into piles. He had 3 piles of quarters and 3 piles of dimes. If each pile had 7 coins in it, how many coins did he have total?",
+      "answer": "42",
+      "audio_sha256": {
+        "neutral": "c88be7dd13f53af175f09fe711219a9ec7ded0a29d34a74bbccfd14546a9eac2",
+        "angry": "ae534ad7e166f248257528c3d1f100c2da02a939b7aa1b9ad497f35c6ce3e702",
+        "happy": "41ec2062bcad3d7803d149bb9eca561413eb742eea632dca80981f878c33a281",
+        "sad": "89fa335ffd08dcf6e5e608d7814f42fd83c1b92bed6b7bd3d290bded9d4e9be4"
+      }
+    },
+    "multiarith_270": {
+      "question": "April's discount flowers was having a sale where each flower was 8 dollars. If Vanessa bought 3 roses and 3 daisies, how much did she spend?",
+      "answer": "48",
+      "audio_sha256": {
+        "neutral": "fdc6cc88ccd8124048029a698f34d59feb21b75e4549d591e0bce942d96d6b40",
+        "angry": "97309347713ba239910ce7f7f7c7c95787dd836621998f6b3fcee0f9a34d6dbc",
+        "happy": "0b95a7719b0f97b4596fe8eb083f33e2dec37f6964449e3216374d9eaf5f5897",
+        "sad": "790fbb0182d13b87c545cf5deaa295fc59b40a1fddd9b33aa49de77c4900e218"
+      }
+    },
+    "multiarith_080": {
+      "question": "The school cafeteria ordered 6 red apples and 15 green apples for students lunches. But, if only 5 students wanted fruit, how many extra did the cafeteria end up with?",
+      "answer": "16",
+      "audio_sha256": {
+        "neutral": "685655980a3e50acf2f88649c88aaf2c4ea029acc4c3a21e50bd4ce3e86f85ea",
+        "angry": "6c492cf450f5bd1d24b73160023eae71c9840d10e37568bdba13f19687f16b9d",
+        "happy": "a11b37305fef482d6c7a24dbbcc4993d9bd8ccc734ddcfdddaf1cf1b6cbc5838",
+        "sad": "1dd9061fe8095f7e1c08300f254ea7ce38f41189c0df8cf16b16d7c836883e52"
+      }
+    },
+    "multiarith_525": {
+      "question": "Megan had 40 homework problems. She finished 26 of them but still had 2 pages of problems to do. If each page has the same number of problems on it, how many problems are on each page?",
+      "answer": "7",
+      "audio_sha256": {
+        "neutral": "ba4f930f680f574a62c11eb753430c666fee7757f4c3efb41c16c0574633be09",
+        "angry": "82c9425d7ceab4d0b30dc09ee7d19834fef4041b5f64817b51801d4e2a398015",
+        "happy": "bf168bf431596928279bd4c18599a7e29ddec2fe76501b7bbfa88265c970d691",
+        "sad": "a10503ae6f0155b4110fef01f288102e5e7e2a6e1e793b4cbc905345139d3cc7"
+      }
+    },
+    "multiarith_195": {
+      "question": "Roger had 25 books. If he sold 21 of them and used the money he earned to buy 30 new books, how many books would Roger have?",
+      "answer": "34",
+      "audio_sha256": {
+        "neutral": "3482724bb6f30e2c5e5bd5c6f931153760d008a5cf77c902a2764f1680d5b5c3",
+        "angry": "2e73b4c3e67370157c88f874a227f4a225076097d0c7deafa744a054f804eafc",
+        "happy": "3ea57245c006bfbe00f411cccbe5e9ef1d34e32dc59de208e11eb016836812d5",
+        "sad": "12bc1a04b1895d5ea5d6822443c5a671673fdf743e0e0e5d82ac7d613eb9e125"
+      }
+    },
+    "multiarith_214": {
+      "question": "Paul was collecting cans for recycling. On Saturday he filled 6 bags up and on Sunday he filled 3 more bags. If each bag had 8 cans in it, how many cans did he pick up total?",
+      "answer": "72",
+      "audio_sha256": {
+        "neutral": "fdb5f640ce9d331c8aca4733230d3b54d57d2f855edc23c54bf5d31b74798437",
+        "angry": "ff83571699241b8d0b099d5ea9ff86b3b9ebcaac1dfb3543d1cbc5806377c3ef",
+        "happy": "0f374634d19f18a6c2cee1f69a48c7e964cdfb95a509cd9fcfb475d82b2ebfc9",
+        "sad": "ba17f0e737d52bdc9cf4f28d3768f31cd32c737139c1f54a06a81093f70a3067"
+      }
+    },
+    "multiarith_308": {
+      "question": "For homework Nancy had 17 math problems and 15 spelling problems. If she can finish 8 problems in an hour how long will it take her to finish all the problems?",
+      "answer": "4",
+      "audio_sha256": {
+        "neutral": "eb02fe8a6532c0958662501636b684b03f7654a492bc40d65d8272378b87c4c5",
+        "angry": "49bb5cdfd475597e9d4f18be18545e104f8115dcb5947ecfa13659aa6b696cb8",
+        "happy": "9836f48d0a103420212bcd0c89617debb547d1766321e03d60cae34c54bfaaa6",
+        "sad": "90a7436a2d1589979d42281514dde551d0b31f4045aba2b30e3f9e4785258ab7"
+      }
+    },
+    "multiarith_581": {
+      "question": "Bianca's team won their dodgeball game and scored 75 points total. If Bianca scored 45 of the points and everyone else scored 6 points each, how many players were on her team?",
+      "answer": "5",
+      "audio_sha256": {
+        "neutral": "253b47f360f15d7eb90f1ef9d642f3a831a4bfc2dbd618ddedf0fbc93872c48e",
+        "angry": "bd4a3091ac8958b43580e3a51e0879a50fc157d3cdbe74222b7c6a6402aa6b58",
+        "happy": "b4e3330a20a05b04c0beba2544bb9b6600263821c760fd13193de95174385107",
+        "sad": "b1bd3cab184018656c87555e531202d8edd3770cb92099e7c1886debdf9c90e6"
+      }
+    },
+    "multiarith_229": {
+      "question": "Edward and his friend were buying trick decks from the magic shop for 9 dollars each. How much did they spend if Edward bought 4 decks and his friend bought 4 decks?",
+      "answer": "72",
+      "audio_sha256": {
+        "neutral": "0cbaf1e60b0a41f8029583fc265323748b31f4dea41b3acc12454d171e08d44b",
+        "angry": "64f0151c1896dd0508136ad7627175c33edb7ab82f3132d9e89be9ba1810261a",
+        "happy": "7dff9c8983cb00940905ec20937ad99d10fb4777d13c2499c551132490aa7656",
+        "sad": "cf828c783117daee248691d88682058e54f40284145009daee8e4bddc6ab5c5b"
+      }
+    },
+    "multiarith_309": {
+      "question": "Will was organizing his baseball cards in a binder with 3 on each page. If he had 8 new cards and 10 old cards to put in the binder, how many pages would he use?",
+      "answer": "6",
+      "audio_sha256": {
+        "neutral": "57e374c2c864430c200eb0fe475bef099bb39dcf45af2acd89812d0ca4ef02fa",
+        "angry": "d10a82527c4914434e734f204d2359b026bf99d28a466a0815d7ed784e9ec71e",
+        "happy": "fa2efecf3480e5d4e38ec405064b3fdbe9110e63b5113ced9a6375d910108a4e",
+        "sad": "a2203772602204b4cedc1904ae483c36df90869fffb1e2f8ee00b23ed44502a9"
+      }
+    },
+    "multiarith_402": {
+      "question": "Ned bought 14 boxes of chocolate candy and gave 7 to his little brother. If each box has 6 pieces inside it, how many pieces did Ned still have?",
+      "answer": "42",
+      "audio_sha256": {
+        "neutral": "81050ae56649f2f7421f7451d732ed924f456c9d488cfca10899cee3630b6712",
+        "angry": "878335d1a25679f8b08c23386f3f5671562ed5c41845c30228bf2288e2da3eba",
+        "happy": "280f605c57b7543d3ed0a56b756f3d0e707b4f6be4795d42c8e1c307d5f7f224",
+        "sad": "6f6d711e189770531ca74302916cce1228e96e9bc874ffbc4f89396383abe17e"
+      }
+    },
+    "multiarith_144": {
+      "question": "A teacher had 29 worksheets to grade. If she graded 25, but then another 29 were turned in, how many worksheets would she have to grade?",
+      "answer": "33",
+      "audio_sha256": {
+        "neutral": "6f8aa69a99e922d1e2c60f5dc007bf7aef7a2032a67556af63fc56be22fd104e",
+        "angry": "152429470c6d01ef97c6895a52dd987aacf9b9dad41a0c4dc8ddf50a638fc7e9",
+        "happy": "4e9e04440e55661c40ac46d0bce86e3eb9197d0ede82bc7829544b5ec7530ae8",
+        "sad": "3bda93e3d43bc54ac2e287e43430eb5ad44b7a7e4f6920ec248930b47ceb9b81"
+      }
+    },
+    "multiarith_285": {
+      "question": "April's discount flowers was having a sale where each flower was 6 dollars. If Maria bought 7 roses and 3 daisies, how much did she spend?",
+      "answer": "60",
+      "audio_sha256": {
+        "neutral": "ab20991c708d580581cb7709ce8a5bf115eb05cdbc7e1c2332929576dcce7ef3",
+        "angry": "1b97495e27aa91df6f3fcfe3e7d1dbf169b2fd0a351c122027b2d83c817e1cda",
+        "happy": "902d780d5549b69ffd796baefc736c47ea94c6eefa2acf51db4be026639efc71",
+        "sad": "1a016703f6cca7b7a7ab77e05758828a71cd993130897f4b91df09c5800d8d4d"
+      }
+    },
+    "multiarith_297": {
+      "question": "A waiter had 9 tables he was waiting on, with 2 women and 6 men at each table. How many customers total did the waiter have?",
+      "answer": "72",
+      "audio_sha256": {
+        "neutral": "74b473cb95eb6cc7075566390220275d80ef689501605835fb2539e45d0f9dd2",
+        "angry": "f905780ae08f02245da668d32fffedec8bd7f652434e27cf36e3a9fe98df9fc7",
+        "happy": "ada61fd9305a05d40ece7024f16a1ff6e02388fe3f2f84d1db336041c569a71c",
+        "sad": "31c888d64ae3eae23cb1ffed094891fe5fa24861ac5306301a05ce1f2dbd5c27"
+      }
+    },
+    "multiarith_401": {
+      "question": "A chef needs to cook 16 potatoes. He has already cooked 7. If each potato takes 5 minutes to cook, how long will it take him to cook the rest?",
+      "answer": "45",
+      "audio_sha256": {
+        "neutral": "3dc7a679e208b10ce2316287aaea1cb59c83aa54a7d2f1af24550c2d80e16c1a",
+        "angry": "bc624070854153fd3e1ffc8823eb26023af97b66fd4c488c142b2a74e93c8ef6",
+        "happy": "df9f6dd4618c5bbd17e8bf5948fb402a86f845503505b4d8622eead8646f58f7",
+        "sad": "bbec8ee6d8bb1adbce8703a5827e29f7e95b8bf471620883e3785190c3399fa6"
+      }
+    },
+    "multiarith_136": {
+      "question": "The school cafeteria had 38 apples. If they used 20 to make lunch for the students and then bought 28 more, how many apples would they have?",
+      "answer": "46",
+      "audio_sha256": {
+        "neutral": "cef96f102af1e9e9cad1238c076247c1f9209daac1e686ba8e8227fc11357ac6",
+        "angry": "8d197cb8d814ac9136ba36b846e25e0575dd1c746c5970bccb94afcd21319d78",
+        "happy": "7a1bf1f04786a518cfe10c624b8cc3bc4482f14ff0c6aa4ea785a921f1a1019a",
+        "sad": "3a2c8a9a69f5375efefa9148a98af4d8c8ede1c85a14b125a1458b4ea1705cab"
+      }
+    },
+    "multiarith_553": {
+      "question": "There are 17 students trying out for the school's trivia teams. If 5 of them didn't get picked for the team and the rest were put into 3 groups, how many students would be in each group?",
+      "answer": "4",
+      "audio_sha256": {
+        "neutral": "0f997548d460e95616096a898fee05b14737581f1ecf21784989f4c252b9dda5",
+        "angry": "1b4f0736a93feafccc2af25963c960cd47ef2df29ce813f9bc424cfb8d6d5982",
+        "happy": "7b53ff80250d5b464fc3a70e9b5c507b6df27d52cf9d9a898cd78a81d0742ddd",
+        "sad": "ccf4ab3d650b306a0b227043fbf352f3838d80b389dd504613c57d64d9b0cc12"
+      }
+    },
+    "multiarith_145": {
+      "question": "In fourth grade there were 35 students at the start of the year. During the year 10 students left and 10 new students came to school. How many students were in fourth grade at the end?",
+      "answer": "35",
+      "audio_sha256": {
+        "neutral": "5c153ff737ef973ad0078a3c35c7615984bbbdb2f92a749a9bf849be84036781",
+        "angry": "5f6b3d1187d7346f85674eb4f43e00446831b44a08ec404c75ca5b0ea1d03871",
+        "happy": "67e5102cd8eea8aa4af8cb2f71bf8340a98a0f122ee921979c5880c989868fdc",
+        "sad": "64a55984d81ba2f8ae97279ecfc103aa5fe173f863e188c55d3172160ca7fbcf"
+      }
+    },
+    "multiarith_584": {
+      "question": "A store had 48 coloring books in stock. They ended up putting them on sale and getting rid of 38 of them. The put the ones they still had onto shelves with 5 on each shelf. How many shelves did they use?",
+      "answer": "2",
+      "audio_sha256": {
+        "neutral": "1b44ca094b32b54fddfc1be7246f69c84a54c95649befa152205ee09f2b17e75",
+        "angry": "86ef97d6dcd4dab4b7e31d83f343d580effcc8490984b87b8fdc699ce808ff73",
+        "happy": "9a7398babdab5173603d7a349f2c71acfc5ee01413ae2350f9bd0688bbf63181",
+        "sad": "4e566d3763321fc688954615c902d70236c2c27a1ff003e126575431c9449c55"
+      }
+    },
+    "multiarith_244": {
+      "question": "A waiter had 9 tables he was waiting on, with 4 women and 3 men at each table. How many customers total did the waiter have?",
+      "answer": "63",
+      "audio_sha256": {
+        "neutral": "37584d52bd2146eb6b09be5d8389e47df44a40c380ac1a7ff5664ab3e0df8fc0",
+        "angry": "142eabb2a096ef790251ea8b13ba4a0dc77be25d716efbc31b9979dca891226f",
+        "happy": "9f83118fc6983495b33a9aac6e8b00c360a217599514d7b9e35e9925ae21de1b",
+        "sad": "80b63c42380139271ee79a6808f90e4981df2d23388ea2ba053e2356b2b90897"
+      }
+    },
+    "multiarith_339": {
+      "question": "Megan's class is going on a field trip to the zoo. If each van can hold 5 people and there are 25 students and 5 adults going, how many vans will they need?",
+      "answer": "6",
+      "audio_sha256": {
+        "neutral": "b38a2be7a189964a9daf2e712f076ce1216d365fe009cbc69358f84837baa9be",
+        "angry": "5ac32c80e184e57f043d2015aa180c5b8cd4d08c9a719f8881509c95dece71d3",
+        "happy": "d318d67e30f7005989a6a7c4577f548d83623f5baf7d2d10f12c7be31ab9269c",
+        "sad": "6f01eed8266186e3c62ea5571bae6408049fe01efa71e517ffc71c1265da64f6"
+      }
+    },
+    "multiarith_488": {
+      "question": "There were 13 friends playing a video game online when 8 players quit. If each player left had 6 lives, how many lives did they have total?",
+      "answer": "30",
+      "audio_sha256": {
+        "neutral": "b07b25acb74ac2649e2b595513a156cabc3a491c10cce74b2c850ae028b2df01",
+        "angry": "b1343ecd92c5a5812f5adc2c53e7cfeb141b5841830f33b23c5eb8f4f698a3d8",
+        "happy": "f58151e35fdf615da74af7e15c302aa35a591598de7accc9940641b6e582b490",
+        "sad": "087c4461446f58e73b6813088ae588791b54e2430cef732c6433e29e7b464e5b"
+      }
+    },
+    "multiarith_472": {
+      "question": "Each chocolate bar in a box cost $2. If a box had 13 bars total and Rachel sold all but 4 bars, how much money would she have made?",
+      "answer": "18",
+      "audio_sha256": {
+        "neutral": "86aea94c3b6debd60ef74be3fad41aa0878cba7d668e7658ba9675ca5641c868",
+        "angry": "47b335cd87983f66bc4acf04cd484f54fd04569dd78109de89f8fef229d7c68c",
+        "happy": "385a7b5e6bba94f9d2d623b7d78246e7f098f01dec48e14f4d9f1d94f4c49225",
+        "sad": "81c36b5b2e7ab84771717e943c65ca59fa781c68c57469563e94460739b506ce"
+      }
+    },
+    "multiarith_212": {
+      "question": "Cody bought 7 boxes of chocolate candy and 3 boxes of caramel candy. If each box has 8 pieces inside it, how much candy did he have total?",
+      "answer": "80",
+      "audio_sha256": {
+        "neutral": "8d27ae910b87475eeb9eb61fc15e270c13803d70bc5ee62db9e1104be1ffcad4",
+        "angry": "15cc6b910b155d001728da4656a8b60f6e18d7ffcc48ae632e874fcbff138805",
+        "happy": "03ee1afa5d534503702685e00c06ceceb032eab996f9b18782f237b2a1bcded1",
+        "sad": "265e0fcae72d28789d32410b3c1ebc98f97c9efbccce7b19e7d4f0f799308e69"
+      }
+    },
+    "multiarith_265": {
+      "question": "Tiffany was playing a video game where she scores 6 points for each treasure she finds. If she found 3 treasures on the first level and 5 on the second, what would her score be?",
+      "answer": "48",
+      "audio_sha256": {
+        "neutral": "3fbd31ab89c15b841d6bbe684733d25e4293de2d1cdcf86e2b13c691081a3ef1",
+        "angry": "572262cfcc3d751187e80c23d1169c57b070821d88d933820a675603ddc873fd",
+        "happy": "8868079351b7d8f22a17d7563689c72cf3f515f99d66e4c7383d5041ee10f051",
+        "sad": "6468610aa97895f5e926258a25fcebfdc6542442c7cc0549441cee6c80188b24"
+      }
+    },
+    "multiarith_345": {
+      "question": "A vase can hold 5 flowers. If you had 6 carnations and 19 roses, how many vases would you need to hold the flowers?",
+      "answer": "5",
+      "audio_sha256": {
+        "neutral": "5369e08e6fe273a76560120adb5ce8b4f899d64cf30ee55c77dee38e888e5e43",
+        "angry": "4594a2c13815fa9e96fda95c00daf5d12acca54634bbf4742862f50dabfaef23",
+        "happy": "7d2348d6c605408f186358de0e2196fbbb298ea1a5aebdcd883d6dbdd1926199",
+        "sad": "c168c59dfaa31b986d76cd23e77aa9326b1d74a051484bb64d2456b3a7d3023f"
+      }
+    },
+    "multiarith_510": {
+      "question": "Paige's team won their dodgeball game and scored 41 points total. If Paige scored 11 of the points and everyone else scored 6 points each, how many players were on her team?",
+      "answer": "5",
+      "audio_sha256": {
+        "neutral": "cbf9002e4999c1cb39d12558c8c9fbca2f7819831f4781c8cde1b1e718b3e938",
+        "angry": "53610b48a64f28796dc765542cf77cd3fe18ae1118300ec78a8a09bc78733967",
+        "happy": "c65a687cb3daa670543e6e6ce9456065baf4fb5339b6d7efae7f3e419ec49b9a",
+        "sad": "ef9d92782dfcd81e322a45816231aada352b52a6f167747b724e8b96875e8e68"
+      }
+    },
+    "multiarith_514": {
+      "question": "A pet store had 81 puppies. In one day they sold 41 of them and put the rest into cages with 8 in each cage. How many cages did they use?",
+      "answer": "5",
+      "audio_sha256": {
+        "neutral": "49d6bd58a89cc2f45b6201cb1f63864f36580c8915fe72844e867ddd04972bae",
+        "angry": "ef6e5498fe891de7dbaaec1759aff9f0772378bf3923fa6cc00f314806eb6d6b",
+        "happy": "1414898716c580ac7d4241dd2b0a1a3aeb74f896e06d16d0d4fec855ba90ac85",
+        "sad": "0f96ad718056860fb64ac40cb8d2a9eb4cc8110aec5c16286ff61973af7d753c"
+      }
+    },
+    "multiarith_564": {
+      "question": "A pet store had 102 puppies. In one day they sold 21 of them and put the rest into cages with 9 in each cage. How many cages did they use?",
+      "answer": "9",
+      "audio_sha256": {
+        "neutral": "40b61742816e943d287e8fa5a0324c0390c9c05d47eebd55ecdc907782b6f911",
+        "angry": "e0791c02aa10829d2520c8c77eb6a67d1744fa25abb471c58fad5f81dee498ca",
+        "happy": "74f77dd91fecda87d75efcaa799f640ed16a45e71826feac1c554ae1aa3ce282",
+        "sad": "677602f5b827a86f22dc4c9fc8a90389881936ad6e5581a035065b74ed4791cf"
+      }
+    },
+    "multiarith_468": {
+      "question": "A chef needs to cook 15 potatoes. He has already cooked 8. If each potato takes 9 minutes to cook, how long will it take him to cook the rest?",
+      "answer": "63",
+      "audio_sha256": {
+        "neutral": "bc74ed4122c8800fc8defa6710cb66edfcb05957dc77f58947983d7601c6ec02",
+        "angry": "e852f0f964118db8c7ee10c9dedf48dd56a7841442262f9ede97da409777b1da",
+        "happy": "23d35cd1091a794e84b33c9d088b5c0b4d30c4a5f06bbfe8b6961292fe789802",
+        "sad": "c85a26526f77b9c81420c08910b117882c70fb8891d4d3a1befd75306f626574"
+      }
+    },
+    "multiarith_300": {
+      "question": "The schools debate team had 26 boys and 46 girls on it. If they were split into groups of 9 how many groups could they make?",
+      "answer": "8",
+      "audio_sha256": {
+        "neutral": "a621ed1165c7d9d679f6c5d5eb0599f63b47195d861e357cf3f3877c05b4786a",
+        "angry": "1f175bfe7f7a6113652c502164a150dd770634056dcd857579ac89734220e44f",
+        "happy": "12668a71290e8d603221e368312fa68c015723e214332edd1941aeaa6125cbd3",
+        "sad": "a69fe32eca6435134f03bf0811ded438d9bad5f1e70caa3c1dadd75a143948fb"
+      }
+    },
+    "multiarith_502": {
+      "question": "Luke had 47 pieces of clothing to wash. He put 17 of them in one load, but decided to split the rest into 5 equal loads. How many pieces of clothing could go in each of the small loads?",
+      "answer": "6",
+      "audio_sha256": {
+        "neutral": "6c65388a9adce49d24f9fdc45e83810fd5b88e15f537611c9caf3642c3f05948",
+        "angry": "2ddeaf282dba30859f8cabb35c1b31483240d56e8f11f51474d1a0f723ec4a17",
+        "happy": "702dfdb469ce54422b7781639b4a3ea2c5076ec3e9183760bcacdcae3b2b9808",
+        "sad": "4f5920a84a213fcc5bb1993e470a0cc50499a16b4005858aafacc28640babd0c"
+      }
+    },
+    "multiarith_487": {
+      "question": "A magician was selling magic card decks for 7 dollars each. If he started with 16 decks and by the end of the day he had 8 left, how much money did he earn?",
+      "answer": "56",
+      "audio_sha256": {
+        "neutral": "9875e12b2f9146a4fe43a81f09154cfe38523b995b7c93a14315a33278eacd0d",
+        "angry": "66ec3f8d566820ce977f3b6b9b7da39e2e6957c5c2c256224e458ed3c5336199",
+        "happy": "3519e37768a7f23fd8174ad864e300d80eb4e11492842c89227be93606afabce",
+        "sad": "4c048d89ae75f43cc42a7bf2e27be647d4d08f634873e5006ddd120e1bdbcac9"
+      }
+    },
+    "multiarith_118": {
+      "question": "Tiffany was playing a video game and had 43 lives. In a hard part of the game she lost 14 lives. If she got 27 more lives in the next level, how many lives would she have?",
+      "answer": "56",
+      "audio_sha256": {
+        "neutral": "a512bbebdd4e9986b55223dcf59887b6d0fb1236a98ebb814c6479a91cf1817f",
+        "angry": "4862379b1853452ffd6f7f31fb21f2b3ed23932efb18ce40646a4c21d718c1af",
+        "happy": "2c7d86434430efb9e20813487497c6d41690ae83fdb11e66986f6a693f8ee256",
+        "sad": "a335d93a29d50d93039481e45e4e57dc3faaf0db5b3b64159a09d6b61528e24f"
+      }
+    },
+    "multiarith_033": {
+      "question": "Gwen bought two coloring books. One had 10 pictures and the other had 39. After one week she had already colored 13 of the pictures. How many pictures does she still have to color?",
+      "answer": "36",
+      "audio_sha256": {
+        "neutral": "751a673257f067246dc872d49bea1729ac1383c2fe7fb3d6613a24f7e6a41e89",
+        "angry": "a29f9c3a4bad2c9c64d14dfdc5686bd38094f6d539098f2aca21affcc6d61ba2",
+        "happy": "03564247b9478e1853a83ddaa2baa4a64e939bbb264725891cc6caeca46c597d",
+        "sad": "7589ce3e1d7698bfb3343ea27188a0cbd21972fc4a3674947ce25c7b37b201ab"
+      }
+    },
+    "multiarith_147": {
+      "question": "A store had 40 oranges in a bin. If they threw away 37 of the old ones and put 7 new ones in the bin how many would be in the bin?",
+      "answer": "10",
+      "audio_sha256": {
+        "neutral": "8e794d84170b644ec65482bf7b3702ef204d0aa6d8e2e8fb769dcf2986575d14",
+        "angry": "b3756ee0307a4567fc4f8c335972eaa808529a5024e4166883ea17a1197113a4",
+        "happy": "26ef550ced0060fd48e53816384fc4747159dbd0aa6d12e5142f5bbd68b18261",
+        "sad": "70f5db168ff520aad9be4546a113f07ea182f8de6b48c53477f9bba6716a6228"
+      }
+    },
+    "multiarith_215": {
+      "question": "While playing a trivia game, Adam answered 5 questions correct in the first half and 5 questions correct in the second half. If each question was worth 5 points, what was his final score?",
+      "answer": "50",
+      "audio_sha256": {
+        "neutral": "5def2ca2a061f461414db8980fad98983572297cee0a8bd16edfad08fe75dab3",
+        "angry": "e1881bea52302d3c309a9df66008b730640afb7178a244abd053e2e4de568e35",
+        "happy": "f02a549e6775a2e1a6bf61508b9a1cc326456cbcdaa3ff9a5d3cf19ec5c92f03",
+        "sad": "3b76597b2f49b12f002b707b3c69331f79213b8065027f29ad45858a6a46469d"
+      }
+    },
+    "multiarith_171": {
+      "question": "Zoe had 42 bottles of water in her fridge. If she drank 25 of them and then bought 30 more, how many bottles would she have?",
+      "answer": "47",
+      "audio_sha256": {
+        "neutral": "7373dc676a49f8e076892ab8f49c2041744c644f662cc4703efc15cca2859ac4",
+        "angry": "994749b5e63c7574134430f6d8b4adb4f603bcc992b67159fe1c3ca129bba136",
+        "happy": "3e5e3c58aa43a99fd48994b3d6d6751ccc8aecabf967b39062cd8512394a69ae",
+        "sad": "b6938ee7318215ff8a203f4fcfa7eeed0125390a7f7fcf1953ecee9fb0a9a085"
+      }
+    },
+    "multiarith_432": {
+      "question": "Dave bought 12 boxes of chocolate candy and gave 5 to his little brother. If each box has 3 pieces inside it, how many pieces did Dave still have?",
+      "answer": "21",
+      "audio_sha256": {
+        "neutral": "5714e86a20608f0b05e893405cc0ae6b79c2090cab08111bc4eeaa6a80d7f716",
+        "angry": "7e6a2517e4df57c2d506213ae7f66f7b7ddf7afcb7be3d3842db87f12988f979",
+        "happy": "a332c1192c62b3a86d3143d7483c71d038f851b10ecd30ea188c5d76e7153e79",
+        "sad": "4d6c2855cb06173e960f5731dd541a3642dd29955d09677d2190d67f2deab9fd"
+      }
+    },
+    "multiarith_016": {
+      "question": "Ned was trying to expand his game collection. He bought 11 games from a friend and bought 22 more at a garage sale. If 19 of the games didn't work, how many good games did he end up with?",
+      "answer": "14",
+      "audio_sha256": {
+        "neutral": "65b9741c1271473d34d79355de162c64b26c42856296ebec1d9a409332829954",
+        "angry": "ed5553fd88bcd69896c52047733f4d8ff940378849928813b7d476708d98ec9f",
+        "happy": "6886388812b7b2664029999b91cc5386966ddf03e74527843bd9b931134fa055",
+        "sad": "3f07f4775ac1b90183fd4fb47030b6dd67006e9c9d23b47f21080a9a556e3a4a"
+      }
+    },
+    "multiarith_440": {
+      "question": "A chef needs to cook 9 potatoes. He has already cooked 7. If each potato takes 3 minutes to cook, how long will it take him to cook the rest?",
+      "answer": "6",
+      "audio_sha256": {
+        "neutral": "f1ac8f6339102e32690f443e60acea0d27c60eee4fc18a985c70dc18cae26448",
+        "angry": "cce5ad67ac74cf8ffff29eb9379322105652122a716647ae943f956f4bdc8290",
+        "happy": "b67d54692a87fb56e1df9d5e4406655b1f7ea7d1a3a01cce3f7b06c626bc0187",
+        "sad": "60449bcb4cd9ce6bd5dd48723c7a76174f42de2bb480717dc8d3f0a796eaea4e"
+      }
+    },
+    "multiarith_127": {
+      "question": "A book store had 4 books in the bargin bin. If they sold 3 books, but then put 10 more in the bin, how many books would be in the bin?",
+      "answer": "11",
+      "audio_sha256": {
+        "neutral": "88615247b53cc4d18f5e62e21b872f93c7664a3b37f4ac32264fb3b79340a3a7",
+        "angry": "4e41a67798b7205a9b35ad3460652a3c91ca9a3cf4dfc3a203e8e55779e20fec",
+        "happy": "6f55301b6070a4bb3fdaa66ec346263a1156700da883f1ff8a7430483fe8b169",
+        "sad": "9ed4b5fd7d7f3fa916804000d6c3798a7df6bd635dcd18a093138ae12d5ecb92"
+      }
+    },
+    "multiarith_028": {
+      "question": "The school cafeteria ordered 43 red apples and 32 green apples for students lunches. But, if only 2 students wanted fruit, how many extra did the cafeteria end up with?",
+      "answer": "73",
+      "audio_sha256": {
+        "neutral": "b053aa875f8d6deefd07e0f93de44377089e70a06b99fea85ceb43fee81bbb01",
+        "angry": "e92fedd7c00899cf24ca87eb2ac21554ed50d85e6a3069c5a3a10acd39fcb92b",
+        "happy": "18d238e923db4f7e9655413b2714341f5dca99b6ce03d547d25bab7a46ce62df",
+        "sad": "04295a8947995b1b04bfe4ee15321917eb1f435c747a1a4ba92b3c8aefe49d7e"
+      }
+    },
+    "multiarith_417": {
+      "question": "A trivia team had 12 members total, but during a game 4 members didn't show up. If each member that did show up scored 8 points, how many points were scored total?",
+      "answer": "64",
+      "audio_sha256": {
+        "neutral": "0620e9fe4a465d94a367f10d95d6b5b05cbd8bacbab8a8f4fb3440b80a18d8ea",
+        "angry": "3735fe291341b25925ad33469575698f8167870b2cf557b2c6dfc05e3f84a967",
+        "happy": "34c338507b4abed01b157d297d9deabb47240833f75ecd373ef48369b81e43a2",
+        "sad": "4f3dd927903ff0917cf08a5eb9251556621f8d89867d5115cf852aa6dff47e24"
+      }
+    },
+    "multiarith_413": {
+      "question": "In a video game, each enemy defeated gives you 9 points. If a level has 11 enemies total and you destroy all but 3 of them, how many points would you earn?",
+      "answer": "72",
+      "audio_sha256": {
+        "neutral": "4024bc2b25f0776cc1428e1e5b1a3e4bbd68b0ea371dbc19a06c6a96a09030c8",
+        "angry": "1fde74ccc32426da84590b5ad67337cfcf7681a4e8c0369584c5d14298aa3bec",
+        "happy": "24302c6d7a183907dc19e1c25aa991016a4207919b97e75f7b9c1e788b014037",
+        "sad": "66d33b28e1808513b3436f37049895cd48f9f4480927bd0ae53ef4952df15223"
+      }
+    },
+    "multiarith_451": {
+      "question": "Bianca earned 5 points for each bag of cans she recycled. If she had 17 bags, but didn't recycle 8 of them, how many points would she have earned?",
+      "answer": "45",
+      "audio_sha256": {
+        "neutral": "0ca211297a405d4ddc0e2121c215c0d7680ee5cad1b49415af8ed36cc3a04032",
+        "angry": "f0caa843e8890acd4cf4c10c03e03c2a11ae1114397589f0acb1849fe0f1f02f",
+        "happy": "8778660ec68f7456b6c88d70a73ed4c0bb18b850b1edfc537342bbeb336bc69c",
+        "sad": "56e6d2799f8b1d9242cfe2418ea9457c5fd4b4cba117520f9879755d80745c2c"
+      }
+    },
+    "multiarith_542": {
+      "question": "A waiter had 21 customers in his section. If 12 of them left and the rest of his tables had 3 people at each table, how many tables did he have?",
+      "answer": "3",
+      "audio_sha256": {
+        "neutral": "b2a9e62e55066acf6b09a0afc796c4be24383cb36e542cd261ead837171eaec6",
+        "angry": "fe6ea95a4bd45627544b376d902034dadde7c75712db8bc5211ad1ab3a48bb2a",
+        "happy": "d7a5ee26f65e61658fd5907b876b636c6539fd09bf5b3512a5dabc339c868050",
+        "sad": "a7c2647813edab6e2e5b92b91ec0ccc937473c3cdc006ae41579458f3bc9bd94"
+      }
+    },
+    "multiarith_370": {
+      "question": "For a birthday party Cody bought 4 regular sodas and 44 diet sodas. If his fridge would only hold 6 on each shelf, how many shelves would he fill up?",
+      "answer": "8",
+      "audio_sha256": {
+        "neutral": "c5d978188862469971a1381c66460ff6283a6faf50fab5e0da23fac9543ffa38",
+        "angry": "58896669597f7314af524d1378c0a2f109dc8832b0f8bfff94af5c4c7f575aa7",
+        "happy": "9c12fa26a0734fc2e3329c8f2904c9d37ef4a2cea0a722943085a504cda9c5a1",
+        "sad": "4429a54eef70d25755de85dd32e1426bc34fe3495999da6966d46d459f5830dd"
+      }
+    },
+    "multiarith_122": {
+      "question": "Faye had 34 coloring books. If she gave away 3 of them, but then bought 48 more, how many would she have total?",
+      "answer": "79",
+      "audio_sha256": {
+        "neutral": "0cdff87f1b5f4eab49efae787abdd3c072b926c8194fc66216f03ede8d185c4b",
+        "angry": "c940cb17890358bbfcc4b19aeb2848d9e063a4ee1166f96ef8406e9e48667297",
+        "happy": "b62e1f6b1f23a437b3d6bd0589c57cfdefe6ff3cc6b410d5767fd051169a0770",
+        "sad": "2636f04e7d672015661b43e0f51b53df98844d1cf0797a04fe08d35e5f770f50"
+      }
+    },
+    "multiarith_295": {
+      "question": "Edward and his friend were buying trick decks from the magic shop for 6 dollars each. How much did they spend if Edward bought 3 decks and his friend bought 6 decks?",
+      "answer": "54",
+      "audio_sha256": {
+        "neutral": "510b892f0cd0ca4d617bd901c7d3e7e48dcbbffcc0e5934bbe8428f646f90294",
+        "angry": "e63ebbccfa82d834bcea9109fd241028626a3ab5e8f023bfc3583deb8c1e07c0",
+        "happy": "57a4680bb6674a99c54e9cba79360634fa8a33aa7a6e0b2b1ac4a9d29c053a2b",
+        "sad": "ee0c053981fa124ec3ae0073534aa11f90bedeb3e0d05e29782536832b0e833b"
+      }
+    },
+    "multiarith_563": {
+      "question": "Haley uploaded 65 pictures to Facebook. She put 17 pics into one album and put the rest into 6 different albums. How many pictures were in each album?",
+      "answer": "8",
+      "audio_sha256": {
+        "neutral": "c676324dc566cb2159160f03a22a26f666388a7168b004f9aadcda7d0cc254cb",
+        "angry": "974a04fd729c3d13c8ef28a5c0283e89a5cac14f6e7228c897ca5e49c1d01c13",
+        "happy": "765882ecefea6bfcac718768756ebd70059ff7b2a23339ab6f96841411344b92",
+        "sad": "359f83ac6dc88567f4329d400c4b02af8476a6a5af6af4791d9f3a88157281d9"
+      }
+    },
+    "multiarith_337": {
+      "question": "Paul made 68 dollars mowing lawns and 13 dollars weed eating. If he only spent 9 dollar a week, how long would the money last him?",
+      "answer": "9",
+      "audio_sha256": {
+        "neutral": "4951a1fce4bc502ab8e74bd2d7e45c93eca0afc217bca57853d9ac83a6a413ee",
+        "angry": "93c5095f7f4629791e4bbf8f27d6c5fea97817ac4b70adb62a31bb5dca68b9f2",
+        "happy": "314e18176fa454b21869211f8b22f20f4aa8d2d62fd8ba3922191c5b4e63c96e",
+        "sad": "63c00d07b38334c81fe9a444abe2a290e81a9d16d509639448897c4a0189df0f"
+      }
+    },
+    "multiarith_533": {
+      "question": "A company invited 47 people to a luncheon, but 7 of them didn't show up. If the tables they had held 5 people each, how many tables do they need?",
+      "answer": "8",
+      "audio_sha256": {
+        "neutral": "a3dc591fcc2e4a054fc69938e50c80745ce515261f3b8c19883ab7deab297243",
+        "angry": "91627104e324f761b22857f19269bd563d280566402391017bee589c246c274c",
+        "happy": "3e578153c63e138fe6202b076bad1335c93264c2c7f4a4fb1b3a60421fa2db2f",
+        "sad": "b665c6270a336001a8080cf1ad36fb5d14a9f0fe780540c9fcf6bd023f88e039"
+      }
+    },
+    "multiarith_526": {
+      "question": "Wendy picked 103 flowers for her friend\u2019s wedding. She was making bouquets with 8 flowers in each one. If 47 of the flowers wilted before the wedding, how many bouquets could she still make?",
+      "answer": "7",
+      "audio_sha256": {
+        "neutral": "120db4cbfcecae3e91a3145bc027ea38ddb5a988c6cdd8018167ea2f076395ce",
+        "angry": "57283426d3a01416f527b22f8be3cbb3e674bdbf5dd75edc54ad90ace41208bf",
+        "happy": "bf137a6e69a87363f4cfe58e04b178908cd6f6ac732168241dd363bf5145af8b",
+        "sad": "36ce5d0c2034257b8cdd816607ae5f8b0672cf815cd72c5d0b08662d8cc9fa61"
+      }
+    },
+    "multiarith_286": {
+      "question": "Dave was working as a sacker at a grocery store where he made 6 dollars an hour. On Monday he worked 6 hours and on Tuesday he worked 2 hours. How much money did Dave make in those two days?",
+      "answer": "48",
+      "audio_sha256": {
+        "neutral": "9834a784beee960e2c0f7f4ee78fbc9cced15e3f5786c711473358e0f9407d49",
+        "angry": "120a2cb30487eb3706e7e0bc0e442d2b02b8d766872ef00c26c621280270a884",
+        "happy": "f6afb885a39800b4f72f9fa15d95a5c8331f6c613cbc9cf9da8f678ad28e6699",
+        "sad": "22c09b9c5ed5b3dedda4f1201b827cf1eecf676535568371fef21828e0017308"
+      }
+    },
+    "multiarith_408": {
+      "question": "Wendy earned 5 points for each bag of cans she recycled. If she had 11 bags, but didn't recycle 2 of them, how many points would she have earned?",
+      "answer": "45",
+      "audio_sha256": {
+        "neutral": "8e14bb92d5a14c765f0d8ecf62d25b92b56e5edbe3749cbbe4c48f9a586103db",
+        "angry": "f1ef975d41df4d8f1eb04f67bd75f329713c48ee91798669294e6693b0541ab3",
+        "happy": "dd6cf0cc7decd1a9b26f3a0316221376c4904902cda7c074dddabc4102325a1a",
+        "sad": "41652fa724918d02fd2dcade2368df0837c83b5252230eadf91b4e0835a5f131"
+      }
+    },
+    "multiarith_493": {
+      "question": "Mike had 15 video games but 9 of them weren't working. If he wanted to sell the working games for $5 each, how much money could he earn?",
+      "answer": "30",
+      "audio_sha256": {
+        "neutral": "fe821c43bfb7ae75c0d5e260f3a3e5e5fef12b0c7a4bfa257fc147b0b3453e26",
+        "angry": "5aedb33de2f4990d1eefd09c67a87cfb3493e9e1b7baff755f10ff5369c060da",
+        "happy": "b66a15e086ee047424baea7558934668546246c7269908e55827e203a5068bd3",
+        "sad": "e971128491ccad96bd5354157a0e75026aebe3c4078473accfa10456905dbab0"
+      }
+    },
+    "multiarith_177": {
+      "question": "A florist had 11 roses. If she sold 2 of them and then later picked 32 more, how many roses would she have?",
+      "answer": "41",
+      "audio_sha256": {
+        "neutral": "39f0310d56688546a2df6c40cebec3024ca0a6e883d4f33dcdf30ed93eb979a7",
+        "angry": "f60e93a1068b472822fdfa385da9dae918c20bb621270934892cae051ad6d066",
+        "happy": "aaa4b096ea97020368f84eeea41782e91e6806dca17da723a44125cbc03b4088",
+        "sad": "ce48131a19eeb0b7dd19b9892eefa5247efc83f6428b0d181c396a8ad348ea91"
+      }
+    },
+    "multiarith_596": {
+      "question": "Tom bought 40 tickets at the state fair. He spent 28 tickets at the 'dunk a clown' booth and decided to use the rest on rides. If each ride cost 4 tickets, how many rides could he go on?",
+      "answer": "3",
+      "audio_sha256": {
+        "neutral": "272e4c8cccf84c08dc7489ee90598db4d44e09d0054a55cb1125d163d9a0e072",
+        "angry": "d94b6eaa30ab93a55e2955e79b3a01d179af8c8bf7464c4dd3a0369013d868e0",
+        "happy": "5661ccc0d2fb192a58201e054e220ba44375f0e5764a68f0300c8d0925a46dbc",
+        "sad": "1825ca2537f91d4f9470e70de0e90f7954e5ca3779df7e3b99aca8ab079d20f2"
+      }
+    },
+    "multiarith_185": {
+      "question": "A florist had 50 roses. If she sold 15 of them and then later picked 21 more, how many roses would she have?",
+      "answer": "56",
+      "audio_sha256": {
+        "neutral": "70c0cc20fdc4874a59e1e74562491759132ce246290d990210ca83d309b1e720",
+        "angry": "aceb622c9afb4d71a31d4794492e9768525278fe323dd0c7efe292a72de4f979",
+        "happy": "804f747836dcf2a63c5e362109ea9d0c9ca0418bdfcb665b6e9b6eceae975141",
+        "sad": "0d67708d3006d675bed67b834593d2739c53498bd591f97e66a565ad801cf47f"
+      }
+    },
+    "multiarith_083": {
+      "question": "Gwen had 18 math problems and 11 science problems for homework. If she finished 24 of the problems at school, how many problems did she have to do for homework?",
+      "answer": "5",
+      "audio_sha256": {
+        "neutral": "47b596911fd76c48a5287df2020178efbfccbb16d831cf8d2ef3bbcfaac4220d",
+        "angry": "b002b584cb03dc18154eefa87aa64cde642064e6e0c815593968217bbcc19d59",
+        "happy": "5840325a82b96580f47628a1fb355170f3c7355194a266a63e776958089abe75",
+        "sad": "fdfadc9da8381dc5d9749f8b32cf2de5d928bc29234f20e68fe204fa59c66ed9"
+      }
+    },
+    "multiarith_283": {
+      "question": "There were 8 friends playing a video game online when 2 more players joined the game. If each player had 6 lives, how many lives did they have total?",
+      "answer": "60",
+      "audio_sha256": {
+        "neutral": "3d3c4967f325b7446711e9deffa2e79f8a6506ee1ce63126e5bff9c413e85d10",
+        "angry": "cf2a2cfa6f70dee4a556b9c374ef6037fe06d80acb7e928b03905679154e3957",
+        "happy": "74c55c188b37ea46c47128547cb368c1868775273b1b4d449bc4b981a5fb2ade",
+        "sad": "557b9cad2a049e9622030b887839513a1fbba0144a5fd512d655dc6b98fb92b5"
+      }
+    },
+    "multiarith_224": {
+      "question": "April's discount flowers was having a sale where each flower was 3 dollars. If Zoe bought 8 roses and 2 daisies, how much did she spend?",
+      "answer": "30",
+      "audio_sha256": {
+        "neutral": "1a4bccc137ba1980c21ee8fb2b856d00fbc69b2b29e58e9225487693ed714dcc",
+        "angry": "5d7087dc3f82118edb72f8c94886d0c97c4689dc830a1fff671b047c45b6f032",
+        "happy": "806239c7653a7aa7d57bff9fe4105a965302c07b18e47c025089af86be918017",
+        "sad": "b6b5ec2e031725a2868fc13e312919cda74f7a443c4f17d93c65588f530c8ad0"
+      }
+    },
+    "multiarith_383": {
+      "question": "While playing at the arcade, Ned won 26 tickets playing 'whack a mole' and 19 tickets playing 'skee ball'. If he was trying to buy candy that cost 9 tickets a piece, how many could he buy?",
+      "answer": "5",
+      "audio_sha256": {
+        "neutral": "df5ae6fa541d9871d065e2037bed60b5f586b28c20ca86d3b9fe2a7e924a99bf",
+        "angry": "7e5790729adbc03ea34b061528e086708cdee3bb8a494da65367e6bac81772d2",
+        "happy": "b50d8e36ed54f5d31ec5a8c4c1ed6f5e7c8152448aa6d0c7ee231637ec9f0dc6",
+        "sad": "09f96230f14a2da9c4313ffbdfbcd9311f3a6a0794fadd516a11ef4fda9728e6"
+      }
+    },
+    "multiarith_399": {
+      "question": "Frank made 5 dollars mowing lawns and 58 dollars weed eating. If he only spent 7 dollar a week, how long would the money last him?",
+      "answer": "9",
+      "audio_sha256": {
+        "neutral": "b7a7fcd94902000590855fe534b6f2098b8416686cbcfc17f856744061461f72",
+        "angry": "f44e0ff6394f75c80bdf8a58a1f3530362f03c07aa2c777c501db3bffda8f0a9",
+        "happy": "6abda7c04c77b1365ce0efaa3c6effe90a6908a605ec37725e2b77bbb56689e8",
+        "sad": "746549589356c7ef03e1794bddeded5d503e17e2c9e3b3d999ad577b875b720b"
+      }
+    },
+    "multiarith_176": {
+      "question": "For the school bake sale Robin made 42 cupcakes. If she sold 22 of them and then made 39 more, how many cupcakes would she have?",
+      "answer": "59",
+      "audio_sha256": {
+        "neutral": "d47be237daf6b7644607a15235e71823dae21ef7a4b631fa537e280e622e29c4",
+        "angry": "c749b7eafe5490d815d729b26bc2c7a3b2b341cc8fdd78c57036c1dc49f300d0",
+        "happy": "8afecd581195ed49852ea4e8cd087fdedec6704f023bfe0e436689cd41fc9ec0",
+        "sad": "c5a6a33b8ac0c8927baf0ce7ed8840c49a260304479beab4e7577304f477fea6"
+      }
+    },
+    "multiarith_393": {
+      "question": "For a birthday party Tom bought 4 regular sodas and 52 diet sodas. If his fridge would only hold 7 on each shelf, how many shelves would he fill up?",
+      "answer": "8",
+      "audio_sha256": {
+        "neutral": "fbff1f2d259b425ea61f3d2a6fcb5c2f6715ea723da5a72fe7c680d3084f426c",
+        "angry": "a0f9e1edd0b66a2817881b0f193fb52cabbfa610dd97357a99a69f5c0a6f54c5",
+        "happy": "36ac2608a54497db933a0fda54daac13d6b76c9d9d45139741a15bee57c48238",
+        "sad": "09952af59f0d4bc32c4eaf344143241a476199bfa7badb944f5df9532e7bf054"
+      }
+    },
+    "multiarith_484": {
+      "question": "At the fair Kaleb bought 6 tickets. After riding the ferris wheel he had 3 tickets left. If each ticket cost 9 dollars, how much money did Kaleb spend riding the ferris wheel?",
+      "answer": "27",
+      "audio_sha256": {
+        "neutral": "9b6131389354989cedacec11fb81e10cbdb1c5f070053bf49cf4f44897643d82",
+        "angry": "4a32d98ce4df07c5323b7db3b2ed8a5124eb95041f348b08380742fc1304ca33",
+        "happy": "78dcc68a89f352eff2e15e826778e3ab1e07fbd0bc07ab734049f7e48b08bf0f",
+        "sad": "ce05fbe61ff891fa21a03dc69e4a164ba4ddb69ed332a3a5ba290dcd920b7ae0"
+      }
+    },
+    "multiarith_572": {
+      "question": "Luke was selling his old games. He started out with 39 but sold 19 of them. He packed the rest up putting 4 games into each box. How many boxes did he have to use?",
+      "answer": "5",
+      "audio_sha256": {
+        "neutral": "7ff79043e0c5857f8d7e85e11a31b35c5563472124f9893d317fe2e2f0c48192",
+        "angry": "be716737bfdab598478701dc3d5d9d3b1f98fbb23e56e2db6fa3fe27784ef6ae",
+        "happy": "6ab9574175545ca158b94d69805a215389b47705ceefb109dad7e0c1372d528e",
+        "sad": "67117f34fce91d39557ecc71f361bc0a301a95741b5353827ab0534697ab1549"
+      }
+    },
+    "multiarith_566": {
+      "question": "Wendy picked 45 flowers for her friend\u2019s wedding. She was making bouquets with 5 flowers in each one. If 35 of the flowers wilted before the wedding, how many bouquets could she still make?",
+      "answer": "2",
+      "audio_sha256": {
+        "neutral": "d01fc60fa1c9688c3dec2ea4f4c47fb770929cab02268ca30dbc75e2af808614",
+        "angry": "0e66ca09526841501b4577f7cf338fcf23a6f00f0cfc4f214d923ae539989a0b",
+        "happy": "b6df58a799b23d71b8ba9b989ef1501d4e690abab3be1471a43f0f8614c6a38a",
+        "sad": "c9faea9a266bd52dd698391f4caff77b2dcb7d1fae4f42f95b136277864ac396"
+      }
+    },
+    "multiarith_113": {
+      "question": "A store had 34 oranges in a bin. If they threw away 20 of the old ones and put 13 new ones in the bin how many would be in the bin?",
+      "answer": "27",
+      "audio_sha256": {
+        "neutral": "14159ca476e157af1f9f4964fe26ebaf9bd7dd7ae1f44d110eab71c93961f822",
+        "angry": "aa113862108751a11c0ebc811274805a6b708fadb6ea294a5361d389caee2982",
+        "happy": "e8df91cbe9626f46cf7bf0f84d9b0ffde35a9479aa3819806cb60146b8dafb8b",
+        "sad": "2488eb57e03399aa1a1c0cf54f063b507ea070e786a823382bf86878041d900a"
+      }
+    },
+    "multiarith_585": {
+      "question": "Roger is at the library helping put away books. There are 14 book to put away total but a librarian takes 2 of them and leaves Roger with the rest. If he can fit 3 books on a shelf, how many shelves will he need?",
+      "answer": "4",
+      "audio_sha256": {
+        "neutral": "c3ac91d4ad21eca0d964a209455a7ef7e9ec2a8f4c45391da4d7e18e7f2c746d",
+        "angry": "63c151ffaf3fe18ad3ce5807bd32b0802bdfd648a9133870bebafc8211f70a53",
+        "happy": "2e510cde4caac1cc18bd6433d2fd7868b40e76bb7734f551ebc6c1e5f10bd6b4",
+        "sad": "8359743c5457feb5ab84dd23166730469643b3098ad317f0c69b5d51727dc173"
+      }
+    },
+    "multiarith_091": {
+      "question": "A waiter at 'The Greasy Spoon' restaurant had 26 customers to wait on. During the lunch rush he added another 27 customers. If 27 of the customers didn't leave him a tip, how many customers did leave a tip?",
+      "answer": "26",
+      "audio_sha256": {
+        "neutral": "6399924ae82b6d4b00daf9c2ed4107863161199cdeceeee79406ed4f1779c4b8",
+        "angry": "f97a44320d4518bdd837dd5d11ebc99e7e910fd3d0207fb4617a741ae0d5123a",
+        "happy": "4f3447046f75ea4fda36d1f15db67ca1f5e3276dd07fc2b609c1a285f2a7e5a0",
+        "sad": "b8bea8b335ace5afed6ec5248533338ddba434e34f88eeace2012ae01ac3116a"
+      }
+    },
+    "multiarith_306": {
+      "question": "For a birthday party Jerry bought 41 regular sodas and 22 diet sodas. If his fridge would only hold 9 on each shelf, how many shelves would he fill up?",
+      "answer": "7",
+      "audio_sha256": {
+        "neutral": "e6b51c146ba1f9a503f787210d82ac7ee2391b60f1bd6613794c76accd702f6b",
+        "angry": "c9075bfe7df3859c5de8e0956229dd433c37b84706bc858ec14b9aad05f1ca3c",
+        "happy": "d169c4cceb6630fbad765f474753b1ff641000c94fa9c2ef028e72b055b3fc99",
+        "sad": "2ef7a11e5becc46c038998195a96e202e1eea59422d591a99c015771aa7fd016"
+      }
+    },
+    "multiarith_243": {
+      "question": "Amy was playing a video game where she scores 4 points for each treasure she finds. If she found 6 treasures on the first level and 2 on the second, what would her score be?",
+      "answer": "32",
+      "audio_sha256": {
+        "neutral": "9849d0eb9bb7d436c74713cb73e46e57a9518a86290d5b1c119c68b278bcdf97",
+        "angry": "66d5d825d7ffb947d6d0afc0b5ccf67c9c6727e4d7c7ad3650e868d681ff609a",
+        "happy": "29af1d219f462deb094ca15e6e027d3f5a801cfe98a87415b9de201602e93715",
+        "sad": "e927b9139cb551068f126246c35468222b89ace112a316bd01f45ebdb2cc478f"
+      }
+    },
+    "multiarith_046": {
+      "question": "Dave had to wash 9 short sleeve shirts and 27 long sleeve shirts before school. If he had only washed 20 of them by the time school started, how many did he not wash?",
+      "answer": "16",
+      "audio_sha256": {
+        "neutral": "cf4c6979393ac8bb33e900045076f9400b31cf60eef6666d01e231f108db02f5",
+        "angry": "216bb4de2a34b3be1acd655739113cb748e3ff08abb64972957543bffa085de5",
+        "happy": "0781ac7d71749ee03466743b9cd493aecfcae4be8f82efcefdae4380b376ec3a",
+        "sad": "465551432b6f31de95ee51fdb35eb06ec61cef5899eb2be4a6a4b092721effc7"
+      }
+    },
+    "multiarith_081": {
+      "question": "Bianca picked 39 tulips and 49 roses to make flower bouquets. If she only used 81 of the flowers though, how many extra flowers did Bianca pick?",
+      "answer": "7",
+      "audio_sha256": {
+        "neutral": "1f5ed88aaf94133df48050f2e2f1205ee2430564f0996e2312f5111cd2d9ed21",
+        "angry": "375667702128c9320a226decb6e03b10eae36b25a338922be7b2d4b46ce345ec",
+        "happy": "e340a4a2f0ae584c7b26640986d4fd0f7480946b9b6fffd6747d655c18c5d77f",
+        "sad": "357598b9934f0e5dbeef8941dc1ebfe8bb13b87e9e12531552220158ed7c44b3"
+      }
+    },
+    "multiarith_206": {
+      "question": "There were 7 friends playing a video game online when 2 more players joined the game. If each player had 7 lives, how many lives did they have total?",
+      "answer": "63",
+      "audio_sha256": {
+        "neutral": "9e6b39ffe75e8d646ab50de74ca96eb054d68d95d7ce6cd7726b07fc9e8a482b",
+        "angry": "036e747c5e998c593f61cf3e18062f8ae3013b3eb0bfec3112f1b7973b357cb7",
+        "happy": "13282c2fbdf74bf9b49dd9a8c53dea0acf1de377ed771c99cb2cc96d1554affa",
+        "sad": "e597709c6020fd5870586e0c9c0cf3a7ca446e268495a93b5cb9faee8655bc12"
+      }
+    },
+    "multiarith_390": {
+      "question": "A toy store had 17 giant stuffed bears in stock when they got another shipment with 10 bears in it. The put the bears onto shelves with 9 on each shelf. How many shelves did they use?",
+      "answer": "3",
+      "audio_sha256": {
+        "neutral": "f666899e940828f9893e97b346d9e544defaf3d315f108da8b010f4f29b09f9f",
+        "angry": "8699a33bec62d95c22e5999374a389b283d9277085ddaa350ec867cdf069ba4f",
+        "happy": "1facf089fb03c26ee8efdd2a8b16f4989cbcab8076347beaf8fba7d506762a14",
+        "sad": "769b39d530862cd388cde2fd69b362e7267ab97ab9344b47406d7dc864fea8cd"
+      }
+    },
+    "multiarith_310": {
+      "question": "The schools debate team had 11 boys and 45 girls on it. If they were split into groups of 7 how many groups could they make?",
+      "answer": "8",
+      "audio_sha256": {
+        "neutral": "bd9f784b2a905470b5ae31129e59ff2fdbb649598f4c58c5882867cb9639a512",
+        "angry": "a73cf511e4dbf8ce1380973b515cd359dad8ff3094d5e791487f7aab39c9fd31",
+        "happy": "17270b4912f24827ee90c232e93cb474deaf37bc0944e6f37b7dfbabba0efced",
+        "sad": "503142a426c2faffa1f2dc0aeabf4fff6de26d6f19fa0144cf983cfd4cc76cce"
+      }
+    },
+    "multiarith_090": {
+      "question": "A pet store had 19 siamese cats and 45 house cats. During a sale they sold 56 cats. How many cats do they have left?",
+      "answer": "8",
+      "audio_sha256": {
+        "neutral": "88dec0dbceaef2023604fd384d0f4c84e6377a79990917799eec89e8ae3777fe",
+        "angry": "ed82637adae23f8be63a49d71c0dac091d27bf4ddc9d4b30167fffd0b95fe1de",
+        "happy": "612fe0ce7464cc05b68fd1eb84505e30e2fb1c0cd1a8939cd8246b7461c2aee2",
+        "sad": "02f3d3d1eff9b7edee62992306b80bd81365de2ed7c80f18165dba413775fb16"
+      }
+    },
+    "multiarith_407": {
+      "question": "In a video game, each enemy defeated gives you 3 points. If a level has 6 enemies total and you destroy all but 2 of them, how many points would you earn?",
+      "answer": "12",
+      "audio_sha256": {
+        "neutral": "975ee09ebe3e526de2e9b0356a26f5006805105b989f00976183f4333831016d",
+        "angry": "ffec358ddbae8e8ea55eac7299f75198e7209fe41aff01127bc0d1e33d0395aa",
+        "happy": "31b83832f80cfc9fbf00908b57ad5fca2fec12eff5e2cc91074f44bcdfc43b63",
+        "sad": "a72028d6e9eadd5fdedeccef55283a9e88bf909a2ae650ca8021a338be9df19c"
+      }
+    },
+    "multiarith_137": {
+      "question": "George had 28 socks. If he threw away 4 old ones that didn't fit and bought 36 new ones, how many socks would he have?",
+      "answer": "60",
+      "audio_sha256": {
+        "neutral": "1d75f189a0504804d005ac6ebd27d67fcd08dd86529818ae02122aa5af02e83a",
+        "angry": "172872ef4283ecd00c6b8ee027c5ea66a0e681fe57ecae1270f2626c239306c0",
+        "happy": "782459bc9bbee56c7ea492c3aeb5ab1ede705c1b4ba4be1d70187dbfb9da2b16",
+        "sad": "bfdcf2aceedba7ee811a4e0b31c0a906f81d3734bfce7264fb9b53e61934f2fa"
+      }
+    },
+    "multiarith_490": {
+      "question": "At the fair Adam bought 10 tickets. After riding the ferris wheel he had 3 tickets left. If each ticket cost 9 dollars, how much money did Adam spend riding the ferris wheel?",
+      "answer": "63",
+      "audio_sha256": {
+        "neutral": "9310212ab9921074e14e7d58906f5b9443db5745d3d3846f877a916b042cef10",
+        "angry": "3b3011920aa8070178a4a00cd10875c86531ca3cf7cd107779e291077680dab4",
+        "happy": "4f353f73ebf64e5472ba0a91106f81154e36f5726cfe9d8d7e78af21c82a2348",
+        "sad": "33540343d1d514ae38c088b7c32c58ddf566a5d4fcc79f308b8f4da36a9ad2b9"
+      }
+    },
+    "multiarith_044": {
+      "question": "Paige had 43 math problems and 12 science problems for homework. If she finished 44 of the problems at school, how many problems did she have to do for homework?",
+      "answer": "11",
+      "audio_sha256": {
+        "neutral": "a7954348f5b7893b94af7daf9eaf4d2b556c7a14deb2bd9bdb72d15717e828ff",
+        "angry": "9e43795d2c31f5f06dc2991b2146d833265734811e67169a73f812a2cad21205",
+        "happy": "074d52780eaccf7f34c45d225838a1ade92719dbbeb7d9e15dfaef6f1f514a3b",
+        "sad": "2455f820581c1747b1343586bc382dc36ceafa13ae6ab929831566f7905739b7"
+      }
+    },
+    "multiarith_280": {
+      "question": "Lana was unboxing some of her old winter clothes. She found 3 boxes of clothing and inside each box there were 3 scarves and 4 mittens. How many pieces of winter clothing did Lana have total?",
+      "answer": "21",
+      "audio_sha256": {
+        "neutral": "af1abef3d023645de40002365c5b4edf0f09141745e375defb315d4540a2a456",
+        "angry": "c6c227860bd04b4bcc0c0b3e940ec660b2f2097dd22afae599db2459f1f3151f",
+        "happy": "d78c6054baec8f7d76363257305a6e3806731ee80b94125f1ee408f6d49629c7",
+        "sad": "39855421199503dd2b44c13c47c32d00413ae7bde1d1ab59e20e5982b8229193"
+      }
+    },
+    "multiarith_372": {
+      "question": "Ned was helping the cafeteria workers pick up lunch trays, but he could only carry 5 trays at a time. If he had to pick up 5 trays from one table and 5 trays from another, how many trips will he make?",
+      "answer": "2",
+      "audio_sha256": {
+        "neutral": "0252124c5ddb4455984dc4c7d937af1e080dc07cbea4e22bee46a5153ff9afb9",
+        "angry": "74f0a06a5c0199221c29d32a986da225dbe67adb9415f89b37d0959491c32ed6",
+        "happy": "41661c96097d1974761b30f74da05aa3fe7c62271b60e06f9d5a70d1dfb9cdc4",
+        "sad": "f0775a2c85f2359ee46dda9d31ff9740f877bea9645e08a9a43ad6b41d9a0c4f"
+      }
+    },
+    "multiarith_387": {
+      "question": "At a company picnic 9 managers and 15 employees decided to start a game of volleyball. If they split into 8 teams how many people would be on each team?",
+      "answer": "3",
+      "audio_sha256": {
+        "neutral": "9a2ebfefb3789ebc483da50cc4fc84e15be54bc193cadd5884ba949ef187122f",
+        "angry": "e18a94c27bf83e7f664d16858939c07fa46933e40a7ca0eba6720f51bca7b339",
+        "happy": "90410b70cf83bd57e011924c3d3cd66732aeb58b158397285d5894262d3259ae",
+        "sad": "59f10ac237f59d4108abb548ed037974ab565c44481cf8e80112c834adb27c71"
+      }
+    },
+    "multiarith_109": {
+      "question": "At the fair there were 9 people in line for the bumper cars. If 6 of them got tired of waiting and left and 3 more got in line, how many people would be in line?",
+      "answer": "6",
+      "audio_sha256": {
+        "neutral": "a4208d90c7fe378fd58cdde108c940861503ce8d2481bf4273d0e425c71769c6",
+        "angry": "c253a0281424d8240052ad48a3831fb2364dc05825702156172c30b82bcc2473",
+        "happy": "d29ca62020a82dcc10352a6fdfa06b95b821c20ccd026a16521e3fb1ccda0a43",
+        "sad": "34224db83c8af0c2dfc91fa92319877a539bf969b617165ae7ed7f5bc4c25df5"
+      }
+    },
+    "multiarith_409": {
+      "question": "Each chocolate bar in a box cost $3. If a box had 7 bars total and Olivia sold all but 4 bars, how much money would she have made?",
+      "answer": "9",
+      "audio_sha256": {
+        "neutral": "b2f9fbdfd1d8ddd5ac9b9ae07630d7a91fed654c225455b7f81fe78db0a3a5c2",
+        "angry": "1c7380d473403e0c474aaa8246043342e234bf3df5d6b7cf2d5d8f84b3f072fd",
+        "happy": "ab685c2bb22ee1230742d04c874eda5fe5b9f8711e55f6c04d1b4dedcbb982e2",
+        "sad": "7bd9e0d5af27fd048eb9623342a72d5526ae033b266d2dae634e559b709a824e"
+      }
+    },
+    "multiarith_104": {
+      "question": "Oliver had 33 dollars in January. By March he had spent 4 dollars. If he got another 32 dollars from his mom, how much money would he have?",
+      "answer": "61",
+      "audio_sha256": {
+        "neutral": "53b8f893abaeb67f2340f1a23ba7e03183145370885fe6b62514a08a283a8705",
+        "angry": "ffae11410a8a5d12be14ae47800fd279a00090d4b29f7b11c11cd7622f5dcab4",
+        "happy": "b254f78d4592c0ebca6ca5cd74bd857dabdaf7200674d8cef83294e46d4b558d",
+        "sad": "cf1012e1d4a5fb8c429b9cf93e065618989508831543083115b3fd6b6a2c1364"
+      }
+    },
+    "multiarith_593": {
+      "question": "A pet store had 88 puppies. In one day they sold 34 of them and put the rest into cages with 6 in each cage. How many cages did they use?",
+      "answer": "9",
+      "audio_sha256": {
+        "neutral": "4760c6d950f30354699cf6d013701cf4592840014c784eebfc68830ff66cada0",
+        "angry": "53486fd33fa64ccb120f41350c93e75c1377b8672c43df4173f91ee6b8adfe31",
+        "happy": "ce19155c48677f97cf32a90783fb7f4eb85bcd2339b6f749a9ce3bab71c3aece",
+        "sad": "2f8562b65e45c27cbb0b830ab8f16204e3db87755dcae4ee45b401be19d5821b"
+      }
+    },
+    "multiarith_364": {
+      "question": "There school's baseball team had 31 new players and 4 returning players. If the coach put them into groups with 7 players in each group, how many groups would there be?",
+      "answer": "5",
+      "audio_sha256": {
+        "neutral": "0d3d9bedf24bbadca2a0696303bc4b0f5703cbaa41f8b756d4893e5af1a7dd5b",
+        "angry": "8ea5e880d717382bc14683751f163a957862574333a6938bdd6bc8478aef4cdb",
+        "happy": "9681acb68f42392ea678dd77c437dd5738b05933dc40f562a3ca4d37ac4c74a1",
+        "sad": "8573e062ebed097b4e79ab60895d626eab13e2b8f6ab23dcde2f2fb5601e66b4"
+      }
+    },
+    "multiarith_230": {
+      "question": "Tom and his friend were buying trick decks from the magic shop for 8 dollars each. How much did they spend if Tom bought 3 decks and his friend bought 5 decks?",
+      "answer": "64",
+      "audio_sha256": {
+        "neutral": "b083ac59ab5f34dd1beffc9b246f20515f9f49708cad83314aed851e8dae9d2a",
+        "angry": "c3ba84bf4f8c346e37e370e851ea6324e0651b9b0bf37765efce6a1358c7a829",
+        "happy": "58a47bfa1ed98c47224df7c7e2ecc4b5abaaa06dcc4a3c8fa5ace56c0ea71b69",
+        "sad": "482d570dbeb9069a6d8b583c6e3e744e2424033ac208ea111859ad6b6137368c"
+      }
+    },
+    "multiarith_169": {
+      "question": "In fourth grade there were 8 students at the start of the year. During the year 5 students left and 8 new students came to school. How many students were in fourth grade at the end?",
+      "answer": "11",
+      "audio_sha256": {
+        "neutral": "e45b28df4022f7b8acda6badb9edf5d317bcf3653b0e9b1ed4885042e7ee0f08",
+        "angry": "3150588ad1df4c67fd29b109023ad0aae261ab7dc4e15ddbd82c6a79f4f6e18b",
+        "happy": "da8f7672b9158c36f5cc0b7c896f614bff3263830577c9b43895548f6f951673",
+        "sad": "2b11a89cd5e9855353a6bbe40e784d70564a6d5f07815bda5270597a3f3f6cdf"
+      }
+    },
+    "multiarith_577": {
+      "question": "Kaleb had 12 dollars. If he spent 8 bucks on a new game, how many 2 dollar toys could he buy with the money he had left?",
+      "answer": "2",
+      "audio_sha256": {
+        "neutral": "937b6f707a4d593664a2b97fbe8737f9dd3dd5b78e8d191cfd58631869c4e0aa",
+        "angry": "a7a925c019dfda05b52ac128a37118b8b6eb782e3423c7e563e153626427f7ee",
+        "happy": "b6e32ea7034316b9ad81ab1786a649f5e58053d5d8ce7ff1274a02485a648d90",
+        "sad": "f5a8b647c550d3c8dfa4d421dbf3eccf112cd8fe4c3e669d9f7b496f0744dd18"
+      }
+    },
+    "multiarith_368": {
+      "question": "The schools debate team had 5 boys and 40 girls on it. If they were split into groups of 9 how many groups could they make?",
+      "answer": "5",
+      "audio_sha256": {
+        "neutral": "c83ab8c28447c5c8fb72e06442a62d53caac2ed4c270518ab0a541f2817a4afb",
+        "angry": "ae0d7782f035a4adb5b7966d6cf8af9a4a99ee1ac73d0ed8def8f3e6cad1af0c",
+        "happy": "d9a0e65dc935b31a052708808a86182baab2c8d97df4858b94756cc2453e7931",
+        "sad": "fda00f4b1643dabec546008ce962f8c2070ab0912f084d3402e0863e493c7087"
+      }
+    },
+    "multiarith_590": {
+      "question": "Will made 104 dollars mowing lawns over the summer. If he spent 41 dollars buying new mower blades, how many 9 dollar games could he buy with the money he had left?",
+      "answer": "7",
+      "audio_sha256": {
+        "neutral": "315fe7b93155d867e0b7f29aa94146340817ffc57da5278f1dcf890e0e32f9d1",
+        "angry": "f5952dc97cc9051252ffe0184bfa590fe99863c349525b64f5700ad87a55c180",
+        "happy": "8c5032c1f7f9d37eb6115fdb7309a675a4ea5e420aabc6a4a5096d4d4bae0952",
+        "sad": "1ec11a9a16a8f11173b052121a3faa218ce8449ef57356606f4cb6ab157fd228"
+      }
+    },
+    "multiarith_173": {
+      "question": "A store had 5 oranges in a bin. If they threw away 2 of the old ones and put 28 new ones in the bin how many would be in the bin?",
+      "answer": "31",
+      "audio_sha256": {
+        "neutral": "19a8bf4f46ad43890af5aa1e285ea504bcc3bafe0bba62c086423fc4edd0f273",
+        "angry": "cfc039716137dd967462855f1f69f4f85984d27f639530843e489eee582e88eb",
+        "happy": "170abd5ca58e05eb5510bba579b39dad6d65e2fc0cff02a75b86fe77152a0f42",
+        "sad": "262174ccaf8a1ae1248e3fcc918018a1de1f62d8e006b8e0e2cd4d2aa5fe8a2a"
+      }
+    },
+    "multiarith_006": {
+      "question": "Roger had 16 dollars. For his birthday he got 28 more dollars but spent 25 on a new game. How much money does he have now?",
+      "answer": "19",
+      "audio_sha256": {
+        "neutral": "fb6e55c5dd6ca31f4fefa79f807a2e50384592dff585bf92a97f74ee32ad0809",
+        "angry": "7dc00e6235abbc245913260022d112119a305c8328b569131aaa77fcdbd4bc6d",
+        "happy": "62865a10343c6a1005b8f0ba1cfc626ab192959fc1e5c3b56daa37f1dcc8535e",
+        "sad": "f44a653c0953a33835cef9c5ac2bf5f43daa8f149c505f1fe3b9ee57586ffe00"
+      }
+    },
+    "multiarith_294": {
+      "question": "Kaleb was collecting cans for recycling. On Saturday he filled 4 bags up and on Sunday he filled 6 more bags. If each bag had 4 cans in it, how many cans did he pick up total?",
+      "answer": "40",
+      "audio_sha256": {
+        "neutral": "08851e967c55a862f1798b067b90dc4c8faca47379b12493a3161d850e28d96b",
+        "angry": "2ea74bfcef45e8b3a54670ee0c5082b39882c322f15f032fcaaa64dc87246dcb",
+        "happy": "b8aef51c332a62bca8fd3f65e2457e66e870eef4a242e93e0621d37231ae1fd9",
+        "sad": "8773e77f3c1e41860fb66c0a6c92177f1b821e2d7122808f8eee5141d574b360"
+      }
+    },
+    "multiarith_479": {
+      "question": "Edward earned 4 dollars for each lawn he mowed. If he had 17 lawns to mow, but forgot to mow 9 of them, how much money did he actually earn?",
+      "answer": "32",
+      "audio_sha256": {
+        "neutral": "f7c6dffb79e51f57b2e8a5df2ded1fc3efdc03f9930ccc2ced254476d0ea6910",
+        "angry": "53d8cef924f6a0543b29405fd42ac5ae69102c8cf541d8d402ace089a1d31cec",
+        "happy": "a174e361afaaf7432ed704ff1c60e4edbe4f860497a5bd11c86a674e9e7e85dc",
+        "sad": "bd1ed45a2434e442c0ebd68949be0da1b5cfde11c9e55d9d39dfc76c0b6d349e"
+      }
+    },
+    "multiarith_235": {
+      "question": "Olivia was playing a video game where she scores 8 points for each treasure she finds. If she found 2 treasures on the first level and 2 on the second, what would her score be?",
+      "answer": "32",
+      "audio_sha256": {
+        "neutral": "dc5c1f872500d8be891249b0a31f5bf4dfcd65b51f8a98e44b7b5000f6f95015",
+        "angry": "e9c4adcd6276ed2802c3872bb37669c8ea8c6f1141785df0b52140fde153c0f1",
+        "happy": "6bef3adbd3cf21e43edbf25cae69b7197a9ab19c61d07c0e1e867e2fa5fba137",
+        "sad": "99f8d8acb9edd830dfed974c531dba76faa88be176272a80c5f02be2b8a7f770"
+      }
+    },
+    "multiarith_449": {
+      "question": "At lunch a waiter had 9 customers and 5 of them didn't leave a tip. If he got $8 each from the ones who did tip, how much money did he earn?",
+      "answer": "32",
+      "audio_sha256": {
+        "neutral": "a9036b112f247321b7381cb15217163d5219b880a832142c7ce1fb097327a40c",
+        "angry": "94f199c6a900456703f04f6403b421363be4a65b4013f9814d6a9888a2b1efb0",
+        "happy": "6e57a04e0caa9ac5b2e46ae4ccbf4f7685355df2557b262123c291e9c7819d00",
+        "sad": "4d148996fe6231965b23f4c54b954df0f44f7f55260ab09389793e07d10a69e2"
+      }
+    },
+    "multiarith_592": {
+      "question": "Luke was selling his old games. He started out with 57 but sold 39 of them. He packed the rest up putting 2 games into each box. How many boxes did he have to use?",
+      "answer": "9",
+      "audio_sha256": {
+        "neutral": "4eba78db2f1a5222ff09b7b4444dde23890f8354031e04a14399ff675aeef83a",
+        "angry": "c9c286bfdaf50434383c6fae22a9bc9700d6dae1061525f2afd22dc766e73610",
+        "happy": "c233067af7a86b019860bb1346ec8f61b6509bcab5a46086d4faa4d3b8e45d6f",
+        "sad": "60f382de8ff1a3f8467a537d310c8f387dfc7915d314b24fac85e38173353f84"
+      }
+    },
+    "multiarith_213": {
+      "question": "At Billy's Restaurant a group with 2 adults and 5 children came in to eat. If each meal cost 3 dollars, how much was the bill?",
+      "answer": "21",
+      "audio_sha256": {
+        "neutral": "78b7910a9a6dbcf8ce9736b12773c3ecb3316105cf1f2268413c0de602440ae8",
+        "angry": "1e53aba55eb8c023317dab13c4924f389dcb4fe8419dc8c196609ff2ecd304b1",
+        "happy": "a9aaa87dd0384fc15ad589fb303fc274a76820b581d05e4ffd33ed1dea700bf2",
+        "sad": "85e90087304682a189897d7a9a0cf3f2a84ed2d88310150df42472c95ae83b84"
+      }
+    },
+    "multiarith_027": {
+      "question": "Faye and her mom were picking carrots from their garden. Faye picked 23 and her mother picked 5. If only 12 of the carrots were good, how many bad carrots did they have?",
+      "answer": "16",
+      "audio_sha256": {
+        "neutral": "63e4dc69d37f26d7f87724d87014f503f80d7850652088641fb17fa4f1f778fd",
+        "angry": "ffa9335ac0f2f87c33a22d9d250a53f501cf849dd4a42d22a723479d452e21f4",
+        "happy": "fe856dc4c14efa93a87b6bcdc4b3fb97017d399fb6cf233958feb6e1a74c0dd6",
+        "sad": "13803c3863ed8a185c43738946b0bc324f25c048896b5d1e1e351e46c848ff1f"
+      }
+    },
+    "multiarith_537": {
+      "question": "Kaleb was selling his old games. He started out with 76 but sold 46 of them. He packed the rest up putting 5 games into each box. How many boxes did he have to use?",
+      "answer": "6",
+      "audio_sha256": {
+        "neutral": "bddca234ae82a0029d55b83f8ad7d1f1a66de3224483268f899b35be3d9d9026",
+        "angry": "27ddee1e4d0f5d6b0b9ca7b9ef86dc036192881fe665961e37e78ac1795b83c0",
+        "happy": "2c7bb36b42710dccbc53fbcb2cb56488f68dac32f3c6fc7681fa15cff7532607",
+        "sad": "2b1deff9b3463ae90994789915766fb9966aa5fbb97e4a59c017525b6151ba22"
+      }
+    },
+    "multiarith_248": {
+      "question": "Tiffany had 6 pages of math homework and 4 pages of reading homework. If each page had 3 problems on it, how many problems did she have to complete total?",
+      "answer": "30",
+      "audio_sha256": {
+        "neutral": "d9ba92cb01ef1e66c48975c4aef704accb4c599c80f27c54cebf944b4ae1f6a6",
+        "angry": "ccef3fb5eb743547a6e70bba955e3f25ff312b5a0af48870518c6fa6d2a41226",
+        "happy": "80d98d119529c1553d80d6da78058a9cbfdeab1937e17b8e2faada91c3f9fcda",
+        "sad": "b11fca8b0f391b4662c29eca78436beac82fb9683e99fe16a73af79c9959ccf1"
+      }
+    },
+    "multiarith_233": {
+      "question": "A pet store has 6 bird cages. If each cage has 2 parrots and 7 parakeets in it, how many birds does the pet store have total?",
+      "answer": "54",
+      "audio_sha256": {
+        "neutral": "26353e49535c48f9ace44dc9249ebbd66df02b8f5d9a5c6a5454e647b22be6d6",
+        "angry": "a6c0123d4e50be4de6e8b166ceb813a6d27578efb9071e1fafc29f8699a20284",
+        "happy": "7cc76da53c6796249385a9952c51c9610a828a8d710f269947596e40b53e69b9",
+        "sad": "c60066931dfc79f89127fedfa46eef56d00fa3882c465aac3c673290b3c649d9"
+      }
+    },
+    "multiarith_105": {
+      "question": "A florist had 37 roses. If she sold 16 of them and then later picked 19 more, how many roses would she have?",
+      "answer": "40",
+      "audio_sha256": {
+        "neutral": "e4b851d9b1a4c80ab85a2765d102e9e4f50f1eb9b5fa0a7b17977e1e91d7088f",
+        "angry": "deb2d335a14d18d8e009b5c1091f27d33977536d56c33581292c238b51c25e74",
+        "happy": "105fbed74de30487313ba99f18b71431fc4b407ef0b930975e180a92431c2278",
+        "sad": "e47187ffee7b6d22bbd8b55d1c65ab542f8fcc40aaeca1f381d388c9eba87902"
+      }
+    },
+    "multiarith_030": {
+      "question": "A pet store had 38 siamese cats and 25 house cats. During a sale they sold 45 cats. How many cats do they have left?",
+      "answer": "18",
+      "audio_sha256": {
+        "neutral": "4e1d6a626664694c0fd63d8fdae969fa317e3ef3e018247230afd8701c4a22d5",
+        "angry": "d20c6f8808029757a4c941158a7e52e702fccb1047f520166d75da6d952b9865",
+        "happy": "fc54569f0ce7ccdb42fe7ba3f36b7d9d97f02a724b4bf3c5fc21cdee3420ae11",
+        "sad": "a05e614753d7e34f1f667929c80f1a7b363368a36771fe42b5cfbf94a1eca15c"
+      }
+    },
+    "multiarith_032": {
+      "question": "Carol was playing a trivia game. In the first round she scored 17 points and in the second round she scored 6 points. In the last round she lost 16 points. How many points did she have at the end of the game?",
+      "answer": "7",
+      "audio_sha256": {
+        "neutral": "f23350aeb5a32a39bb485fc22ec523ad69954d32b0c1e31b153597264291bbb7",
+        "angry": "d7ef4c69d6c16c493f9bead00806b54ae8f2fb5764303bf19a9df96e5eaeeffe",
+        "happy": "8108dd56472bd6ee9a8568db963dac66f02b71901f882e93cfae976f4c678659",
+        "sad": "310a320bf575510d4d257f89a3831488c8278287a46f7b7bb4a671aa5f306f3f"
+      }
+    },
+    "multiarith_452": {
+      "question": "A chef needs to cook 15 potatoes. He has already cooked 6. If each potato takes 8 minutes to cook, how long will it take him to cook the rest?",
+      "answer": "72",
+      "audio_sha256": {
+        "neutral": "5ecb467b70c6052eeacfc822bf421ce0a5ce7b12c7a11e0db4c882957cc9e5e1",
+        "angry": "ddedaed65e57212c694bfec79fb2a338857c8e368f3c28afc961f10ce5381fa0",
+        "happy": "9893d8ea18a5d81bb8c5d1f4461defb1407c923d9688ec8f568440c75a3899c7",
+        "sad": "79121b2af945d372431017fd8851593ca871ca672de79d04443465f27cbf670e"
+      }
+    },
+    "multiarith_099": {
+      "question": "Cody had 45 dollars. For his birthday he got 9 more dollars but spent 19 on a new game. How much money does he have now?",
+      "answer": "35",
+      "audio_sha256": {
+        "neutral": "f73a65d50c1aae08ddc58cd609a505366bfa8d9bd5dc3009472c13ca7a512806",
+        "angry": "03700f5a6e8c114cbfadf731e9c03f1618b3b41096a41ebd4d8d7d975c60d122",
+        "happy": "fb4a423f56dd36a37243ca4334b7c276835ca1f6e932077cbef0839051e9e88a",
+        "sad": "c719184b32ea2b9b585219b0bf7899292b6739df12cb2fb649f7d2bb66aa4c3a"
+      }
+    },
+    "multiarith_578": {
+      "question": "Sarah was planting vegetables in her garden. She started with 21 seeds and planted 12 of them in the big garden and in each of her small gardens put 3 seeds each. How many small gardens did Sarah have?",
+      "answer": "3",
+      "audio_sha256": {
+        "neutral": "20a55e2e7d498d0d9b9e12166dc9bef80266cea1d45d6e67ddc0da806a092196",
+        "angry": "2301c627509cb36f451083fae134640e69cf283363146023e46e127ab426be6f",
+        "happy": "1fc2f43b81a5b1de201c2d6a52b673c4478676cb4c8cae37c211257423033323",
+        "sad": "d0219e978900d57f5083da114ecbd9c10b96be7270055fb67d3fcb4e2c64b23d"
+      }
+    },
+    "multiarith_114": {
+      "question": "A waiter had 47 customers to wait on. If 41 customers left and he got another 20 customers, how many customers would he have?",
+      "answer": "26",
+      "audio_sha256": {
+        "neutral": "95b2065e59f83ccb9c2321942cabb08e60762afea0e6c797a2daad1fc9e3be0a",
+        "angry": "7366bb174497877ee525bd61997e9aa00ef6632f95e7b92d9b83b0ed78f544a7",
+        "happy": "d1bfaba545ff2d8bb8cf0989f34735c7212b5d10fa0b6d86df9d4b9e5d38e065",
+        "sad": "3950b635b1b7765a571adb1feaedf47556bc70b3c62241e15565d1f34db47c1c"
+      }
+    },
+    "multiarith_152": {
+      "question": "A teacher had 34 worksheets to grade. If she graded 7, but then another 36 were turned in, how many worksheets would she have to grade?",
+      "answer": "63",
+      "audio_sha256": {
+        "neutral": "fddc62ed64f84c12c514b708ffbec12bc21268d92c80344b4e90acfc8700a0d0",
+        "angry": "79b6dff7290cffbacf41bf55e1de1e52173186c93bfad30fa11286e888e054bb",
+        "happy": "e8bcb017342fb01a537704cee295137b97e2a3b0f6c28ccef45020763d89b4a2",
+        "sad": "4255ef409b8f58fcd5b589c8a2ef1681081c97ded9509d505fc79032ac65dee3"
+      }
+    },
+    "multiarith_238": {
+      "question": "At the town carnival Oliver rode the ferris wheel 5 times and the bumper cars 4 times. If each ride cost 7 tickets, how many tickets did he use?",
+      "answer": "63",
+      "audio_sha256": {
+        "neutral": "d1ba927d721e88e68b88bea9cf87ee27a32dd9b15cd278f60d086d78fe0ee9fc",
+        "angry": "4c79bad253a6e9e3d6fc7891105c63c072c88ef10c06ebb7784d8a028dd43f97",
+        "happy": "1a6b5e38abb27d208078740a19c06018c0f33fdaaa0dc37a6e88e5255f7a82bc",
+        "sad": "d0b1a572aaf451f5ead0c697062b237984728169c97b0e61d6ca54414cf45ab3"
+      }
+    },
+    "multiarith_260": {
+      "question": "April's discount flowers was having a sale where each flower was 6 dollars. If Katie bought 5 roses and 5 daisies, how much did she spend?",
+      "answer": "60",
+      "audio_sha256": {
+        "neutral": "fb54c81be12bb48d6a52df4f8f6a3553b608146a307e609bb30ce3d701941706",
+        "angry": "26ca77f9b7c2e225b0211d25b65f67ef59d919217c663533f4a78dbbdb60207c",
+        "happy": "d757906eaca9ad98d29f004257e04d5599ea04d8582a7893279cbc8b61867247",
+        "sad": "e0b78af6ca2d17f7dcbf1085e300fd102aa5b971aa2f6909ff8f39ac54758570"
+      }
+    },
+    "multiarith_291": {
+      "question": "Lana was unboxing some of her old winter clothes. She found 4 boxes of clothing and inside each box there were 2 scarves and 6 mittens. How many pieces of winter clothing did Lana have total?",
+      "answer": "32",
+      "audio_sha256": {
+        "neutral": "33817562e691f394ec8e0fef983a42420dc4320933f1ca86c1f14aa8e48bde13",
+        "angry": "97ddd9aa43fd369b4f40e9b04cf31024b7a8adda1810558d8e5eaa2c31060ae6",
+        "happy": "21e8a159ada3a48296f8921087de93129696623743ccf7abf42c8bbafa3f5f45",
+        "sad": "fa21b8a02178071b59b4f1e2dff169d0cd7903233e042435786a150dc00bf91d"
+      }
+    },
+    "multiarith_025": {
+      "question": "Sam had to wash 40 short sleeve shirts and 23 long sleeve shirts before school. If he had only washed 29 of them by the time school started, how many did he not wash?",
+      "answer": "34",
+      "audio_sha256": {
+        "neutral": "5982675add4a970f8651a2a5e1812e7a6347460a9d284daf4f526dc237dc649b",
+        "angry": "635fcfc6539a856744413a6cbedf96884a48711f4f59d3d62601472a8ff5594e",
+        "happy": "5cf0efb75d1eed5afa27a319305cf7dbac79fd3fd694bae674042f70af7ce185",
+        "sad": "ecfc86633919e9c90d4dcd4c87b3dc3083044af51698c0bf763bf60e09ecfdad"
+      }
+    },
+    "multiarith_124": {
+      "question": "A teacher had 38 worksheets to grade. If she graded 4, but then another 15 were turned in, how many worksheets would she have to grade?",
+      "answer": "49",
+      "audio_sha256": {
+        "neutral": "c2952a8c4919470566df9f84a48fbdbe1d7f6a467a2cbc6cf963b41ae22a327f",
+        "angry": "3773b92d04cc5ff534701371973ea5543f57f658388138d75a9f8934b571bd6f",
+        "happy": "a4b198c282b186506a74c9a1fffd172bc1c9e144f15f2178f8739651928b317e",
+        "sad": "008af3ca145990925dd6c1f70d0308f7c5683d240a96a2aadeeb602e0d036caf"
+      }
+    }
+  }
+}
