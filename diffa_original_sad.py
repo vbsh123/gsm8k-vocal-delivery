@@ -58,6 +58,19 @@ def steering_job(plan,folder):
                 layer=31,group='answer',schedule='always',mode='fixed')
 
 
+def use_delivery_recordings(job, plan):
+    """Resolve steering inputs without changing an already frozen job on resume."""
+    neutral = {(r['question_id'], r['voice']): r for r in plan['recordings']
+               if r['condition'] == 'neutral'}
+    records = []
+    for record in job['target']['records']:
+        delivery = neutral[record['question_id'], record['voice']]
+        if delivery['audio_sha256'] != record['audio_sha256']:
+            raise ValueError(f'Steering and neutral delivery audio hashes differ for {record["question_id"]}.')
+        records.append(dict(record, audio_file=delivery['audio_file']))
+    return dict(job, target=dict(job['target'], records=records))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mode',choices=('prepare','run','summary'),default='run')
@@ -113,7 +126,7 @@ def main():
                 job = steering_job(plan,folder)
                 task.winners.freeze(output/'run_config.json',job)
                 task.reuse_neutral(folder/'delivery',output)
-                task.winners.generate_job(job,output,model,tokenizer,features)
+                task.winners.generate_job(use_delivery_recordings(job,plan),output,model,tokenizer,features)
                 task.report_steering(output,tokenizer)
 
 

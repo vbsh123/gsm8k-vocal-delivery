@@ -69,6 +69,22 @@ class OriginalSadTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'No TTS or question substitution'):
                 sad.prepare('ifeval',source,root/'sad',inventory)
 
+    def test_resume_steering_with_verified_neutral_delivery_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            _,source,inventory=self.fixture(root)
+            plan=sad.prepare('ifeval',source,root/'sad',inventory)
+            record=plan['target']['records'][0]
+            stale=dict(record,audio_file=str(root/'missing.wav'))
+            job=dict(target=dict(records=[stale]))
+            actual=sad.use_delivery_recordings(job,plan)['target']['records'][0]
+            self.assertEqual(actual,record)
+            self.assertEqual(happy.winners.digest(actual['audio_file']),stale['audio_sha256'])
+            self.assertFalse(Path(job['target']['records'][0]['audio_file']).exists())
+            stale['audio_sha256']='wrong'
+            with self.assertRaisesRegex(ValueError,'hashes differ'):
+                sad.use_delivery_recordings(job,plan)
+
 
 if __name__ == '__main__':
     unittest.main()
