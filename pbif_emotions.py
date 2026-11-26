@@ -176,38 +176,50 @@ def paired_mean(differences):
 def report(folder, plan, saved, verifier):
     ids = [q for q in plan["bank"] if all((q, f"{o}/{s}") in saved for o in ORDERS for s in STYLES)]
     print(f"PBIF: {len(saved)}/{len(plan['records'])} answers, {len(ids)}/{len(plan['bank'])} four-way matched requests.")
-    if not ids:
+    if not saved:
         return
     results, bits, fractions, scored = {}, {}, {}, []
     for o in ORDERS:
         for s in STYLES:
-            rows = [saved[q, f"{o}/{s}"] for q in ids]
-            flags = [checks(plan["bank"][q], verifier, r["response"]) for q, r in zip(ids, rows)]
-            for q, flags_q in zip(ids, flags):
+            available = [q for q in plan["bank"] if (q, f"{o}/{s}") in saved]
+            if not available:
+                print(f"{o} {s}: awaiting the first answer.")
+                continue
+            rows = [saved[q, f"{o}/{s}"] for q in available]
+            flags = [checks(plan["bank"][q], verifier, r["response"]) for q, r in zip(available, rows)]
+            for q, flags_q in zip(available, flags):
                 scored.append(dict(question_id=q, order=o, style=s, checks=flags_q))
-            bits[o,s] = [all(f) for f in flags]
-            fractions[o,s] = [mean(f) for f in flags]
+            bits[o,s] = {q: all(f) for q, f in zip(available, flags)}
+            fractions[o,s] = {q: mean(f) for q, f in zip(available, flags)}
             passed, total = sum(map(sum,flags)), sum(map(len,flags))
             lengths = [r["response_tokens"] for r in rows]
-            cell = dict(all_pass=sum(bits[o,s]), n=len(ids), constraints_passed=passed, constraints_total=total,
+            cell = dict(all_pass=sum(bits[o,s].values()), n=len(rows), constraints_passed=passed, constraints_total=total,
                         mean_tokens=mean(lengths), median_tokens=median(lengths))
-            print(f"{o} {s}: all seven {cell['all_pass']}/{len(ids)} ({100*mean(bits[o,s]):.1f}%), "
+            print(f"{o} {s}: all seven {cell['all_pass']}/{len(rows)} ({100*mean(bits[o,s].values()):.1f}%), "
                   f"constraints {passed}/{total} ({100*passed/total:.1f}%), mean/median tokens {mean(lengths):.1f}/{median(lengths):g}")
+            results[f"{o}/{s}"] = cell
             if s != "neutral":
-                diff = paired(list(zip(bits[o,"neutral"], bits[o,s])))
+                matched = [q for q in available if (q, f"{o}/neutral") in saved]
+                if not matched:
+                    print(f"  {s} vs neutral: awaiting a matched pair.")
+                    continue
+                diff = paired([(bits[o,"neutral"][q], bits[o,s][q]) for q in matched])
                 cell["vs_neutral"] = diff
-                constraint_diff = paired_mean([x-y for x,y in zip(fractions[o,s], fractions[o,"neutral"])])
+                constraint_diff = paired_mean([fractions[o,s][q] - fractions[o,"neutral"][q] for q in matched])
                 cell["constraints_vs_neutral"] = constraint_diff
-                print(f"  vs neutral {diff['gain_pp']:+.2f} pp, 95% CI {diff['ci95_gain_pp']}, p={diff['mcnemar_exact_p']:.4g}")
+                print(f"  {s} vs neutral (N={len(matched)}): all seven {diff['gain_pp']:+.2f} pp, 95% CI {diff['ci95_gain_pp']}, p={diff['mcnemar_exact_p']:.4g}")
                 print(f"  constraints vs neutral {constraint_diff['gain_pp']:+.2f} pp, "
                       f"95% CI {constraint_diff['ci95_pp']}, p={constraint_diff['p']}")
-            results[f"{o}/{s}"] = cell
     contrasts = {}
+    if not ids:
+        print("Order interaction awaits the first request with all four answers.")
     for metric, values in (("all_seven", bits), ("constraints", fractions)):
         contrasts[metric] = {}
+        if not ids:
+            continue
         for s in STYLES[1:]:
-            differences = [(an-nn)-(ap-np) for an,nn,ap,np in zip(values["tau-1",s], values["tau-1","neutral"],
-                                                                  values["tau+1",s], values["tau+1","neutral"])]
+            differences = [(values["tau-1",s][q] - values["tau-1","neutral"][q])
+                           - (values["tau+1",s][q] - values["tau+1","neutral"][q]) for q in ids]
             contrasts[metric][s] = v = paired_mean(differences)
             print(f"{metric} / {s}-neutral gap, tau-1 minus tau+1: {v['gain_pp']:+.2f} pp, "
                   f"95% CI {v['ci95_pp']}, p={v['p']}")
