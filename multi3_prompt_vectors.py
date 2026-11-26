@@ -12,10 +12,7 @@ from collect_diffa_reasoning_emotion import capture_initial
 from diffa_model_receipts import model_revisions
 from phi4_queued_workers import gpu_queue
 from phi4_sweep import job_lock
-from run_multi3_replication import resolve_phi_recordings
-from run_multiarith_reasoning_ablation import (
-    COMPARISON, REFERENCE, SEQUENCED_PROMPT, STYLES, winners,
-)
+import winning_diffa_sweeps as winners
 from collect_diffa_cross_prompt import write_state
 
 OUT = Path('outputs/diffa-multiarith-prompt-vectors270')
@@ -23,6 +20,8 @@ GROUPS = ('acoustic', 'answer-mask')
 
 
 def make_plan():
+    from run_multiarith_reasoning_ablation import COMPARISON, REFERENCE, SEQUENCED_PROMPT, STYLES
+
     source = json.loads(REFERENCE.read_text())
     original = json.loads(COMPARISON.read_text())
     if original['reference_sha256'] != winners.digest(REFERENCE):
@@ -42,6 +41,8 @@ def make_plan():
 
 
 def collect(folder, plan, pending):
+    from run_multi3_replication import resolve_phi_recordings
+    from run_multiarith_reasoning_ablation import STYLES
     from extract_vectors import gen_chunked, load_model
     import soundfile as sf
     import src.fast_dllm.diffa_generate as decoder
@@ -83,12 +84,19 @@ def unit(x):
 
 
 def report(folder, plan):
-    ids = plan['question_order']
-    n = sum((folder/'states'/(q+'.npy')).is_file() for q in ids)
-    print(f'{n}/{len(ids)} matched questions saved ({4*n} initial forwards).', flush=True)
-    if n != len(ids):
-        return
+    planned = plan['question_order']
+    # Each state file is renamed into place only after all four forwards are saved.
+    ids = [q for q in planned if (folder/'states'/(q+'.npy')).is_file()]
+    n = len(ids)
+    partial = n < len(planned)
     first = set(plan['fold_a'])
+    count_a = sum(q in first for q in ids)
+    count_b = n - count_a
+    print(f'{"Interim" if partial else "Final"}: {n}/{len(planned)} matched questions '
+          f'({4*n} initial forwards). Folds A/B: {count_a}/{count_b}.', flush=True)
+    if not count_a or not count_b:
+        print('Cross-fold estimates need at least one saved question in each fold.')
+        return
     sums = [None, None]
     per_item_norms = []
     for q in ids:
@@ -98,7 +106,7 @@ def report(folder, plan):
             sums[f] = np.zeros_like(d)
         sums[f] += d
         per_item_norms.append(np.linalg.norm(d, axis=-1))
-    means = [sums[0]/len(first), sums[1]/(len(ids)-len(first))]
+    means = [sums[0]/count_a, sums[1]/count_b]
     axes = [unit(m) for m in means]
     def cosine(f,i,g,j):
         return (axes[f][i]*axes[g][j]).sum(-1)
@@ -112,36 +120,48 @@ def report(folder, plan):
     for i,name in enumerate(('original_voice','sequenced_voice','neutral_rewrite','angry_rewrite')):
         result[name+'_split_half_cosine'] = cosine(0,i,1,i)
         result[name+'_mean_question_norm'] = avg_norm[i]
-        result[name+'_mean_vector_norm'] = np.linalg.norm((sums[0][i]+sums[1][i])/len(ids),axis=-1)
+        result[name+'_mean_vector_norm'] = np.linalg.norm((sums[0][i]+sums[1][i])/n,axis=-1)
     # For each question, estimate its displacement along the original voice axis
     # using only other questions to define the axis. Positive means toward original angry.
     buf = io.StringIO()
     writer = csv.writer(buf)
     writer.writerow(['question_id','fold','layer','token_group','neutral_rewrite_projection','angry_rewrite_projection'])
+    projection_sum = np.zeros_like(avg_norm[2:])
     for q in ids:
         f = int(q not in first)
         d = contrasts(folder,q)
         projections = (d[2:]*axes[1-f][0]).sum(-1)
+        projection_sum += projections
         for layer in plan['layers']:
             for j, group in enumerate(GROUPS):
                 writer.writerow([q,'AB'[f],layer,group,*projections[:,layer,j]])
-    winners.atomic_text(folder/'question-projections.csv',buf.getvalue())
+    result['neutral_rewrite_mean_projection'], result['angry_rewrite_mean_projection'] = projection_sum / n
+    prefix = 'interim-' if partial else ''
+    question_csv = folder / (prefix + 'question-projections.csv')
+    layer_csv = folder / (prefix + 'layer-comparison.csv')
+    winners.atomic_text(question_csv,buf.getvalue())
     buf = io.StringIO()
     writer = csv.writer(buf)
     writer.writerow(['layer','token_group',*result])
     for layer in plan['layers']:
         for j, group in enumerate(GROUPS):
             writer.writerow([layer,group,*[x[layer,j] for x in result.values()]])
-    winners.atomic_text(folder/'layer-comparison.csv',buf.getvalue())
-    for layer,j in ((0,0),(15,0),(31,0),(31,1)):
-        cross = [result['neutral_rewrite_vs_original_voice_'+suffix][layer,j] for suffix in ('A_vs_B','B_vs_A')]
-        shared = [result['voice_shared_across_prompts_'+suffix][layer,j] for suffix in ('A_vs_B','B_vs_A')]
-        print(f'L{layer} {GROUPS[j]}: shared angry direction {shared[0]:+.4f} / {shared[1]:+.4f}; '
-              f'neutral rewrite vs original angry direction '
-              f'{cross[0]:+.4f} / {cross[1]:+.4f}; mean rewrite distance neutral / angry '
-              f'{result["neutral_rewrite_mean_question_norm"][layer,j]:.3f} / '
-              f'{result["angry_rewrite_mean_question_norm"][layer,j]:.3f}')
-    print(f'All layers: {folder}/layer-comparison.csv; per-question shifts: {folder}/question-projections.csv')
+    winners.atomic_text(layer_csv,buf.getvalue())
+    print('Shift = mean per-question distance from original to reworded prompt, with audio fixed.')
+    print('Projection = mean signed shift along the original angry-minus-neutral direction from the other fold.')
+    print('Shared cosine compares the angry-minus-neutral directions across prompts in opposite folds.')
+    print(f'{"Layer":>5}  {"Tokens":<11} {"Neutral shift":>13} {"Angry shift":>12} '
+          f'{"Neutral proj":>13} {"Angry proj":>11}  Shared cosine A/B, B/A')
+    for layer in (0,15,31):
+        for j, group in enumerate(GROUPS):
+            metrics = [result[key][layer,j] for key in (
+                'neutral_rewrite_mean_question_norm','angry_rewrite_mean_question_norm',
+                'neutral_rewrite_mean_projection','angry_rewrite_mean_projection',
+                'voice_shared_across_prompts_A_vs_B','voice_shared_across_prompts_B_vs_A')]
+            ns, ang, npj, apj, ab, ba = metrics
+            print(f'{layer:5d}  {group:<11} {ns:13.3f} {ang:12.3f} {npj:+13.3f} '
+                  f'{apj:+11.3f}  {ab:+.4f}, {ba:+.4f}')
+    print(f'All {len(plan["layers"])} layers: {layer_csv}\nPer-question shifts: {question_csv}')
 
 
 def main():
