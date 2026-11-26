@@ -191,7 +191,8 @@ def generate(plan, folder=OUTPUT):
                 if digest(r['audio_file']) != r['audio_sha256']:
                     raise ValueError(f"Recording changed: {r['audio_file']}")
                 kimi.seed()
-                _, response = model.generate(messages(r['audio_file'], plan['prompt']), **plan['params'])
+                prompt = r['prompt'] if 'prompt' in r else plan['prompt']
+                _, response = model.generate(messages(r['audio_file'], prompt), **plan['params'])
                 tokens = text_tokens(model, response)
                 stream.write(json.dumps(dict(r, response=response, response_tokens=tokens, run_config_sha256=checksum))+'\n')
                 stream.flush()

@@ -76,20 +76,20 @@ def question_bank(cache):
             for index, a, b in cohort}
 
 
-def normal_clips(folder, previous, flip):
+def normal_clips(folder, previous, flip, styles=STYLES):
     if previous is None:
-        return flip.carrier_clips(folder/"audio", STYLES, phrase=PHRASE, rates=(0,))
+        return flip.carrier_clips(folder/"audio", styles, phrase=PHRASE, rates=(0,))
     clips = {}
     for row in previous["records"]:
         style = row["style"]
-        if row["carrier_rate"] != 0 or style not in STYLES:
+        if row["carrier_rate"] != 0 or style not in styles:
             continue
         clip = {k: row[k] for k in ("voice", "audio_file", "audio_sha256")}
         if (clip["voice"] != "en-US-JennyNeural" or row["spoken_prompt"] != PHRASE
                 or clips.setdefault((0, style), clip) != clip):
             raise ValueError(f"Inconsistent normal-speed {style} carrier in the previous plan")
-    if set(clips) != {(0, s) for s in STYLES} or len({c["audio_sha256"] for c in clips.values()}) != 2:
-        raise ValueError("Expected distinct normal-speed neutral and angry clips")
+    if set(clips) != {(0, s) for s in styles} or len({c["audio_sha256"] for c in clips.values()}) != len(styles):
+        raise ValueError("Expected distinct distinct normal-speed carrier clips")
     for clip in clips.values():
         if digest(clip["audio_file"]) != clip["audio_sha256"]:
             raise ValueError(f"Changed carrier: {clip['audio_file']}")
@@ -119,7 +119,7 @@ def reuse_answers(folder, plan, previous, pilot):
         print(f"Reused {len(copied)} matching normal-speed answers.")
 
 
-def make_plan(bank, clips, flip, styles=STYLES):
+def question_records(bank, clips, styles):
     records = []
     for q, item in bank.items():
         for order in ORDERS:
@@ -128,6 +128,11 @@ def make_plan(bank, clips, flip, styles=STYLES):
                 records.append(dict(question_id=q, condition=f"{order}/{style}", order=order, style=style,
                                     prompt=item["prompts"][order], carrier_rate=0, spoken_prompt=PHRASE,
                                     **{k: clip[k] for k in ("voice", "audio_file", "audio_sha256")}))
+    return records
+
+
+def make_plan(bank, clips, flip, styles=STYLES):
+    records = question_records(bank, clips, styles)
     return dict(protocol=PROTOCOL, task="pbif", name="pbif", model="diffa", seed=42,
                 bank=bank, records=records, max_new_tokens=1024, recipe=dict(flip.night.vanilla.RECIPE, max_new_tokens=1024),
                 data_revision=HF_REV, scorer_revision=CODE_REV)
