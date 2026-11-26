@@ -13,7 +13,11 @@ export OMP_NUM_THREADS=4 MKL_NUM_THREADS=4
 runner=("${DIFFA_PYTHON:-.venv-diffa/bin/python}" -u pbif_emotions.py)
 extra=()
 log=outputs/pbif-neutral-angry-rate0.log
-if [[ ${1:-} == emotions ]]; then
+if [[ ${1:-} == steer ]]; then
+  shift
+  runner=("${DIFFA_PYTHON:-.venv-diffa/bin/python}" -u pbif_steering.py)
+  log=outputs/pbif-angry-x1.log
+elif [[ ${1:-} == emotions ]]; then
   shift
   extra=(--emotions)
   log=outputs/pbif-added-styles-rate0.log
@@ -23,6 +27,7 @@ case "${1:-run}" in
     mkdir -p outputs
     nohup "${runner[@]}" run "${extra[@]}" >> "$log" 2>&1 < /dev/null &
     echo "PID $! · $log" ;;
+  log) exec tail -n 30 -F "$log" ;;
   prepare|run|summary) exec "${runner[@]}" "${1:-run}" "${extra[@]}" ;;
-  *) echo "Usage: bash pbif.sh [emotions] [start|prepare|run|summary]" >&2; exit 2 ;;
+  *) echo "Usage: bash pbif.sh [emotions|steer] [start|prepare|run|log|summary]" >&2; exit 2 ;;
 esac
