@@ -115,7 +115,7 @@ def report(folder, plan, parent):
         print(f'{mode} individual constraints: neutral {totals["neutral"]["passed"]}/{len(bits)}, '
               f'angry {totals["angry"]["passed"]}/{len(bits)}')
     change = {}
-    if (parent/'run_config.json').is_file():
+    if parent is not None and (parent/'run_config.json').is_file():
         old = json.loads((parent/'run_config.json').read_text())
         if (old['model'] != 'diffa' or old['task'] != 'ifeval' or old['prompt'] != official.PROMPT
                 or old['recipe'] != plan['recipe']):
@@ -133,7 +133,7 @@ def report(folder, plan, parent):
                 change[metric] = value
                 print(f'Written minus spoken change in angry-neutral gap / {metric}, N={len(common)}: '
                       f'{value["interaction_pp"]:+.2f} pp, CI={value["ci95_pp"]}, p={value["p"]}')
-    if not change:
+    if parent is not None and not change:
         print('Spoken-instruction comparison awaits saved neutral/angry pairs on this machine.')
     winners.atomic_text(folder/'official-scored.jsonl', ''.join(json.dumps(r)+'\n' for r in rows))
     winners.atomic_text(folder/'summary.json', json.dumps(dict(matched=len(ids), lengths=lengths, comparisons=comparisons,
