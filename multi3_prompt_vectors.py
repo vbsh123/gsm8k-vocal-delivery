@@ -152,7 +152,7 @@ def report(folder, plan):
     print('Shared cosine compares the angry-minus-neutral directions across prompts in opposite folds.')
     print(f'{"Layer":>5}  {"Tokens":<11} {"Neutral shift":>13} {"Angry shift":>12} '
           f'{"Neutral proj":>13} {"Angry proj":>11}  Shared cosine A/B, B/A')
-    for layer in (0,15,31):
+    for layer in plan['layers']:
         for j, group in enumerate(GROUPS):
             metrics = [result[key][layer,j] for key in (
                 'neutral_rewrite_mean_question_norm','angry_rewrite_mean_question_norm',
