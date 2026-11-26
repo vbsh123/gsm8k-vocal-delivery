@@ -22,6 +22,8 @@ STYLES = ('neutral', 'angry')
 THREE_ASKS = Path('outputs/diffa-multiarith-three-asks290')
 READY_FORMAT = Path('outputs/diffa-multiarith-ready-format290')
 SEQUENCED = Path('outputs/diffa-multiarith-sequenced20')
+SEQUENCED_REST = Path('outputs/diffa-multiarith-sequenced-remaining270')
+COMPARISON = REFERENCE.with_name('multiarith_three_ask_comparison290.json')
 SEQUENCED_PROMPT = (
     'Please solve the math question in the audio. Start your response with the word Ready. '
     'Then give your reasoning for the question. Finally, end your response with a line in this format:\n'
@@ -30,7 +32,7 @@ SEQUENCED_PROMPT = (
 EXTRA_STYLES = ('happy', 'sad')
 
 
-def prepare(folder, three_asks=False, ready_format=False, sequenced=False):
+def prepare(folder, three_asks=False, ready_format=False, sequenced=False, remaining=False):
     reference = json.loads(REFERENCE.read_text())
     original = reference['original_prompt']
     if original.count(SENTENCE) != 1 or reference['recipe'] != evaluation.night.vanilla.RECIPE:
@@ -38,7 +40,9 @@ def prepare(folder, three_asks=False, ready_format=False, sequenced=False):
     questions = reference['questions']
     if len(questions) != 290:
         raise ValueError('Expected all 290 original held-out question IDs.')
-    if sequenced:
+    if remaining:
+        questions = dict(list(questions.items())[20:])
+    elif sequenced:
         questions = dict(list(questions.items())[:20])
     records = []
     for q, item in questions.items():
@@ -66,9 +70,11 @@ def prepare(folder, three_asks=False, ready_format=False, sequenced=False):
         plan.update(prompt=original.replace(SENTENCE, THIRD_ASK + ' ', 1),
                     primary_metric='both-asks-observed',
                     instruction_checks_sha256=winners.digest(Path(__file__).with_name('multiarith_instruction_checks.py')))
-    if sequenced:
+    if sequenced or remaining:
         plan.update(prompt=SEQUENCED_PROMPT, variant='sequenced', primary_metric='all-three-observed',
                     instruction_checks_sha256=winners.digest(Path(__file__).with_name('multiarith_instruction_checks.py')))
+    if remaining:
+        plan.update(primary_metric='exact-final-line', comparison_sha256=winners.digest(COMPARISON))
     config = folder/'run_config.json'
     if config.exists():
         if json.loads(config.read_text()) != plan:
@@ -91,6 +97,31 @@ def pending_recordings(folder, plan, audio_root):
             record = registry.relocate(record)
         pending.append(record)
     return pending
+
+
+def compare_remaining(plan, ids, by_style):
+    import numpy as np
+
+    baseline = json.loads(COMPARISON.read_text())
+    if baseline['reference_sha256'] != plan['reference_sha256']:
+        raise ValueError('Three-ask baseline uses different recording pairs.')
+    results = []
+    for i, metric in enumerate(baseline['metrics']):
+        old = np.array([baseline['questions'][q][s][i] for q in ids for s in STYLES]).reshape(-1, 2)
+        new = np.array([[int(by_style[s][q]['metrics'][metric]) for s in STYLES] for q in ids])
+        differences = (new[:,1] - new[:,0]) - (old[:,1] - old[:,0])
+        # Resample questions, keeping both prompts and both deliveries together.
+        values, counts = np.unique(differences, return_counts=True)
+        rng = np.random.default_rng(42)
+        draws = rng.multinomial(len(ids), counts / len(ids), size=20000)
+        ci = np.percentile(100 * (draws @ values) / len(ids), [2.5, 97.5]).tolist()
+        gain = float(100 * differences.mean())
+        old_counts, new_counts = old.sum(axis=0).tolist(), new.sum(axis=0).tolist()
+        results.append(dict(metric=metric, pairs=len(ids), original=old_counts, sequenced=new_counts,
+                            gap_change_pp=gain, bootstrap_ci95_pp=ci))
+        print(f'{metric} ({len(ids)}/270 remaining pairs): original neutral/angry {old_counts}, '
+              f'sequenced {new_counts}, gap change {gain:+.2f} pp, paired bootstrap 95% CI {ci}')
+    return results
 
 
 def report(folder, plan, questions):
@@ -131,8 +162,10 @@ def report(folder, plan, questions):
             print(f'{metric}: neutral {result["baseline_correct"]}/{len(ids)} -> '
                   f'angry {result["steered_correct"]}/{len(ids)}, {result["gain_pp"]:+.2f} pp, '
                   f'95% CI {result["ci95_gain_pp"]}, p={result["mcnemar_exact_p"]:.4g}')
-        winners.atomic_text(folder/'summary.json', json.dumps(dict(matched=len(ids), comparisons=comparisons,
-                            token_lengths=lengths, scorer=receipt), indent=2)+'\n')
+        summary = dict(matched=len(ids), comparisons=comparisons, token_lengths=lengths, scorer=receipt)
+        if 'comparison_sha256' in plan:
+            summary['remaining_prompt_comparison'] = compare_remaining(plan, ids, by_style)
+        winners.atomic_text(folder/'summary.json', json.dumps(summary, indent=2)+'\n')
         winners.atomic_text(folder/'rescored.jsonl', ''.join(json.dumps(r)+'\n' for r in scored))
         return
     three_asks = 'instruction_checks_sha256' in plan
@@ -230,6 +263,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mode', choices=('run', 'summary', 'prepare'), default='run')
     variants = parser.add_mutually_exclusive_group()
+    variants.add_argument('--sequenced-rest', action='store_true', help='Continue the sequenced pilot on questions 21–290.')
     variants.add_argument('--sequenced', action='store_true', help='Test explicit ordering on the first 20 matched pairs.')
     variants.add_argument('--ready-format', action='store_true', help='Ready opening and exact final line only.')
     variants.add_argument('--three-asks', action='store_true', help='Add the Ready opening to the original reasoning and formatting instructions.')
@@ -239,10 +273,12 @@ def main():
     parser.add_argument('--audio-root', type=Path)
     args = parser.parse_args()
     folder = args.output or (THREE_ASKS if args.three_asks else OUTPUT)
-    if args.sequenced and args.happy_sad:
+    if (args.sequenced or args.sequenced_rest) and args.happy_sad:
         parser.error('--sequenced uses neutral and angry only.')
     if args.sequenced:
         folder = args.output or SEQUENCED
+    if args.sequenced_rest:
+        folder = args.output or SEQUENCED_REST
     if args.ready_format:
         if args.happy_sad:
             parser.error('--ready-format uses neutral and angry only.')
@@ -263,10 +299,10 @@ def main():
         return
     if args.mode == 'summary':
         if (folder/'run_config.json').is_file():
-            plan, questions = prepare(folder, args.three_asks, args.ready_format, args.sequenced)
+            plan, questions = prepare(folder, args.three_asks, args.ready_format, args.sequenced, args.sequenced_rest)
             report(folder, plan, questions)
         else:
-            size = 20 if args.sequenced else 290
+            size = 270 if args.sequenced_rest else (20 if args.sequenced else 290)
             print(f'MultiArith: 0/{2*size} responses, 0/{size} pairs.')
         return
     with job_lock(folder):
@@ -275,7 +311,7 @@ def main():
             if len(evaluation.raw_rows(args.baseline, original)) != len(original['records']):
                 raise ValueError('The original neutral/angry run is incomplete.')
         else:
-            plan, questions = prepare(folder, args.three_asks, args.ready_format, args.sequenced)
+            plan, questions = prepare(folder, args.three_asks, args.ready_format, args.sequenced, args.sequenced_rest)
         print(plan['prompt'], flush=True)
         pending = pending_recordings(folder, plan, args.audio_root)
         print(f'{len(pending)} verified recordings pending.', flush=True)
