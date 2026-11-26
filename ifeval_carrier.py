@@ -21,12 +21,13 @@ SPOKEN = Path('outputs/emotion-block-night/diffa/ifeval')
 PHRASE = 'Here is the task.'
 RATES = (-10, 0, 10)
 STYLES = ('neutral', 'angry')
+ADDED_STYLES = ('happy', 'sad')
 FIELDS = ('key', 'prompt', 'instruction_id_list', 'kwargs')
 winners = pilot.winners
 night = pilot.evaluation.night
 
 
-def carrier_clips(folder):
+def carrier_clips(folder, styles=STYLES):
     bank = {'carrier': dict(question_id='carrier', question=PHRASE, answer='')}
     clips = {}
     waveforms = set()
@@ -37,9 +38,9 @@ def carrier_clips(folder):
         bank_file(questions, list(bank.values()))
         subprocess.run([sys.executable, '-u', 'cloud_tts_smoke.py', '--provider', 'azure',
                         '--input-jsonl', str(questions), '--azure-rate-offset', str(rate),
-                        '--styles', *STYLES, '--output', str(source), '--resume', '--retry-passes', '5'], check=True)
-        records = source_records(source, bank, STYLES)
-        for style in STYLES:
+                        '--styles', *styles, '--output', str(source), '--resume', '--retry-passes', '5'], check=True)
+        records = source_records(source, bank, styles)
+        for style in styles:
             clip = records['carrier', style]
             with wave.open(clip['audio_file']) as wav:
                 samples = wav.readframes(wav.getnframes())
@@ -51,7 +52,7 @@ def carrier_clips(folder):
     return clips
 
 
-def build_plan(bank, clips):
+def build_plan(bank, clips, styles=STYLES):
     rng = random.Random(42)
     order = sorted(bank)
     rng.shuffle(order)
@@ -65,7 +66,7 @@ def build_plan(bank, clips):
             rates[q] = RATES[(rotation+i) % len(RATES)]
     records = []
     for q in order:
-        for style in STYLES:
+        for style in styles:
             clip = clips[rates[q], style]
             records.append(dict(question_id=q, condition=style, style=style, voice=clip['voice'],
                                 audio_file=clip['audio_file'], audio_sha256=clip['audio_sha256'],
@@ -139,17 +140,77 @@ def report(folder, plan, parent):
                         instruction_totals=instructions, written_minus_spoken=change, scorer=receipt), indent=2)+'\n')
 
 
+def extension_plan(parent_plan, clips, baseline_hash):
+    plan = build_plan(parent_plan['bank'], clips, ADDED_STYLES)
+    for field in ('protocol', 'task', 'model', 'revision', 'recipe', 'seed', 'primary_metric'):
+        if plan[field] != parent_plan[field]:
+            raise ValueError(f'Original flip settings differ: {field}')
+    neutral = {r['question_id']:r for r in parent_plan['records'] if r['condition']=='neutral'}
+    for record in plan['records']:
+        old = neutral[record['question_id']]
+        for field in ('prompt', 'spoken_prompt', 'carrier_rate', 'voice'):
+            if old[field] != record[field]:
+                raise ValueError(f'Unmatched {field} for {record["question_id"]}')
+    plan['baseline_sha256'] = baseline_hash
+    return plan
+
+
+def extension_report(folder, plan, baseline, old):
+    if plan['baseline_sha256'] != winners.digest(baseline/'run_config.json'):
+        raise ValueError('Neutral/angry flip reference changed.')
+    prior = pilot.saved(baseline, old)
+    added = pilot.saved(folder, plan)
+    print(f'Written IFEval: {len(added)}/{len(plan["records"])} new happy/sad answers.')
+    styles = ('angry', *ADDED_STYLES)
+    saved = {**prior, **added}
+    ids = {s:[q for q in plan['bank'] if (q,s) in saved and (q,'neutral') in prior] for s in styles}
+    needed = {(q,condition) for s in styles for q in ids[s] for condition in ('neutral',s)}
+    if not needed:
+        return
+    rows, receipt = winners.score_rows(dict(target=plan), [saved[k] for k in sorted(needed)], folder)
+    scores = {(r['question_id'], r['condition']):r for r in rows}
+    comparisons = {}
+    for style, cohort in ids.items():
+        if not cohort:
+            continue
+        results = {}
+        for metric in ('strict_prompt', 'loose_prompt'):
+            pairs = [(scores[q,'neutral']['metrics'][metric], scores[q,style]['metrics'][metric]) for q in cohort]
+            result = paired(pairs)
+            results[metric] = result
+            print(f'{style} vs neutral / {metric}: {result["baseline_correct"]}/{len(pairs)} -> '
+                  f'{result["steered_correct"]}/{len(pairs)}, {result["gain_pp"]:+.2f} pp, '
+                  f'95% CI {result["ci95_gain_pp"]}, p={result["mcnemar_exact_p"]:.4g}')
+        comparisons[style] = results
+    winners.atomic_text(folder/'official-scored.jsonl', ''.join(json.dumps(r)+'\n' for r in rows))
+    winners.atomic_text(folder/'summary.json', json.dumps(dict(comparisons=comparisons, scorer=receipt), indent=2)+'\n')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mode', choices=('run', 'prepare', 'summary'), default='run')
-    parser.add_argument('--output', type=Path, default=OUTPUT)
+    parser.add_argument('--emotions', action='store_true', help='Extend the written flip with happy/sad carriers.')
+    parser.add_argument('--baseline', type=Path, default=OUTPUT)
+    parser.add_argument('--output', type=Path)
     parser.add_argument('--spoken-parent', type=Path, default=SPOKEN)
     args = parser.parse_args()
-    folder, parent = args.output, args.spoken_parent
+    folder = args.output or (OUTPUT.with_name(OUTPUT.name+'-happy-sad') if args.emotions else OUTPUT)
+    parent = args.spoken_parent
+    if args.emotions:
+        base_config = args.baseline/'run_config.json'
+        if not base_config.is_file():
+            parser.error(f'Use the DIFFA machine with the original written flip at {base_config}.')
+        if folder.resolve() == args.baseline.resolve():
+            parser.error('Choose a separate folder for the happy/sad extension.')
+        old = json.loads(base_config.read_text())
     config = folder/'run_config.json'
     if args.mode == 'summary':
         if config.is_file():
-            report(folder, json.loads(config.read_text()), parent)
+            plan = json.loads(config.read_text())
+            if args.emotions:
+                extension_report(folder, plan, args.baseline, old)
+            else:
+                report(folder, plan, parent)
         else:
             print('Written IFEval: awaiting preparation.')
         return
@@ -159,11 +220,16 @@ def main():
         bank = {f'ifeval_{r["key"]}':{k:r[k] for k in FIELDS} for r in examples}
         if len(bank) != 541:
             raise ValueError('Expected 541 distinct official prompts.')
-        if (parent/'run_config.json').is_file():
+        if not args.emotions and (parent/'run_config.json').is_file():
             old = json.loads((parent/'run_config.json').read_text())['bank']
             if set(old)!=set(bank) or any(any(old[q][k]!=bank[q][k] for k in FIELDS) for q in bank):
                 raise ValueError('Spoken run differs from the official benchmark IDs or scoring inputs.')
-        plan = build_plan(bank, carrier_clips(folder/'audio'))
+        if args.emotions:
+            if old['bank'] != bank:
+                raise ValueError('Original flip questions differ from the official IFEval inputs.')
+            plan = extension_plan(old, carrier_clips(folder/'audio', ADDED_STYLES), winners.digest(base_config))
+        else:
+            plan = build_plan(bank, carrier_clips(folder/'audio'))
         winners.freeze(config, plan)
         print('541 written IFEval prompts, two deliveries each. Spoken words: '+PHRASE, flush=True)
         official.score(examples[0], 'Preflight check.', official.official_scorer())
@@ -175,7 +241,10 @@ def main():
                 from src.dataloader import build_chat_prompt
                 winners.freeze(folder/'model-revisions.json', model_revisions())
                 pilot.generate(folder, plan, night.DiffaBackend(), build_chat_prompt)
-        report(folder, plan, parent)
+        if args.emotions:
+            extension_report(folder, plan, args.baseline, old)
+        else:
+            report(folder, plan, parent)
 
 
 if __name__ == '__main__':
