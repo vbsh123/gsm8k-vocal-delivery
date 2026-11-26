@@ -12,7 +12,9 @@ from urllib.request import urlopen
 from rescore_audio_steering import paired
 from winning_diffa_sweeps import atomic_text, digest, freeze
 
-OUTPUT = Path("outputs/diffa-pbif-emotions")
+OUTPUT = Path("outputs/diffa-pbif-emotions-v2")
+PHRASE = "Complete the task provided in the text."
+PROTOCOL = "diffa-pbif-carrier-v2"
 STYLES = ("neutral", "angry", "happy", "sad")
 ORDERS = ("tau+1", "tau-1")
 HF_REV = "da7734bb9a940e89d30d8dd93e62209710f9893b"
@@ -71,32 +73,6 @@ def question_bank(cache):
             for index, a, b in cohort}
 
 
-def carriers(folder, flip):
-    clips = {}
-    for baseline, styles in ((flip.OUTPUT, STYLES[:2]),
-                             (flip.OUTPUT.with_name(flip.OUTPUT.name+"-happy-sad"), STYLES[2:])):
-        config = baseline/"run_config.json"
-        if not config.exists():
-            clips.update(flip.carrier_clips(folder/"audio"/styles[0], styles))
-            continue
-        for row in json.loads(config.read_text())["records"]:
-            key = row["carrier_rate"], row["style"]
-            if key[1] not in styles:
-                continue
-            clip = {k: row[k] for k in ("audio_file", "audio_sha256", "voice")}
-            if row["spoken_prompt"] != flip.PHRASE or clip["voice"] != "en-US-JennyNeural":
-                raise ValueError(f"Unexpected carrier in {config}")
-            if clips.setdefault(key, clip) != clip:
-                raise ValueError(f"Inconsistent audio for {key}")
-    expected = {(rate, s) for rate in flip.RATES for s in STYLES}
-    if set(clips) != expected or len({c["audio_sha256"] for c in clips.values()}) != len(expected):
-        raise ValueError("Expected twelve distinct Jenny carrier clips")
-    for clip in clips.values():
-        if digest(clip["audio_file"]) != clip["audio_sha256"]:
-            raise ValueError(f"Changed carrier: {clip['audio_file']}")
-    return clips
-
-
 def make_plan(bank, clips, flip):
     records = []
     for i, (q, item) in enumerate(bank.items()):
@@ -105,9 +81,9 @@ def make_plan(bank, clips, flip):
             for style in STYLES:
                 clip = clips[rate, style]
                 records.append(dict(question_id=q, condition=f"{order}/{style}", order=order, style=style,
-                                    prompt=item["prompts"][order], carrier_rate=rate, spoken_prompt=flip.PHRASE,
+                                    prompt=item["prompts"][order], carrier_rate=rate, spoken_prompt=PHRASE,
                                     **{k: clip[k] for k in ("voice", "audio_file", "audio_sha256")}))
-    return dict(protocol="diffa-pbif-carrier-v1", task="pbif", name="pbif", model="diffa", seed=42,
+    return dict(protocol=PROTOCOL, task="pbif", name="pbif", model="diffa", seed=42,
                 bank=bank, records=records, max_new_tokens=1024, recipe=dict(flip.night.vanilla.RECIPE, max_new_tokens=1024),
                 data_revision=HF_REV, scorer_revision=CODE_REV)
 
@@ -220,10 +196,13 @@ def main():
             checks(item, verifier, "Preflight check.")
         if config.exists():
             plan = json.loads(config.read_text())
+            if plan["protocol"] != PROTOCOL or any(row["spoken_prompt"] != PHRASE for row in plan["records"]):
+                raise ValueError("Frozen plan uses a different spoken instruction")
             if bank != plan["bank"] or plan["data_revision"] != HF_REV or plan["scorer_revision"] != CODE_REV:
                 raise ValueError("Frozen plan differs from the pinned release")
         else:
-            plan = make_plan(bank, carriers(folder, flip), flip)
+            clips = flip.carrier_clips(folder/"audio", STYLES, phrase=PHRASE)
+            plan = make_plan(bank, clips, flip)
             freeze(config, plan)
         print(f"{len(bank)} written PBIF requests, {len(plan['records'])} planned answers.", flush=True)
         if args.mode == "prepare":

@@ -27,8 +27,8 @@ winners = pilot.winners
 night = pilot.evaluation.night
 
 
-def carrier_clips(folder, styles=STYLES):
-    bank = {'carrier': dict(question_id='carrier', question=PHRASE, answer='')}
+def carrier_clips(folder, styles=STYLES, *, phrase=PHRASE):
+    bank = {'carrier': dict(question_id='carrier', question=phrase, answer='')}
     clips = {}
     waveforms = set()
     for rate in RATES:
