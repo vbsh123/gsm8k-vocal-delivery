@@ -19,10 +19,11 @@ OUTPUT = Path('outputs/diffa-multiarith-original-minus-reasoning290')
 SENTENCE = 'Give concise step-by-step reasoning with only the necessary calculations. '
 STYLES = ('neutral', 'angry')
 THREE_ASKS = Path('outputs/diffa-multiarith-three-asks290')
+READY_FORMAT = Path('outputs/diffa-multiarith-ready-format290')
 EXTRA_STYLES = ('happy', 'sad')
 
 
-def prepare(folder, three_asks=False):
+def prepare(folder, three_asks=False, ready_format=False):
     reference = json.loads(REFERENCE.read_text())
     original = reference['original_prompt']
     if original.count(SENTENCE) != 1 or reference['recipe'] != evaluation.night.vanilla.RECIPE:
@@ -52,6 +53,10 @@ def prepare(folder, three_asks=False):
         for q, item in questions.items():
             for style in STYLES:
                 item[style]['scores'].update(extra['questions'][q][style])
+    if ready_format:
+        plan.update(prompt=original.replace(SENTENCE, THIRD_ASK + ' ', 1),
+                    primary_metric='both-asks-observed',
+                    instruction_checks_sha256=winners.digest(Path(__file__).with_name('multiarith_instruction_checks.py')))
     config = folder/'run_config.json'
     if config.exists():
         if json.loads(config.read_text()) != plan:
@@ -84,6 +89,31 @@ def report(folder, plan, questions):
         return
     rows = [saved[q,s] for q in ids for s in STYLES]
     scored, receipt = winners.score_rows(dict(target=plan), rows, folder/'scoring')
+    if plan['primary_metric'] == 'both-asks-observed':
+        by_style = {style: {} for style in STYLES}
+        for row in scored:
+            measured = checks(row['response'])
+            opening, final = measured['ready-opening'], measured['exact-final-line']
+            row['metrics'].update({'ready-opening': opening, 'exact-final-line': final,
+                                   'both-asks-observed': opening and final})
+            by_style[row['condition']][row['question_id']] = row
+        lengths = {}
+        for style, group in by_style.items():
+            tokens = [r['response_tokens'] for r in group.values()]
+            lengths[style] = dict(mean=mean(tokens), median=median(tokens))
+            print(f'{style}: mean/median tokens {mean(tokens):.1f}/{median(tokens):g}')
+        comparisons = []
+        for metric in ('ready-opening', 'exact-final-line', 'both-asks-observed', 'flexible-numeric'):
+            result = paired([(by_style['neutral'][q]['metrics'][metric], by_style['angry'][q]['metrics'][metric])
+                             for q in ids])
+            comparisons.append(dict(metric=metric, **result))
+            print(f'{metric}: neutral {result["baseline_correct"]}/{len(ids)} -> '
+                  f'angry {result["steered_correct"]}/{len(ids)}, {result["gain_pp"]:+.2f} pp, '
+                  f'95% CI {result["ci95_gain_pp"]}, p={result["mcnemar_exact_p"]:.4g}')
+        winners.atomic_text(folder/'summary.json', json.dumps(dict(matched=len(ids), comparisons=comparisons,
+                            token_lengths=lengths, scorer=receipt), indent=2)+'\n')
+        winners.atomic_text(folder/'rescored.jsonl', ''.join(json.dumps(r)+'\n' for r in scored))
+        return
     three_asks = 'instruction_checks_sha256' in plan
     label_new = 'three asks' if three_asks else 'without reasoning sentence'
     label_original = 'original (two asks)' if three_asks else 'original'
@@ -178,13 +208,19 @@ def emotion_report(folder, plan, baseline, original):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mode', choices=('run', 'summary', 'prepare'), default='run')
-    parser.add_argument('--three-asks', action='store_true', help='Add the Ready opening to the original reasoning and formatting instructions.')
+    variants = parser.add_mutually_exclusive_group()
+    variants.add_argument('--ready-format', action='store_true', help='Ready opening and exact final line only.')
+    variants.add_argument('--three-asks', action='store_true', help='Add the Ready opening to the original reasoning and formatting instructions.')
     parser.add_argument('--happy-sad', action='store_true', help='Extend the completed Jenny three-ask run.')
     parser.add_argument('--baseline', type=Path, default=THREE_ASKS)
     parser.add_argument('--output', type=Path)
     parser.add_argument('--audio-root', type=Path)
     args = parser.parse_args()
     folder = args.output or (THREE_ASKS if args.three_asks else OUTPUT)
+    if args.ready_format:
+        if args.happy_sad:
+            parser.error('--ready-format uses neutral and angry only.')
+        folder = args.output or READY_FORMAT
     if args.happy_sad:
         folder = args.output or THREE_ASKS.with_name(THREE_ASKS.name+'-happy-sad')
         if folder.resolve() == args.baseline.resolve():
@@ -201,7 +237,7 @@ def main():
         return
     if args.mode == 'summary':
         if (folder/'run_config.json').is_file():
-            plan, questions = prepare(folder, args.three_asks)
+            plan, questions = prepare(folder, args.three_asks, args.ready_format)
             report(folder, plan, questions)
         else:
             print('MultiArith: 0/580 responses, 0/290 pairs.')
@@ -212,7 +248,7 @@ def main():
             if len(evaluation.raw_rows(args.baseline, original)) != len(original['records']):
                 raise ValueError('The original neutral/angry run is incomplete.')
         else:
-            plan, questions = prepare(folder, args.three_asks)
+            plan, questions = prepare(folder, args.three_asks, args.ready_format)
         print(plan['prompt'], flush=True)
         pending = pending_recordings(folder, plan, args.audio_root)
         print(f'{len(pending)} verified recordings pending.', flush=True)
