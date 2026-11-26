@@ -211,9 +211,26 @@ def report(plan, evaluator, folder=OUTPUT, base=None):
         expected += len(base['records'])
     ids = [q for q in plan['bank'] if all((q,s) in rows for s in styles)]
     print(f"Kimi spoken IFEval: {len(rows)}/{expected} answers, {len(ids)}/{len(plan['bank'])} matched prompts.")
+    scored = {(q,s):official.score(plan['bank'][q], rows[q,s]['response'], evaluator) for q in ids for s in styles}
+    if base is not None:
+        full_totals = []
+        for style in STYLES:
+            results = []
+            for q, question in base['bank'].items():
+                value = scored.get((q, style))
+                if value is None:
+                    value = official.score(question, rows[q, style]['response'], evaluator)
+                results.append(value)
+            n = len(results)
+            counts = [sum(result[mode]['prompt'] for result in results) for mode in ('strict', 'loose')]
+            full_totals.append(f"{style:8}  " + "  ".join(f"{k}/{n} ({100*k/n:.1f}%)" for k in counts))
+        header = "Completed original Kimi run · strict prompt / loose prompt"
+        if not ids:
+            print(header, *full_totals, sep='\n')
+            return
+        print(f"Five-way comparisons below use {len(ids)} matched prompts.")
     if not ids:
         return
-    scored = {(q,s):official.score(plan['bank'][q], rows[q,s]['response'], evaluator) for q in ids for s in styles}
     lengths, comparisons, instruction = {}, {}, {}
     for s in styles:
         values = [rows[q,s]['response_tokens'] for q in ids]
@@ -237,6 +254,8 @@ def report(plan, evaluator, folder=OUTPUT, base=None):
                                                        for (q,s),v in scored.items()))
     atomic_text(folder/'summary.json',json.dumps(dict(matched=ids,lengths=lengths,comparisons=comparisons,
                 instruction=instruction,primary_metric='strict_prompt',scorer=official.REVISION),indent=2)+'\n')
+    if base is not None:
+        print(header, *full_totals, sep='\n')
 
 
 def main():
