@@ -1,4 +1,4 @@
-"""PBIF single-round written requests with neutral and angry Jenny audio at normal speed."""
+"""PBIF single-round written requests with emotional Jenny audio at normal speed."""
 import argparse
 from collections import defaultdict
 from hashlib import sha256
@@ -17,6 +17,8 @@ OUTPUT = Path("outputs/diffa-pbif-neutral-angry-rate0")
 PHRASE = "Complete the task provided in the text."
 PROTOCOL = "diffa-pbif-neutral-angry-rate0-v1"
 STYLES = ("neutral", "angry")
+ADDED_STYLES = ("sad", "terrified", "happy")
+EXTENDED = Path("outputs/diffa-pbif-added-styles-rate0")
 ORDERS = ("tau+1", "tau-1")
 HF_REV = "da7734bb9a940e89d30d8dd93e62209710f9893b"
 CODE_REV = "dd4149e5a1bb6b084d870f403066d02ff18bf2b0"
@@ -117,11 +119,11 @@ def reuse_answers(folder, plan, previous, pilot):
         print(f"Reused {len(copied)} matching normal-speed answers.")
 
 
-def make_plan(bank, clips, flip):
+def make_plan(bank, clips, flip, styles=STYLES):
     records = []
     for q, item in bank.items():
         for order in ORDERS:
-            for style in STYLES:
+            for style in styles:
                 clip = clips[0, style]
                 records.append(dict(question_id=q, condition=f"{order}/{style}", order=order, style=style,
                                     prompt=item["prompts"][order], carrier_rate=0, spoken_prompt=PHRASE,
@@ -173,14 +175,14 @@ def paired_mean(differences):
                 p=float(2*t.sf(abs(estimate)/se, n-1)))
 
 
-def report(folder, plan, saved, verifier):
-    ids = [q for q in plan["bank"] if all((q, f"{o}/{s}") in saved for o in ORDERS for s in STYLES)]
-    print(f"PBIF: {len(saved)}/{len(plan['records'])} answers, {len(ids)}/{len(plan['bank'])} four-way matched requests.")
+def report(folder, plan, saved, verifier, styles=STYLES):
+    ids = [q for q in plan["bank"] if all((q, f"{o}/{s}") in saved for o in ORDERS for s in styles)]
+    print(f"PBIF: {len(saved)}/{len(plan['records'])} answers, {len(ids)}/{len(plan['bank'])} requests complete across all {len(ORDERS)*len(styles)} conditions.")
     if not saved:
         return
     results, bits, fractions, scored = {}, {}, {}, []
     for o in ORDERS:
-        for s in STYLES:
+        for s in styles:
             available = [q for q in plan["bank"] if (q, f"{o}/{s}") in saved]
             if not available:
                 print(f"{o} {s}: awaiting the first answer.")
@@ -212,12 +214,12 @@ def report(folder, plan, saved, verifier):
                       f"95% CI {constraint_diff['ci95_pp']}, p={constraint_diff['p']}")
     contrasts = {}
     if not ids:
-        print("Order interaction awaits the first request with all four answers.")
+        print("Order interaction awaits the first request with every condition.")
     for metric, values in (("all_seven", bits), ("constraints", fractions)):
         contrasts[metric] = {}
         if not ids:
             continue
-        for s in STYLES[1:]:
+        for s in styles[1:]:
             differences = [(values["tau-1",s][q] - values["tau-1","neutral"][q])
                            - (values["tau+1",s][q] - values["tau+1","neutral"][q]) for q in ids]
             contrasts[metric][s] = v = paired_mean(differences)
@@ -227,15 +229,76 @@ def report(folder, plan, saved, verifier):
     atomic_text(folder/"summary.json", json.dumps(dict(matched=len(ids), cells=results, interactions=contrasts), indent=2)+"\n")
 
 
+def extend_styles(mode, flip, cache):
+    from contextlib import nullcontext
+
+    pilot = flip.pilot
+    config = EXTENDED/"run_config.json"
+    if mode == "summary" and not config.exists():
+        print("PBIF additional styles are awaiting preparation.")
+        return
+    baseline_config = OUTPUT/"run_config.json"
+    baseline = json.loads(baseline_config.read_text())
+    original = pilot.saved(OUTPUT, baseline)
+    if baseline["protocol"] != PROTOCOL or len(original) != len(baseline["bank"])*len(ORDERS)*len(STYLES):
+        raise ValueError(f"Expected the completed neutral/angry PBIF run at {OUTPUT}")
+    baseline_hash = digest(baseline_config)
+    with (nullcontext() if mode == "summary" else pilot.job_lock(EXTENDED)):
+        sources(cache)
+        verifier = registry(cache, prepare=mode != "summary")
+        if config.exists():
+            plan = json.loads(config.read_text())
+        else:
+            clips = flip.carrier_clips(EXTENDED/"audio", ADDED_STYLES, phrase=PHRASE, rates=(0,))
+            plan = make_plan(baseline["bank"], clips, flip, ADDED_STYLES)
+            for key in ("data_revision", "scorer_revision", "model", "recipe", "seed", "max_new_tokens"):
+                if baseline[key] != plan[key]:
+                    raise ValueError(f"PBIF settings differ for {key}")
+            if len({r["audio_sha256"] for r in [*baseline["records"], *plan["records"]]}) != len(STYLES + ADDED_STYLES):
+                raise ValueError("Expected a distinct carrier for each style")
+            for r in plan["records"]:
+                old = original[r["question_id"], r["order"]+"/neutral"]
+                if any(old[k] != r[k] for k in ("spoken_prompt", "carrier_rate", "prompt", "voice")):
+                    raise ValueError(f"Unmatched carrier or prompt for {r['question_id']}")
+            plan.update(protocol="diffa-pbif-added-styles-rate0-v1", baseline_sha256=baseline_hash)
+            freeze(config, plan)
+        if plan["baseline_sha256"] != baseline_hash:
+            raise ValueError("The neutral/angry reference plan has changed")
+        if mode != "summary":
+            for path, checksum in {(r["audio_file"], r["audio_sha256"]) for r in plan["records"]}:
+                if digest(path) != checksum:
+                    raise ValueError(f"Changed PBIF carrier: {path}")
+            print(f"{len(plan['records'])} additional answers planned; {len(original)} baseline answers reused.", flush=True)
+            if mode == "prepare":
+                return
+            if len(pilot.saved(EXTENDED, plan, repair=True)) < len(plan["records"]):
+                with pilot.gpu_queue():
+                    from diffa_model_receipts import model_revisions
+                    from src.dataloader import build_chat_prompt
+                    revisions = json.loads((OUTPUT/"model-revisions.json").read_text())
+                    if model_revisions() != revisions:
+                        raise ValueError("Model revision differs from the PBIF baseline")
+                    freeze(EXTENDED/"model-revisions.json", revisions)
+                    pilot.generate(EXTENDED, plan, flip.night.DiffaBackend(), build_chat_prompt)
+        added = pilot.saved(EXTENDED, plan)
+        print(f"New sad/terrified/happy answers: {len(added)}/{len(plan['records'])}.")
+        combined = dict(plan, records=baseline["records"] + plan["records"])
+        report(EXTENDED, combined, original | added, verifier, STYLES + ADDED_STYLES)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("run", "prepare", "summary"))
+    parser.add_argument("--emotions", action="store_true", help="Add sad, terrified and happy to the completed flipped run")
     args = parser.parse_args()
     import ifeval_carrier as flip
     pilot = flip.pilot
     folder, cache = OUTPUT, OUTPUT/"upstream"
     if (PREVIOUS/"upstream").is_dir():
         cache = PREVIOUS/"upstream"
+    if args.emotions:
+        extend_styles(args.mode, flip, cache)
+        return
     config = folder/"run_config.json"
     if args.mode == "summary":
         if not config.exists():
