@@ -72,8 +72,8 @@ def terrified_carriers(folder):
         source = os.getenv('IFEVAL_TERRIFIED_AUDIO')
         candidates = [Path(source)] if source else [
             base / candidate for base in (Path('/workspace'), Path.cwd(), Path.home(), Path('outputs'))
-            for candidate in ('terrified', 'terrified.zip', 'terrified-ifeval-carriers.zip',
-                              'jenny-terrified-math-ifeval.zip', 'jenny-terrified-ifeval')]
+            for candidate in ('jenny-terrified-math-ifeval', 'jenny-terrified-math-ifeval.zip',
+                              'terrified', 'terrified.zip', 'terrified-ifeval-carriers.zip', 'jenny-terrified-ifeval')]
         source = next((p for p in candidates if p.exists()), None)
         if source is None:
             raise FileNotFoundError('Place the terrified archive in /workspace or set IFEVAL_TERRIFIED_AUDIO.')

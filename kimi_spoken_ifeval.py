@@ -142,7 +142,7 @@ def extra_plan(base, source, terrified):
     if terrified is None:
         archive = 'jenny-terrified-math-ifeval.zip'
         candidates = [folder / name for folder in (Path('/workspace'), Path.cwd(), Path.home())
-                      for name in ('terrified', 'terrified.zip', archive)]
+                      for name in (archive.removesuffix('.zip'), archive, 'terrified', 'terrified.zip')]
         candidates.extend((Path('outputs/jenny-terrified-ifeval/spoken'), Path('outputs')/archive,
                            Path('/workspace/jenny')/archive))
         terrified = next((path for path in candidates if path.exists()), None)
