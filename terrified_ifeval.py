@@ -1,6 +1,7 @@
 """Stage Jenny terrified IFEval audio and export it with the existing terrified math recordings."""
 
 import argparse
+from collections import Counter
 from contextlib import contextmanager
 import fcntl
 import hashlib
@@ -15,6 +16,7 @@ import zipfile
 
 from jenny_terrified_math import OUTPUT as MATH, SIZES, read_rows
 from run_spoken_ifeval import REVISION, setup_official
+from steer import read_rows as read_progress
 
 ROOT = Path("outputs/jenny-terrified-ifeval")
 ARCHIVE = Path("outputs/jenny-terrified-math-ifeval.zip")
@@ -97,35 +99,55 @@ def archive():
 
 
 @contextmanager
-def lock():
+def lock(wait=False):
     ROOT.mkdir(parents=True, exist_ok=True)
     with (ROOT / "worker.lock").open("a") as handle:
         try:
-            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            fcntl.flock(handle, fcntl.LOCK_EX if wait else fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             raise SystemExit("Terrified IFEval worker already active.")
         yield
 
 
+def predictions(folder):
+    rows = read_progress(folder / "results-emotion2vec.jsonl")
+    plan = {r["audio_path"]: r["question_id"] for r in read_progress(folder / "plan.jsonl")}
+    if len({r["audio_path"] for r in rows}) != len(rows) or any(
+            r["audio_path"] not in plan or plan[r["audio_path"]] != r["question_id"]
+            or r["requested_style"] != STYLE or r["voice"] != VOICE for r in rows):
+        raise ValueError(f"Unmatched Emotion2Vec predictions in {folder}")
+    return Counter(r["emotion"] for r in rows)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=["run", "prepare", "summary", "pack", "e2v"])
+    parser.add_argument("action", choices=["run", "prepare", "summary", "pack", "e2v", "score-ifeval"])
     args = parser.parse_args()
     if args.action == "summary":
         for folder, expected in folders().items():
-            print(f"{folder}: {len(list(folder.glob('*-azure-terrified.wav')))}/{expected} WAVs")
+            counts = predictions(folder)
+            n = sum(counts.values())
+            print(f"{folder}: {len(list(folder.glob('*-azure-terrified.wav')))}/{expected} WAVs, {n}/{expected} E2V")
+            if counts:
+                print(f"  fearful {counts['fearful']}/{n} ({counts['fearful']/n:.1%}); labels {dict(counts.most_common())}")
         return
-    with lock():
+    with lock(wait=args.action == "score-ifeval"):
         if args.action in ("prepare", "run"):
             for suffix in ("KEY", "REGION"):
                 key = f"AZURE_SPEECH_{suffix}"
                 if not os.getenv(key) and os.getenv(f"SPEECH_{suffix}"):
                     os.environ[key] = os.environ[f"SPEECH_{suffix}"]
             synthesize(args.action == "prepare")
-        if args.action == "e2v":
-            for folder in folders():
+        if args.action in ("run", "score-ifeval", "e2v"):
+            for folder, expected in folders().items():
+                if args.action != "e2v" and MATH in folder.parents:
+                    continue
+                if not (folder / "plan.jsonl").exists():
+                    raise SystemExit(f"Missing {folder}/plan.jsonl. Run terrified_ifeval.py run to finish synthesis.")
                 subprocess.run([os.getenv("EMOTION_PYTHON", ".venv-emotion/bin/python"), "-u",
                                 "classify_cloud_smoke.py", "--device", "cpu", "--path", str(folder)], check=True)
+                if sum(predictions(folder).values()) != expected:
+                    raise ValueError(f"Incomplete E2V coverage in {folder}")
         if args.action != "prepare":
             archive()
 
