@@ -21,7 +21,6 @@ import torch
 
 from cloud_tts_smoke import STYLES, AZURE_EXTRA_STYLES
 from compare_cloud_accuracy import PROMPT, read, summarize_deliveries
-from evaluate_qwen_omni import select_tasks
 from scoring import score_response
 
 MODEL = "moonshotai/Kimi-Audio-7B-Instruct"
@@ -95,6 +94,7 @@ def main():
     if args.download_only:
         assets(args.source)
         return
+    from evaluate_qwen_omni import select_tasks
     selected = select_tasks([folder.resolve() for folder in args.paths], args.styles, args.num_questions)
     folders = sorted({folder for folder, _ in selected})
     saved = {folder: {r["audio_path"]: r for r in read(folder/results_name)}
