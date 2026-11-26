@@ -8,6 +8,7 @@ from statistics import mean, median
 import subprocess
 import sys
 import wave
+import zipfile
 from hashlib import sha256
 
 import run_diffa_spoken_prompt as pilot
@@ -49,6 +50,56 @@ def carrier_clips(folder, styles=STYLES, *, phrase=PHRASE, rates=RATES):
                 raise ValueError(f'Duplicate carrier waveform at {rate:+d}% / {style}: {clip["audio_file"]}')
             waveforms.add(digest)
             clips[rate, style] = clip
+    return clips
+
+
+TERRIFIED_CARRIERS = {
+    -10: '30285552b09d5b657615588795e3d1a0279ec7375132e39a9d49c532b423d355',
+    0: '99515a94b78c1b460658137d1b4cd3e8a299faec1555022d3fea1e212f3a50b3',
+    10: 'f67dc7688ec4c35561d5bbb05bc8e38668cf71ed54d21ab7a68868c2c587fce2',
+}
+
+
+def terrified_carriers(folder):
+    name = 'q00000-azure-terrified.wav'
+    clips = {}
+    for rate, checksum in TERRIFIED_CARRIERS.items():
+        path = folder / f'rate{rate:+d}' / name
+        clips[rate, 'terrified'] = dict(audio_file=str(path.resolve()), audio_sha256=checksum, voice='en-US-JennyNeural')
+    missing = [r for r in RATES if not Path(clips[r,'terrified']['audio_file']).is_file()]
+    if missing:
+        import os
+        source = os.getenv('IFEVAL_TERRIFIED_AUDIO')
+        candidates = [Path(source)] if source else [
+            base / candidate for base in (Path('/workspace'), Path.cwd(), Path.home(), Path('outputs'))
+            for candidate in ('terrified', 'terrified.zip', 'terrified-ifeval-carriers.zip',
+                              'jenny-terrified-math-ifeval.zip', 'jenny-terrified-ifeval')]
+        source = next((p for p in candidates if p.exists()), None)
+        if source is None:
+            raise FileNotFoundError('Place the terrified archive in /workspace or set IFEVAL_TERRIFIED_AUDIO.')
+        for rate in missing:
+            suffix = Path('flipped') / f'rate{rate:+d}' / name
+            if source.is_dir():
+                hits = [p for p in source.rglob(name) if p.match(str(suffix))]
+                if len(hits) != 1:
+                    raise ValueError(f'Expected one {suffix} in {source}')
+                data = hits[0].read_bytes()
+            else:
+                with zipfile.ZipFile(source) as archive:
+                    hits = [n for n in archive.namelist() if Path(n).match(str(suffix))]
+                    if len(hits) != 1:
+                        raise ValueError(f'Expected one {suffix} in {source}')
+                    data = archive.read(hits[0])
+            if sha256(data).hexdigest() != TERRIFIED_CARRIERS[rate]:
+                raise ValueError(f'Terrified carrier checksum mismatch at rate {rate}')
+            path = Path(clips[rate,'terrified']['audio_file'])
+            path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = path.with_suffix('.tmp')
+            tmp.write_bytes(data)
+            tmp.replace(path)
+    for clip in clips.values():
+        if winners.digest(clip['audio_file']) != clip['audio_sha256']:
+            raise ValueError(f"Changed frozen carrier: {clip['audio_file']}")
     return clips
 
 
@@ -140,8 +191,8 @@ def report(folder, plan, parent):
                         instruction_totals=instructions, written_minus_spoken=change, scorer=receipt), indent=2)+'\n')
 
 
-def extension_plan(parent_plan, clips, baseline_hash):
-    plan = build_plan(parent_plan['bank'], clips, ADDED_STYLES)
+def extension_plan(parent_plan, clips, baseline_hash, styles=ADDED_STYLES):
+    plan = build_plan(parent_plan['bank'], clips, styles)
     for field in ('protocol', 'task', 'model', 'revision', 'recipe', 'seed', 'primary_metric'):
         if plan[field] != parent_plan[field]:
             raise ValueError(f'Original flip settings differ: {field}')
@@ -171,13 +222,21 @@ def extension_report(folder, plan, baseline, old, *, matched=False):
         raise ValueError('Neutral/angry flip reference changed.')
     prior = pilot.saved(baseline, old)
     added = pilot.saved(folder, plan)
-    print(f'Written IFEval: {len(added)}/{len(plan["records"])} new happy/sad answers.')
     styles = ('angry', *ADDED_STYLES)
+    new_styles = '/'.join(dict.fromkeys(r['style'] for r in plan['records']))
+    print(f'Written IFEval: {len(added)}/{len(plan["records"])} new {new_styles} answers.')
+    if 'happy_sad_sha256' in plan:
+        other = baseline.with_name(baseline.name+'-happy-sad')
+        config = other/'run_config.json'
+        if winners.digest(config) != plan['happy_sad_sha256']:
+            raise ValueError('Happy/sad reference changed')
+        prior.update(pilot.saved(other, json.loads(config.read_text())))
+        styles += ('terrified',)
     saved = {**prior, **added}
     ids = {s:[q for q in plan['bank'] if (q,s) in saved and (q,'neutral') in prior] for s in styles}
     if matched:
         common = [q for q in plan['bank'] if all((q,s) in saved for s in ('neutral', *styles))]
-        print(f'Same prompts across neutral, angry, happy and sad: {len(common)}/{len(plan["bank"])}.')
+        print(f'Same prompts across neutral and {", ".join(styles)}: {len(common)}/{len(plan["bank"])}.')
         ids = dict.fromkeys(styles, common)
     needed = {(q,condition) for s in styles for q in ids[s] for condition in ('neutral',s)}
     if not needed:
@@ -201,7 +260,7 @@ def extension_report(folder, plan, baseline, old, *, matched=False):
         tests = {}
         for metric in ('strict_prompt', 'loose_prompt'):
             tests[metric] = value = emotion_test(scores, common, styles, metric)
-            print(f"{metric} across angry/happy/sad: Cochran Q={value['q']:.2f}, "
+            print(f"{metric} across {'/'.join(styles)}: Cochran Q={value['q']:.2f}, "
                   f"asymptotic p={value['p_asymptotic']:.4g}, discordant prompts={value['discordant']}/{len(common)}")
         winners.atomic_text(folder/'matched-summary.json', json.dumps(dict(question_ids=common, matched=len(common),
                             comparisons=comparisons, emotion_tests=tests, scorer=receipt), indent=2)+'\n')
@@ -214,13 +273,18 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mode', choices=('run', 'prepare', 'summary', 'matched'), default='run')
     parser.add_argument('--emotions', action='store_true', help='Extend the written flip with happy/sad carriers.')
+    parser.add_argument('--terrified', action='store_true', help='Add archived terrified carriers to the four completed styles.')
     parser.add_argument('--baseline', type=Path, default=OUTPUT)
     parser.add_argument('--output', type=Path)
     parser.add_argument('--spoken-parent', type=Path, default=SPOKEN)
     args = parser.parse_args()
+    if args.terrified:
+        args.emotions = True
     if args.mode == 'matched' and not args.emotions:
         parser.error('Use bash ifcarrier.sh emotions matched for the four-way summary.')
     folder = args.output or (OUTPUT.with_name(OUTPUT.name+'-happy-sad') if args.emotions else OUTPUT)
+    if args.terrified:
+        folder = args.output or OUTPUT.with_name(OUTPUT.name+'-terrified')
     parent = args.spoken_parent
     if args.emotions:
         base_config = args.baseline/'run_config.json'
@@ -253,11 +317,23 @@ def main():
         if args.emotions:
             if old['bank'] != bank:
                 raise ValueError('Original flip questions differ from the official IFEval inputs.')
-            plan = extension_plan(old, carrier_clips(folder/'audio', ADDED_STYLES), winners.digest(base_config))
+            if args.terrified:
+                other = args.baseline.with_name(args.baseline.name+'-happy-sad')
+                other_config = other/'run_config.json'
+                other_plan = json.loads(other_config.read_text())
+                if other_plan['baseline_sha256'] != winners.digest(base_config):
+                    raise ValueError('Happy/sad results refer to a different baseline')
+                for path, reference, styles in ((args.baseline, old, STYLES), (other, other_plan, ADDED_STYLES)):
+                    if set(pilot.saved(path, reference)) != {(q,s) for q in bank for s in styles}:
+                        raise ValueError(f'Expected completed responses at {path}')
+                plan = extension_plan(old, terrified_carriers(folder/'audio'), winners.digest(base_config), ('terrified',))
+                plan['happy_sad_sha256'] = winners.digest(other_config)
+            else:
+                plan = extension_plan(old, carrier_clips(folder/'audio', ADDED_STYLES), winners.digest(base_config))
         else:
             plan = build_plan(bank, carrier_clips(folder/'audio'))
         winners.freeze(config, plan)
-        print('541 written IFEval prompts, two deliveries each. Spoken words: '+PHRASE, flush=True)
+        print(f"541 written IFEval prompts, {len(plan['records'])} planned answers. Spoken words: {PHRASE}", flush=True)
         official.score(examples[0], 'Preflight check.', official.official_scorer())
         if args.mode == 'prepare':
             return

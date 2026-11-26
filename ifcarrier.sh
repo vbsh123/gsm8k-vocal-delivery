@@ -8,6 +8,10 @@ if [[ "${1:-}" == emotions ]]; then
   shift
   extra=(--emotions)
   log=outputs/ifeval-carrier-happy-sad.log
+elif [[ "${1:-}" == terrified ]]; then
+  shift
+  extra=(--terrified)
+  log=outputs/ifeval-carrier-terrified.log
 fi
 unset PYTHONHOME PYTHONPATH TRANSFORMERS_CACHE
 export HF_HOME="${HF_HOME:-/workspace/.hf_home}"
