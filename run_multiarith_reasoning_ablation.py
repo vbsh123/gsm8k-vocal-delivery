@@ -3,6 +3,8 @@ import argparse
 from importlib.metadata import version
 import json
 import re
+
+import multi3_order_only
 from pathlib import Path
 from statistics import mean, median
 
@@ -263,6 +265,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mode', choices=('run', 'summary', 'prepare'), default='run')
     variants = parser.add_mutually_exclusive_group()
+    variants.add_argument('--order-only', action='store_true', help='Move the Ready sentence before the reasoning sentence on 270 neutral recordings.')
     variants.add_argument('--sequenced-rest', action='store_true', help='Continue the sequenced pilot on questions 21–290.')
     variants.add_argument('--sequenced', action='store_true', help='Test explicit ordering on the first 20 matched pairs.')
     variants.add_argument('--ready-format', action='store_true', help='Ready opening and exact final line only.')
@@ -275,6 +278,10 @@ def main():
     folder = args.output or (THREE_ASKS if args.three_asks else OUTPUT)
     if (args.sequenced or args.sequenced_rest) and args.happy_sad:
         parser.error('--sequenced uses neutral and angry only.')
+    if args.order_only:
+        if args.happy_sad:
+            parser.error('--order-only uses neutral audio only.')
+        folder = args.output or THREE_ASKS.with_name('diffa-multiarith-order-only270')
     if args.sequenced:
         folder = args.output or SEQUENCED
     if args.sequenced_rest:
@@ -298,6 +305,13 @@ def main():
             print('Jenny MultiArith: 0/580 happy/sad responses.')
         return
     if args.mode == 'summary':
+        if args.order_only:
+            if (folder/'run_config.json').is_file():
+                plan, original = multi3_order_only.prepare(args.baseline, folder, COMPARISON, REFERENCE)
+                multi3_order_only.report(folder, plan, original, evaluation.raw_rows(folder, plan))
+            else:
+                print('MultiArith order only: 0/270 matched neutral answers.')
+            return
         if (folder/'run_config.json').is_file():
             plan, questions = prepare(folder, args.three_asks, args.ready_format, args.sequenced, args.sequenced_rest)
             report(folder, plan, questions)
@@ -310,6 +324,8 @@ def main():
             plan, original = emotion_plan(folder, args.baseline)
             if len(evaluation.raw_rows(args.baseline, original)) != len(original['records']):
                 raise ValueError('The original neutral/angry run is incomplete.')
+        elif args.order_only:
+            plan, original = multi3_order_only.prepare(args.baseline, folder, COMPARISON, REFERENCE)
         else:
             plan, questions = prepare(folder, args.three_asks, args.ready_format, args.sequenced, args.sequenced_rest)
         print(plan['prompt'], flush=True)
@@ -329,6 +345,8 @@ def main():
                 evaluation.generate_dataset(folder, plan, pending, backend)
         if args.happy_sad:
             emotion_report(folder, plan, args.baseline, original)
+        elif args.order_only:
+            multi3_order_only.report(folder, plan, original, evaluation.raw_rows(folder, plan))
         else:
             report(folder, plan, questions)
 

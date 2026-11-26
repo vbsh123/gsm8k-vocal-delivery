@@ -7,6 +7,10 @@ if [[ "${1:-}" == emotions ]]; then
   shift
   extra+=(--happy-sad)
   log=outputs/multiarith-three-asks-happy-sad.log
+elif [[ "${1:-}" == order-only ]]; then
+  shift
+  extra=(--order-only)
+  log=outputs/multiarith-order-only270.log
 elif [[ "${1:-}" == ready-format ]]; then
   shift
   extra=(--ready-format)
@@ -43,5 +47,5 @@ case "${1:-run}" in
     nohup bash run_multiarith_reasoning_ablation.sh "${extra[@]}" >> "$log" 2>&1 < /dev/null &
     echo "Started PID $!; log: $log"
     ;;
-  *) echo "Usage: bash multi3.sh [emotions|ready-format|sequenced|sequenced-rest|vectors] [start|run|prepare|summary]" >&2; exit 2 ;;
+  *) echo "Usage: bash multi3.sh [emotions|order-only|ready-format|sequenced|sequenced-rest|vectors] [start|run|prepare|summary]" >&2; exit 2 ;;
 esac
