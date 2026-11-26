@@ -3,12 +3,21 @@ set -euo pipefail
 cd "$(dirname "$0")"
 unset PYTHONHOME PYTHONPATH TRANSFORMERS_CACHE
 if [[ -z "${HF_HOME:-}" && -d /workspace/.hf_home/hub ]]; then export HF_HOME=/workspace/.hf_home; fi
+prefix=()
+flags=()
+log=outputs/kimi-spoken-ifeval508-happy.log
+if [[ ${1:-} == extra ]]; then
+  shift
+  prefix=(extra)
+  flags=(--extra)
+  log=outputs/kimi-spoken-ifeval508-sad-terrified.log
+  if [[ -n ${3:-} ]]; then export IFEVAL_TERRIFIED_AUDIO="$3"; fi
+fi
 if [[ -n "${2:-}" ]]; then export IFEVAL_AUDIO_DIR="$2"; fi
 mode="${1:-run}"
-log=outputs/kimi-spoken-ifeval508-happy.log
 if [[ "$mode" == start ]]; then
   mkdir -p outputs
-  nohup bash kimi_ifeval.sh run >> "$log" 2>&1 < /dev/null &
+  nohup bash kimi_ifeval.sh "${prefix[@]}" run >> "$log" 2>&1 < /dev/null &
   echo "PID $! · $log"
   exit
 fi
@@ -31,13 +40,13 @@ case "$mode" in
     exec "$scorer" -m nltk.downloader punkt_tab ;;
   summary)
     require_python "$scorer"
-    exec "$scorer" -u kimi_spoken_ifeval.py summary ;;
+    exec "$scorer" -u kimi_spoken_ifeval.py summary "${flags[@]}" ;;
   prepare|run)
     require_python "$scorer"
-    "$scorer" -u kimi_spoken_ifeval.py prepare
+    "$scorer" -u kimi_spoken_ifeval.py prepare "${flags[@]}"
     if [[ "$mode" == prepare ]]; then exit; fi
     require_python "$native"
-    "$native" -u kimi_spoken_ifeval.py generate
-    exec "$scorer" -u kimi_spoken_ifeval.py summary ;;
-  *) echo 'Usage: bash kimi_ifeval.sh [setup|prepare|start|run|summary] [Jenny folder or ZIP]' >&2; exit 2 ;;
+    "$native" -u kimi_spoken_ifeval.py generate "${flags[@]}"
+    exec "$scorer" -u kimi_spoken_ifeval.py summary "${flags[@]}" ;;
+  *) echo 'Usage: bash kimi_ifeval.sh [extra] [setup|prepare|start|run|summary] [Jenny folder or ZIP] [terrified ZIP or folder]' >&2; exit 2 ;;
 esac
