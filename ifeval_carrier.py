@@ -155,7 +155,18 @@ def extension_plan(parent_plan, clips, baseline_hash):
     return plan
 
 
-def extension_report(folder, plan, baseline, old):
+def emotion_test(scores, cohort, styles, metric):
+    from scipy.stats import chi2
+    bits = [[int(scores[q,s]['metrics'][metric]) for s in styles] for q in cohort]
+    totals = list(map(sum, zip(*bits)))
+    k = len(styles)
+    denom = k * sum(totals) - sum(sum(row)**2 for row in bits)
+    statistic = (k-1) * (k*sum(v*v for v in totals)-sum(totals)**2) / denom if denom else 0.
+    return dict(q=statistic, df=k-1, p_asymptotic=float(chi2.sf(statistic, k-1)),
+                discordant=sum(0 < sum(row) < k for row in bits))
+
+
+def extension_report(folder, plan, baseline, old, *, matched=False):
     if plan['baseline_sha256'] != winners.digest(baseline/'run_config.json'):
         raise ValueError('Neutral/angry flip reference changed.')
     prior = pilot.saved(baseline, old)
@@ -164,6 +175,10 @@ def extension_report(folder, plan, baseline, old):
     styles = ('angry', *ADDED_STYLES)
     saved = {**prior, **added}
     ids = {s:[q for q in plan['bank'] if (q,s) in saved and (q,'neutral') in prior] for s in styles}
+    if matched:
+        common = [q for q in plan['bank'] if all((q,s) in saved for s in ('neutral', *styles))]
+        print(f'Same prompts across neutral, angry, happy and sad: {len(common)}/{len(plan["bank"])}.')
+        ids = dict.fromkeys(styles, common)
     needed = {(q,condition) for s in styles for q in ids[s] for condition in ('neutral',s)}
     if not needed:
         return
@@ -182,18 +197,29 @@ def extension_report(folder, plan, baseline, old):
                   f'{result["steered_correct"]}/{len(pairs)}, {result["gain_pp"]:+.2f} pp, '
                   f'95% CI {result["ci95_gain_pp"]}, p={result["mcnemar_exact_p"]:.4g}')
         comparisons[style] = results
+    if matched:
+        tests = {}
+        for metric in ('strict_prompt', 'loose_prompt'):
+            tests[metric] = value = emotion_test(scores, common, styles, metric)
+            print(f"{metric} across angry/happy/sad: Cochran Q={value['q']:.2f}, "
+                  f"asymptotic p={value['p_asymptotic']:.4g}, discordant prompts={value['discordant']}/{len(common)}")
+        winners.atomic_text(folder/'matched-summary.json', json.dumps(dict(question_ids=common, matched=len(common),
+                            comparisons=comparisons, emotion_tests=tests, scorer=receipt), indent=2)+'\n')
+        return
     winners.atomic_text(folder/'official-scored.jsonl', ''.join(json.dumps(r)+'\n' for r in rows))
     winners.atomic_text(folder/'summary.json', json.dumps(dict(comparisons=comparisons, scorer=receipt), indent=2)+'\n')
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--mode', choices=('run', 'prepare', 'summary'), default='run')
+    parser.add_argument('--mode', choices=('run', 'prepare', 'summary', 'matched'), default='run')
     parser.add_argument('--emotions', action='store_true', help='Extend the written flip with happy/sad carriers.')
     parser.add_argument('--baseline', type=Path, default=OUTPUT)
     parser.add_argument('--output', type=Path)
     parser.add_argument('--spoken-parent', type=Path, default=SPOKEN)
     args = parser.parse_args()
+    if args.mode == 'matched' and not args.emotions:
+        parser.error('Use bash ifcarrier.sh emotions matched for the four-way summary.')
     folder = args.output or (OUTPUT.with_name(OUTPUT.name+'-happy-sad') if args.emotions else OUTPUT)
     parent = args.spoken_parent
     if args.emotions:
@@ -204,11 +230,11 @@ def main():
             parser.error('Choose a separate folder for the happy/sad extension.')
         old = json.loads(base_config.read_text())
     config = folder/'run_config.json'
-    if args.mode == 'summary':
+    if args.mode in ('matched', 'summary'):
         if config.is_file():
             plan = json.loads(config.read_text())
             if args.emotions:
-                extension_report(folder, plan, args.baseline, old)
+                extension_report(folder, plan, args.baseline, old, matched=args.mode == 'matched')
             else:
                 report(folder, plan, parent)
         else:
