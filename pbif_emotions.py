@@ -1,4 +1,4 @@
-"""PBIF single-round written requests with four Jenny deliveries of the same carrier."""
+"""PBIF single-round written requests with neutral and angry Jenny audio at normal speed."""
 import argparse
 from collections import defaultdict
 from hashlib import sha256
@@ -12,10 +12,11 @@ from urllib.request import urlopen
 from rescore_audio_steering import paired
 from winning_diffa_sweeps import atomic_text, digest, freeze
 
-OUTPUT = Path("outputs/diffa-pbif-emotions-v2")
+PREVIOUS = Path("outputs/diffa-pbif-emotions-v2")
+OUTPUT = Path("outputs/diffa-pbif-neutral-angry-rate0")
 PHRASE = "Complete the task provided in the text."
-PROTOCOL = "diffa-pbif-carrier-v2"
-STYLES = ("neutral", "angry", "happy", "sad")
+PROTOCOL = "diffa-pbif-neutral-angry-rate0-v1"
+STYLES = ("neutral", "angry")
 ORDERS = ("tau+1", "tau-1")
 HF_REV = "da7734bb9a940e89d30d8dd93e62209710f9893b"
 CODE_REV = "dd4149e5a1bb6b084d870f403066d02ff18bf2b0"
@@ -73,15 +74,57 @@ def question_bank(cache):
             for index, a, b in cohort}
 
 
+def normal_clips(folder, previous, flip):
+    if previous is None:
+        return flip.carrier_clips(folder/"audio", STYLES, phrase=PHRASE, rates=(0,))
+    clips = {}
+    for row in previous["records"]:
+        style = row["style"]
+        if row["carrier_rate"] != 0 or style not in STYLES:
+            continue
+        clip = {k: row[k] for k in ("voice", "audio_file", "audio_sha256")}
+        if (clip["voice"] != "en-US-JennyNeural" or row["spoken_prompt"] != PHRASE
+                or clips.setdefault((0, style), clip) != clip):
+            raise ValueError(f"Inconsistent normal-speed {style} carrier in the previous plan")
+    if set(clips) != {(0, s) for s in STYLES} or len({c["audio_sha256"] for c in clips.values()}) != 2:
+        raise ValueError("Expected distinct normal-speed neutral and angry clips")
+    for clip in clips.values():
+        if digest(clip["audio_file"]) != clip["audio_sha256"]:
+            raise ValueError(f"Changed carrier: {clip['audio_file']}")
+    return clips
+
+
+def reuse_answers(folder, plan, previous, pilot):
+    if previous is None or not (PREVIOUS/"deliveries.jsonl").exists():
+        return
+    for k in ("model", "recipe", "data_revision", "scorer_revision", "max_new_tokens", "bank"):
+        if plan[k] != previous[k]:
+            raise ValueError(f"Cannot reuse PBIF answers with different {k}")
+    earlier = pilot.saved(PREVIOUS, previous)
+    done = pilot.saved(folder, plan, repair=True)
+    checksum = digest(folder/"run_config.json")
+    copied = []
+    for record in plan["records"]:
+        key = record["question_id"], record["condition"]
+        row = earlier.get(key)
+        if key not in done and row and all(row[k] == value for k, value in record.items()):
+            copied.append(dict(row, source_config_sha256=row["run_config_sha256"], run_config_sha256=checksum))
+    if copied:
+        freeze(folder/"model-revisions.json", json.loads((PREVIOUS/"model-revisions.json").read_text()))
+        with (folder/"deliveries.jsonl").open("a") as stream:
+            for row in copied:
+                stream.write(json.dumps(row)+"\n")
+        print(f"Reused {len(copied)} matching normal-speed answers.")
+
+
 def make_plan(bank, clips, flip):
     records = []
-    for i, (q, item) in enumerate(bank.items()):
-        rate = flip.RATES[i % len(flip.RATES)]
+    for q, item in bank.items():
         for order in ORDERS:
             for style in STYLES:
-                clip = clips[rate, style]
+                clip = clips[0, style]
                 records.append(dict(question_id=q, condition=f"{order}/{style}", order=order, style=style,
-                                    prompt=item["prompts"][order], carrier_rate=rate, spoken_prompt=PHRASE,
+                                    prompt=item["prompts"][order], carrier_rate=0, spoken_prompt=PHRASE,
                                     **{k: clip[k] for k in ("voice", "audio_file", "audio_sha256")}))
     return dict(protocol=PROTOCOL, task="pbif", name="pbif", model="diffa", seed=42,
                 bank=bank, records=records, max_new_tokens=1024, recipe=dict(flip.night.vanilla.RECIPE, max_new_tokens=1024),
@@ -132,7 +175,7 @@ def paired_mean(differences):
 
 def report(folder, plan, saved, verifier):
     ids = [q for q in plan["bank"] if all((q, f"{o}/{s}") in saved for o in ORDERS for s in STYLES)]
-    print(f"PBIF: {len(saved)}/{len(plan['records'])} answers, {len(ids)}/{len(plan['bank'])} eight-way matched requests.")
+    print(f"PBIF: {len(saved)}/{len(plan['records'])} answers, {len(ids)}/{len(plan['bank'])} four-way matched requests.")
     if not ids:
         return
     results, bits, fractions, scored = {}, {}, {}, []
@@ -179,6 +222,8 @@ def main():
     import ifeval_carrier as flip
     pilot = flip.pilot
     folder, cache = OUTPUT, OUTPUT/"upstream"
+    if (PREVIOUS/"upstream").is_dir():
+        cache = PREVIOUS/"upstream"
     config = folder/"run_config.json"
     if args.mode == "summary":
         if not config.exists():
@@ -194,6 +239,8 @@ def main():
         verifier = registry(cache, prepare=True)
         for item in bank.values():
             checks(item, verifier, "Preflight check.")
+        previous_config = PREVIOUS/"run_config.json"
+        previous = json.loads(previous_config.read_text()) if previous_config.exists() else None
         if config.exists():
             plan = json.loads(config.read_text())
             if plan["protocol"] != PROTOCOL or any(row["spoken_prompt"] != PHRASE for row in plan["records"]):
@@ -201,9 +248,10 @@ def main():
             if bank != plan["bank"] or plan["data_revision"] != HF_REV or plan["scorer_revision"] != CODE_REV:
                 raise ValueError("Frozen plan differs from the pinned release")
         else:
-            clips = flip.carrier_clips(folder/"audio", STYLES, phrase=PHRASE)
+            clips = normal_clips(folder, previous, flip)
             plan = make_plan(bank, clips, flip)
             freeze(config, plan)
+        reuse_answers(folder, plan, previous, pilot)
         print(f"{len(bank)} written PBIF requests, {len(plan['records'])} planned answers.", flush=True)
         if args.mode == "prepare":
             return

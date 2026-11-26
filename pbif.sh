@@ -9,8 +9,8 @@ runner=("${DIFFA_PYTHON:-.venv-diffa/bin/python}" -u pbif_emotions.py)
 case "${1:-run}" in
   start)
     mkdir -p outputs
-    nohup "${runner[@]}" run >> outputs/pbif-emotions-v2.log 2>&1 < /dev/null &
-    echo "PID $! · outputs/pbif-emotions-v2.log" ;;
+    nohup "${runner[@]}" run >> outputs/pbif-neutral-angry-rate0.log 2>&1 < /dev/null &
+    echo "PID $! · outputs/pbif-neutral-angry-rate0.log" ;;
   prepare|run|summary) exec "${runner[@]}" "${1:-run}" ;;
   *) echo "Usage: bash pbif.sh [start|prepare|run|summary]" >&2; exit 2 ;;
 esac

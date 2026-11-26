@@ -27,11 +27,11 @@ winners = pilot.winners
 night = pilot.evaluation.night
 
 
-def carrier_clips(folder, styles=STYLES, *, phrase=PHRASE):
+def carrier_clips(folder, styles=STYLES, *, phrase=PHRASE, rates=RATES):
     bank = {'carrier': dict(question_id='carrier', question=phrase, answer='')}
     clips = {}
     waveforms = set()
-    for rate in RATES:
+    for rate in rates:
         source = folder/f'rate{rate:+d}'
         source.mkdir(parents=True, exist_ok=True)
         questions = source/'questions.jsonl'
