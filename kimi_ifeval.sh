@@ -12,6 +12,10 @@ if [[ ${1:-} == extra ]]; then
   flags=(--extra)
   log=outputs/kimi-spoken-ifeval508-sad-terrified.log
   if [[ -n ${3:-} ]]; then export IFEVAL_TERRIFIED_AUDIO="$3"; fi
+elif [[ ${1:-} == flip ]]; then
+  shift
+  prefix=(flip)
+  log=outputs/kimi-ifeval-written-carrier.log
 elif [[ ${1:-} == collect ]]; then
   shift
   prefix=(collect)
@@ -29,7 +33,7 @@ if [[ "$mode" == start && ${prefix[0]:-} != pbif ]]; then
   echo "PID $! · $log"
   exit
 fi
-if [[ "$mode" == log && ${prefix[0]:-} == collect ]]; then exec tail -n 30 -F "$log"; fi
+if [[ "$mode" == log && ( ${prefix[0]:-} == collect || ${prefix[0]:-} == flip ) ]]; then exec tail -n 30 -F "$log"; fi
 if [[ "$mode" == setup ]]; then
   bash setup_kimi_audio.sh
 fi
@@ -42,6 +46,18 @@ if [[ -z "${DIFFA_PYTHON:-}" && ! -x "$scorer" ]]; then scorer="$native"; fi
 require_python() {
   if [[ ! -x "$1" ]]; then echo 'Run bash kimi_ifeval.sh setup on the new machine first.' >&2; exit 1; fi
 }
+if [[ ${prefix[0]:-} == flip ]]; then
+  require_python "$scorer"
+  case "$mode" in
+    pack|prepare|summary) exec "$scorer" -u kimi_ifeval_flip.py "$mode" ;;
+    run)
+      require_python "$native"
+      "$scorer" -u kimi_ifeval_flip.py prepare
+      "$native" -u kimi_ifeval_flip.py generate
+      exec "$scorer" -u kimi_ifeval_flip.py summary ;;
+    *) echo 'Usage: bash kimi_ifeval.sh flip [pack|prepare|start|run|log|summary]' >&2; exit 2 ;;
+  esac
+fi
 if [[ ${prefix[0]:-} == collect ]]; then
   require_python "$native"
   exec "$native" -u kimi_ifeval_collect.py "$mode"

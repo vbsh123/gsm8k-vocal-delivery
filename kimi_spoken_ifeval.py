@@ -199,10 +199,9 @@ def generate(plan, folder=OUTPUT):
                 print(f"{i}/{len(plan['records'])} {r['question_id']} {r['condition']} {tokens} tokens", flush=True)
 
 
-def report(plan, evaluator, folder=OUTPUT, base=None):
+def report(plan, evaluator, folder=OUTPUT, base=None, *, styles=STYLES, label="Kimi spoken IFEval"):
     from run_diffa_spoken_prompt import saved
     rows = saved(folder, plan)
-    styles = STYLES
     expected = len(plan['records'])
     if base is not None:
         print(f"New sad/terrified responses: {len(rows)}/{expected}.")
@@ -210,7 +209,7 @@ def report(plan, evaluator, folder=OUTPUT, base=None):
         styles = STYLES + ADDED_STYLES
         expected += len(base['records'])
     ids = [q for q in plan['bank'] if all((q,s) in rows for s in styles)]
-    print(f"Kimi spoken IFEval: {len(rows)}/{expected} answers, {len(ids)}/{len(plan['bank'])} matched prompts.")
+    print(f"{label}: {len(rows)}/{expected} answers, {len(ids)}/{len(plan['bank'])} matched prompts.")
     scored = {(q,s):official.score(plan['bank'][q], rows[q,s]['response'], evaluator) for q in ids for s in styles}
     if base is not None:
         full_totals = []
@@ -256,6 +255,7 @@ def report(plan, evaluator, folder=OUTPUT, base=None):
                 instruction=instruction,primary_metric='strict_prompt',scorer=official.REVISION),indent=2)+'\n')
     if base is not None:
         print(header, *full_totals, sep='\n')
+    return scored
 
 
 def main():
