@@ -140,9 +140,12 @@ def extra_plan(base, source, terrified):
     if source is None and (neutral[first].parent/names[first,'sad']).is_file():
         source = neutral[first].parent
     if terrified is None:
-        name = 'jenny-terrified-math-ifeval.zip'
-        terrified = next((p for p in (Path('outputs/jenny-terrified-ifeval/spoken'), Path('outputs')/name,
-                          Path(name), Path('/workspace')/name, Path('/workspace/jenny')/name) if p.exists()), None)
+        archive = 'jenny-terrified-math-ifeval.zip'
+        candidates = [folder / name for folder in (Path('/workspace'), Path.cwd(), Path.home())
+                      for name in ('terrified', 'terrified.zip', archive)]
+        candidates.extend((Path('outputs/jenny-terrified-ifeval/spoken'), Path('outputs')/archive,
+                           Path('/workspace/jenny')/archive))
+        terrified = next((path for path in candidates if path.exists()), None)
     if terrified is None or not terrified.exists():
         raise FileNotFoundError('Pass the terrified ZIP or extracted spoken IFEval folder as the last argument.')
     folders = {}
