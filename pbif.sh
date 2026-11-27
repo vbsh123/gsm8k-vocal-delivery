@@ -4,7 +4,13 @@ cd "$(dirname "$0")"
 unset PYTHONHOME PYTHONPATH TRANSFORMERS_CACHE
 if [[ ${1:-} == kimi ]]; then
   shift
-  if [[ ${1:-} == spoken ]]; then shift; exec bash kimi_ifeval.sh pbif-spoken "$@"; fi
+  if [[ ${1:-} == spoken ]]; then
+    shift
+    if [[ ${1:-} == emotions && ${2:-} == pack ]]; then
+      exec python3 -c 'from diffa_pbif_spoken import pack_emotions; pack_emotions()'
+    fi
+    exec bash kimi_ifeval.sh pbif-spoken "$@"
+  fi
   if [[ ${1:-} == pack ]]; then exec "${DIFFA_PYTHON:-.venv-diffa/bin/python}" -u kimi_pbif.py pack; fi
   exec bash kimi_ifeval.sh pbif "$@"
 fi
@@ -22,6 +28,11 @@ elif [[ ${1:-} == spoken ]]; then
   shift
   runner=("${DIFFA_PYTHON:-.venv-diffa/bin/python}" -u diffa_pbif_spoken.py)
   log=outputs/diffa-pbif-spoken-neutral-angry.log
+  if [[ ${1:-} == emotions ]]; then
+    shift
+    extra=(--emotions)
+    log=outputs/diffa-pbif-spoken-added-emotions.log
+  fi
 elif [[ ${1:-} == emotions ]]; then
   shift
   extra=(--emotions)
