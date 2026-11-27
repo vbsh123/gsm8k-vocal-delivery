@@ -16,6 +16,10 @@ elif [[ ${1:-} == flip ]]; then
   shift
   prefix=(flip)
   log=outputs/kimi-ifeval-written-carrier.log
+elif [[ ${1:-} == sweep ]]; then
+  shift
+  prefix=(sweep)
+  log=outputs/kimi-spoken-ifeval-recovery-layers.log
 elif [[ ${1:-} == collect ]]; then
   shift
   prefix=(collect)
@@ -43,7 +47,7 @@ if [[ "$mode" == start && ${prefix[0]:-} != pbif ]]; then
   echo "PID $! · $log"
   exit
 fi
-if [[ "$mode" == log && ( ${prefix[0]:-} == collect || ${prefix[0]:-} == flip || ${prefix[0]:-} == pbif-spoken ) ]]; then exec tail -n 30 -F "$log"; fi
+if [[ "$mode" == log && ( ${prefix[0]:-} == sweep || ${prefix[0]:-} == collect || ${prefix[0]:-} == flip || ${prefix[0]:-} == pbif-spoken ) ]]; then exec tail -n 30 -F "$log"; fi
 if [[ "$mode" == setup ]]; then
   bash setup_kimi_audio.sh
 fi
@@ -56,6 +60,25 @@ if [[ -z "${DIFFA_PYTHON:-}" && ! -x "$scorer" ]]; then scorer="$native"; fi
 require_python() {
   if [[ ! -x "$1" ]]; then echo 'Run bash kimi_ifeval.sh setup on the new machine first.' >&2; exit 1; fi
 }
+if [[ ${prefix[0]:-} == sweep ]]; then
+  require_python "$scorer"
+  case "$mode" in
+    summary|prepare) exec "$scorer" -u kimi_ifeval_layer_sweep.py "$mode" ;;
+    run)
+      require_python "$native"
+      mkdir -p outputs
+      exec 9>outputs/kimi-spoken-ifeval-recovery-queue.lock
+      flock -n 9 || { echo 'Recovery sweep already queued.'; exit 0; }
+      "$scorer" -u kimi_ifeval_layer_sweep.py prepare
+      "$scorer" -u kimi_ifeval_layer_sweep.py wait
+      if [[ ! -f outputs/kimi-spoken-ifeval-answer-vectors/style-vectors.pt ]]; then
+        "$native" -u kimi_ifeval_collect.py run
+      fi
+      "$native" -u kimi_ifeval_layer_sweep.py generate
+      exec "$scorer" -u kimi_ifeval_layer_sweep.py summary ;;
+    *) echo "Usage: bash kimi_ifeval.sh sweep [start|prepare|run|summary|log]" >&2; exit 2 ;;
+  esac
+fi
 if [[ ${prefix[0]:-} == pbif-spoken ]]; then
   require_python "$scorer"
   case "$mode" in

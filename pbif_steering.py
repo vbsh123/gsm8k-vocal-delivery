@@ -26,12 +26,16 @@ def make_plan(base, clips, bank, revisions, baseline_hash):
     return steering_plan(base, bank, revisions, baseline_hash, "diffa-pbif-angry-x1-full-answer-v1")
 
 
-def steering_plan(base, bank, revisions, baseline_hash, protocol):
+def split_requests(bank):
     ids = sorted(bank)
     if len(ids) != 198:
         raise ValueError("Expected the original 198 distinct requests.")
     random.Random(42).shuffle(ids)
-    fit, test = ids[:99], ids[99:]
+    return ids[:99], ids[99:]
+
+
+def steering_plan(base, bank, revisions, baseline_hash, protocol):
+    fit, test = split_requests(bank)
     neutral = [dict(r, condition=f"{r['order']}/{LABEL}", steering=LABEL)
                for r in base["records"] if r["style"] == "neutral" and r["question_id"] in test]
     return dict(protocol=protocol, baseline_sha256=baseline_hash,

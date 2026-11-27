@@ -20,7 +20,11 @@ export OMP_NUM_THREADS=4 MKL_NUM_THREADS=4
 runner=("${DIFFA_PYTHON:-.venv-diffa/bin/python}" -u pbif_emotions.py)
 extra=()
 log=outputs/pbif-neutral-angry-rate0.log
-if [[ ${1:-} == steer ]]; then
+if [[ ${1:-} == vectors ]]; then
+  shift
+  runner=("${DIFFA_PYTHON:-.venv-diffa/bin/python}" -u pbif_placement_vectors.py)
+  log=outputs/diffa-pbif-placement-vectors.log
+elif [[ ${1:-} == steer ]]; then
   shift
   runner=("${DIFFA_PYTHON:-.venv-diffa/bin/python}" -u pbif_steering.py)
   log=outputs/pbif-angry-x1.log
@@ -50,5 +54,5 @@ case "${1:-run}" in
     echo "PID $! · $log" ;;
   log) exec tail -n 30 -F "$log" ;;
   prepare|run|summary) exec "${runner[@]}" "${1:-run}" "${extra[@]}" ;;
-  *) echo "Usage: bash pbif.sh [spoken [steer|emotions]|emotions|steer] [start|prepare|run|log|summary]" >&2; exit 2 ;;
+  *) echo "Usage: bash pbif.sh [vectors|spoken [steer|emotions]|emotions|steer] [start|prepare|run|log|summary]" >&2; exit 2 ;;
 esac
