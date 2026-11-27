@@ -54,11 +54,15 @@ def prepare(folder, task, dataset, clips):
     return plan
 
 
-def generate(folder, plan, backend, builder):
+def generate(folder, plan, backend, builder, *, question_ids=None):
     done = saved(folder, plan, repair=True)
     checksum = winners.digest(folder / 'run_config.json')
+    records = plan['records']
+    if question_ids is not None:
+        records = [r for r in records if r['question_id'] in question_ids]
+    completed = sum((r['question_id'], r['condition']) in done for r in records)
     with (folder / 'deliveries.jsonl').open('a') as stream:
-        for record in plan['records']:
+        for record in records:
             key = record['question_id'], record['condition']
             if key in done:
                 continue
@@ -68,7 +72,8 @@ def generate(folder, plan, backend, builder):
             stream.write(json.dumps(row)+'\n')
             stream.flush()
             done[key] = row
-            print(f'{plan["name"]} {len(done)}/{len(plan["records"])} {key[0]} {key[1]} '
+            completed += 1
+            print(f'{plan["name"]} {completed}/{len(records)} {key[0]} {key[1]} '
                   f'{row["response_tokens"]} tokens', flush=True)
 
 

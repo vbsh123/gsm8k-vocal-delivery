@@ -15,6 +15,7 @@ from winning_diffa_sweeps import digest, freeze, read_vector
 OUTPUT = Path("outputs/diffa-pbif-angry-x1")
 LABEL = "neutral-L31-answer-x1"
 LAYER = 31
+SPOKEN_OUTPUT = Path("outputs/diffa-pbif-spoken-angry-x1")
 
 
 def make_plan(base, clips, bank, revisions, baseline_hash):
@@ -22,6 +23,10 @@ def make_plan(base, clips, bank, revisions, baseline_hash):
     canonical = pbif.make_plan(bank, clips, flip)
     if any(base[k] != v for k, v in canonical.items()):
         raise ValueError("Saved PBIF inputs or generation recipe differ from the original normal-rate run.")
+    return steering_plan(base, bank, revisions, baseline_hash, "diffa-pbif-angry-x1-full-answer-v1")
+
+
+def steering_plan(base, bank, revisions, baseline_hash, protocol):
     ids = sorted(bank)
     if len(ids) != 198:
         raise ValueError("Expected the original 198 distinct requests.")
@@ -29,27 +34,29 @@ def make_plan(base, clips, bank, revisions, baseline_hash):
     fit, test = ids[:99], ids[99:]
     neutral = [dict(r, condition=f"{r['order']}/{LABEL}", steering=LABEL)
                for r in base["records"] if r["style"] == "neutral" and r["question_id"] in test]
-    return dict(protocol="diffa-pbif-angry-x1-full-answer-v1", baseline_sha256=baseline_hash,
+    return dict(protocol=protocol, baseline_sha256=baseline_hash,
                 collection_ids=fit, test_ids=test, model_revisions=revisions, layer=LAYER, group="answer",
                 strength=1., averaging="Full answer buffer per forward, matched forwards per order, "
                 "equal order weight within each request and equal request weight.",
                 max_new_tokens=base["max_new_tokens"], recipe=base["recipe"], records=neutral)
 
 
-def report(plan, original, added, verifier, bank):
+def report(plan, original, added, verifier, bank, folder):
     held = plan["test_ids"]
     # Compare all three conditions on exactly the steered rows available for each order.
     rows = {}
     for q, condition in added:
         order = added[q, condition]["order"]
-        for s in pbif.STYLES:
-            key = q, f"{order}/{s}"
+        controls = [(q, f"{order}/{s}") for s in pbif.STYLES]
+        if any(key not in original for key in controls):
+            continue
+        for key in controls:
             rows[key] = original[key]
         rows[q, condition] = added[q, condition]
     print(f"Steered {len(added)}/{len(plan['records'])} held-out neutral generations.", flush=True)
     if rows:
         subset = dict(bank={q:bank[q] for q in held}, records=[None]*(len(held)*6))
-        pbif.report(OUTPUT, subset, rows, verifier, (*pbif.STYLES, LABEL))
+        pbif.report(folder, subset, rows, verifier, (*pbif.STYLES, LABEL))
 
 
 def main():
@@ -57,45 +64,66 @@ def main():
     from diffa_model_receipts import model_revisions
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("action", choices=["run", "summary", "prepare"])
-    action = p.parse_args().action
-    base_dir = pbif.OUTPUT
+    p.add_argument("--spoken", action="store_true", help="Fit on full spoken requests and steer held-out neutral speech.")
+    args = p.parse_args()
+    action = args.action
+    import diffa_pbif_spoken as spoken
+    base_dir = spoken.OUTPUT if args.spoken else pbif.OUTPUT
+    folder = SPOKEN_OUTPUT if args.spoken else OUTPUT
     source = base_dir/"run_config.json"
-    config = OUTPUT/"run_config.json"
+    config = folder/"run_config.json"
     if action == "summary" and not config.exists():
-        print("PBIF angry steering is awaiting preparation.")
+        print(f"{folder.name} is awaiting preparation.")
         return
-    with (nullcontext() if action == "summary" else job_lock(OUTPUT)):
-        base = json.loads(source.read_text())
-        saved = flip.pilot.saved(base_dir, base)
-        if len(saved) != 792:
-            raise ValueError(f"Expected the completed PBIF neutral/angry run in {base_dir}; found {len(saved)}/792.")
-        cache = pbif.PREVIOUS/"upstream"
-        if not cache.is_dir():
-            cache = base_dir/"upstream"
+    editing = action != "summary"
+    with (job_lock(folder) if editing else nullcontext()), (job_lock(base_dir) if args.spoken and editing else nullcontext()):
+        cache = next((d/"upstream" for d in (pbif.PREVIOUS, pbif.OUTPUT, base_dir)
+                      if (d/"upstream").is_dir()), base_dir/"upstream")
         pbif.sources(cache)
         bank = pbif.question_bank(cache)
-        verifier = pbif.registry(cache, prepare=action != "summary")
+        verifier = pbif.registry(cache, prepare=editing)
+        if args.spoken and editing:
+            recipe = dict(flip.night.vanilla.RECIPE, max_new_tokens=1024)
+            base = spoken.baseline_plan(bank, spoken.recordings(bank), recipe)
+            freeze(source, base)
+        else:
+            base = json.loads(source.read_text())
+        saved = flip.pilot.saved(base_dir, base, repair=args.spoken and action == "run")
+        if not args.spoken and len(saved) != 792:
+            raise ValueError(f"Expected the completed PBIF neutral/angry run in {base_dir}; found {len(saved)}/792.")
         if action == "summary":
             plan = json.loads(config.read_text())
             if plan["baseline_sha256"] != digest(source):
                 raise ValueError("Saved PBIF baseline configuration changed.")
         else:
-            revisions = json.loads((base_dir/"model-revisions.json").read_text())
+            revision_file = base_dir/"model-revisions.json"
+            if args.spoken and not saved:
+                freeze(revision_file, model_revisions())
+            revisions = json.loads(revision_file.read_text())
             if revisions != model_revisions():
                 raise ValueError("Model revision differs from the PBIF baseline.")
-            clips = pbif.normal_clips(base_dir, base, flip)
-            plan = make_plan(base, clips, bank, revisions, digest(source))
+            if args.spoken:
+                plan = steering_plan(base, bank, revisions, digest(source), "diffa-spoken-pbif-angry-x1-full-answer-v1")
+            else:
+                clips = pbif.normal_clips(base_dir, base, flip)
+                plan = make_plan(base, clips, bank, revisions, digest(source))
             freeze(config, plan)
-        vec = OUTPUT/"style-vectors.pt"
-        fit_state = OUTPUT/"fit.pt"
+        held = set(plan["test_ids"])
+        missing_controls = False
+        if args.spoken:
+            control_count = sum(q in held for q, _ in saved)
+            missing_controls = control_count < 4 * len(held)
+            print(f"Spoken held-out natural neutral/angry controls: {control_count}/{4 * len(held)}.")
+        vec = folder/"style-vectors.pt"
+        fit_state = folder/"fit.pt"
         if fit_state.exists():
             import torch
             state = torch.load(fit_state, map_location="cpu", weights_only=True)
             print(f"Fitting: {len(state['ids'])}/99 requests saved.", flush=True)
         else:
             print("Fitting: 0/99 requests saved.", flush=True)
-        new = flip.pilot.saved(OUTPUT, plan, repair=action == "run")
-        if action == "run" and len(new) < len(plan["records"]):
+        new = flip.pilot.saved(folder, plan, repair=action == "run")
+        if action == "run" and (missing_controls or len(new) < len(plan["records"])):
             from src.dataloader import build_chat_prompt
             with gpu_queue():
                 backend = flip.night.DiffaBackend()
@@ -106,10 +134,14 @@ def main():
                 layers = backend.model.llm_model.model.transformer.blocks
                 inputs = {(r["question_id"], r["condition"]):r for r in base["records"]}
                 fit_direction(plan, inputs, generate, layers[LAYER], fit_state, vec)
+                if missing_controls:
+                    print("Generating missing held-out natural controls.", flush=True)
+                    flip.pilot.generate(base_dir, base, backend, build_chat_prompt, question_ids=held)
+                    saved = flip.pilot.saved(base_dir, base)
                 steer(plan, new, generate, layers, vec)
-            new = flip.pilot.saved(OUTPUT, plan)
+            new = flip.pilot.saved(folder, plan)
         if action != "prepare":
-            report(plan, saved, new, verifier, bank)
+            report(plan, saved, new, verifier, bank, folder)
         else:
             print("Prepared 99 fitting and 99 held-out requests, each in both orders.")
 
@@ -135,7 +167,7 @@ def capture(layer, generate, record, budget):
 def fit_direction(plan, original, generate, layer, checkpoint, vector):
     import torch
     ids = plan["collection_ids"]
-    receipt = digest(OUTPUT/"run_config.json")
+    receipt = digest(checkpoint.parent/"run_config.json")
     state = dict(ids=[], total=None, config_sha256=receipt)
     if checkpoint.exists():
         state = torch.load(checkpoint, map_location="cpu", weights_only=True)
@@ -175,12 +207,12 @@ def steer(plan, previous, generate, layers, vector_file):
     direction, _ = read_vector(vector_file, "angry")
     target = next(layers[LAYER].parameters())
     direction = direction.to(device=target.device, dtype=torch.bfloat16)
-    receipt = digest(OUTPUT/"run_config.json")
+    receipt = digest(vector_file.parent/"run_config.json")
     vector_hash = digest(vector_file)
     if any(r["vector_sha256"] != vector_hash for r in previous.values()):
         raise ValueError("Completed generations used a different direction.")
     count = len(previous)
-    with (OUTPUT/"deliveries.jsonl").open("a") as stream:
+    with (vector_file.parent/"deliveries.jsonl").open("a") as stream:
         for record in plan["records"]:
             if (record["question_id"], record["condition"]) in previous:
                 continue

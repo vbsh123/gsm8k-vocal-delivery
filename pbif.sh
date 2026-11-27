@@ -28,7 +28,12 @@ elif [[ ${1:-} == spoken ]]; then
   shift
   runner=("${DIFFA_PYTHON:-.venv-diffa/bin/python}" -u diffa_pbif_spoken.py)
   log=outputs/diffa-pbif-spoken-neutral-angry.log
-  if [[ ${1:-} == emotions ]]; then
+  if [[ ${1:-} == steer ]]; then
+    shift
+    runner=("${DIFFA_PYTHON:-.venv-diffa/bin/python}" -u pbif_steering.py)
+    extra=(--spoken)
+    log=outputs/diffa-pbif-spoken-angry-x1.log
+  elif [[ ${1:-} == emotions ]]; then
     shift
     extra=(--emotions)
     log=outputs/diffa-pbif-spoken-added-emotions.log
@@ -45,5 +50,5 @@ case "${1:-run}" in
     echo "PID $! · $log" ;;
   log) exec tail -n 30 -F "$log" ;;
   prepare|run|summary) exec "${runner[@]}" "${1:-run}" "${extra[@]}" ;;
-  *) echo "Usage: bash pbif.sh [spoken|emotions|steer] [start|prepare|run|log|summary]" >&2; exit 2 ;;
+  *) echo "Usage: bash pbif.sh [spoken [steer|emotions]|emotions|steer] [start|prepare|run|log|summary]" >&2; exit 2 ;;
 esac

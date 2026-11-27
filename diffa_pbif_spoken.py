@@ -24,7 +24,7 @@ def recordings(bank):
     files = ["plan.jsonl", *names]
     missing = [name for name in files if not (AUDIO / name).is_file()]
     if missing:
-        archive = next((p for p in (Path("/workspace") / BUNDLE, Path(BUNDLE)) if p.is_file()), None)
+        archive = next((p for p in (Path("/workspace") / BUNDLE, Path(BUNDLE), Path("outputs") / BUNDLE) if p.is_file()), None)
         if archive is None:
             raise FileNotFoundError(f"Upload {BUNDLE} to /workspace or supply the full {AUDIO} directory.")
         AUDIO.mkdir(parents=True, exist_ok=True)
@@ -132,6 +132,12 @@ def added_recordings(bank, folder):
     return records
 
 
+def baseline_plan(bank, records, recipe):
+    return dict(protocol="diffa-spoken-pbif-v1", task="pbif", name="spoken PBIF", model="diffa",
+                seed=42, data_revision=pbif.HF_REV, scorer_revision=pbif.CODE_REV, recipe=recipe,
+                max_new_tokens=1024, bank=bank, records=records, audio_signature=AUDIO_SIGNATURE)
+
+
 def main():
     import ifeval_carrier as flip
     from diffa_model_receipts import model_revisions
@@ -161,9 +167,7 @@ def main():
             else:
                 records = added_recordings(bank, folder) if extra else recordings(bank)
             recipe = dict(flip.night.vanilla.RECIPE, max_new_tokens=1024)
-            plan = dict(protocol="diffa-spoken-pbif-v1", task="pbif", name="spoken PBIF", model="diffa",
-                        seed=42, data_revision=pbif.HF_REV, scorer_revision=pbif.CODE_REV, recipe=recipe,
-                        max_new_tokens=1024, bank=bank, records=records, audio_signature=AUDIO_SIGNATURE)
+            plan = baseline_plan(bank, records, recipe)
             if extra:
                 baseline_cfg = OUTPUT/"run_config.json"
                 base = json.loads(baseline_cfg.read_text())
