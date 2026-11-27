@@ -146,25 +146,7 @@ def summary():
     for field in ("bank", "model", "revision", "source_revision", "params", "seed", "data_revision", "scorer_revision"):
         if base[field] != plan[field]:
             raise ValueError(f"Placement comparison has different {field}")
-    written = saved(flipped.OUTPUT, base)
-    spoken_scores = {(r["question_id"], r["order"], r["style"]): sum(r["checks"])
-                     for r in read_rows(OUTPUT / "pbif-scores.jsonl")}
-    contrasts = {}
-    for order in pbif.ORDERS:
-        differences = []
-        for q, item in plan["bank"].items():
-            keys = [(q, f"{order}/{style}") for style in pbif.STYLES]
-            if not all(key in spoken and key in written for key in keys):
-                continue
-            neutral, angry = (sum(pbif.checks(item, verifier, written[key]["response"])) for key in keys)
-            spoken_gap = spoken_scores[q, order, "angry"] - spoken_scores[q, order, "neutral"]
-            differences.append((spoken_gap - (angry - neutral)) / 7)
-        if differences:
-            effect = pbif.paired_mean(differences)
-            contrasts[order] = dict(n=len(differences), **effect)
-            print(f"{order} spoken minus flipped change in angry-neutral constraint gap "
-                  f"(N={len(differences)}): {effect['gain_pp']:+.2f} pp, 95% CI {effect['ci95_pp']}, p={effect['p']}")
-    atomic_text(OUTPUT / "placement-summary.json", json.dumps(contrasts, indent=2) + "\n")
+    pbif.report_placement(OUTPUT, plan, spoken, saved(flipped.OUTPUT, base), verifier)
 
 
 def main():
