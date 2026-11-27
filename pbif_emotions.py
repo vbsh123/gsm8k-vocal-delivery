@@ -235,25 +235,27 @@ def report(folder, plan, saved, verifier, styles=STYLES):
     atomic_text(folder/"summary.json", json.dumps(dict(matched=len(ids), cells=results, interactions=contrasts), indent=2)+"\n")
 
 
-def report_placement(folder, plan, spoken, written, verifier):
-    """Within-request, spoken minus written change in the angry-neutral constraint gap."""
+def report_placement(folder, plan, spoken, written, verifier, styles=STYLES):
+    """Within-request, spoken minus written change in each style-neutral constraint gap."""
     spoken_scores = {(r["question_id"], r["order"], r["style"]): sum(r["checks"])
                      for r in read_rows(folder / "pbif-scores.jsonl")}
     contrasts = {}
     for order in ORDERS:
-        differences = []
-        for q, item in plan["bank"].items():
-            keys = [(q, f"{order}/{style}") for style in STYLES]
-            if not all(key in spoken and key in written for key in keys):
-                continue
-            neutral, angry = (sum(checks(item, verifier, written[key]["response"])) for key in keys)
-            spoken_gap = spoken_scores[q, order, "angry"] - spoken_scores[q, order, "neutral"]
-            differences.append((spoken_gap - (angry - neutral)) / 7)
-        if differences:
-            effect = paired_mean(differences)
-            contrasts[order] = dict(n=len(differences), **effect)
-            print(f"{order} spoken minus flipped change in angry-neutral constraint gap "
-                  f"(N={len(differences)}): {effect['gain_pp']:+.2f} pp, 95% CI {effect['ci95_pp']}, p={effect['p']}")
+        for style in styles[1:]:
+            differences = []
+            for q, item in plan["bank"].items():
+                keys = [(q, f"{order}/{delivery}") for delivery in ("neutral", style)]
+                if not all(key in spoken and key in written for key in keys):
+                    continue
+                neutral, emotional = (sum(checks(item, verifier, written[key]["response"])) for key in keys)
+                spoken_gap = spoken_scores[q, order, style] - spoken_scores[q, order, "neutral"]
+                differences.append((spoken_gap - (emotional - neutral)) / 7)
+            if differences:
+                effect = paired_mean(differences)
+                key = order if len(styles) == 2 else f"{order}/{style}"
+                contrasts[key] = dict(n=len(differences), **effect)
+                print(f"{order} spoken minus flipped change in {style}-neutral constraint gap "
+                      f"(N={len(differences)}): {effect['gain_pp']:+.2f} pp, 95% CI {effect['ci95_pp']}, p={effect['p']}")
     atomic_text(folder / "placement-summary.json", json.dumps(contrasts, indent=2) + "\n")
 
 

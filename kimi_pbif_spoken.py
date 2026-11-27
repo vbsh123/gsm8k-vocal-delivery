@@ -1,4 +1,4 @@
-"""Kimi spoken PBIF, paired neutral/angry Jenny readings of both constraint orders."""
+"""Kimi spoken PBIF, matched Jenny deliveries of both constraint orders."""
 import argparse
 from contextlib import contextmanager
 import json
@@ -15,6 +15,8 @@ from steer import read_rows
 from winning_diffa_sweeps import atomic_text, digest, freeze
 
 OUTPUT = Path("outputs/kimi-pbif-spoken-neutral-angry")
+EXTRA = Path("outputs/kimi-pbif-spoken-added-emotions")
+ADDED = ("happy", "sad", "terrified")
 
 
 def source_cache():
@@ -22,24 +24,26 @@ def source_cache():
     return cache if cache.is_dir() else OUTPUT / "upstream"
 
 
-def prepare(synthesize):
+def prepare(synthesize, emotions=False):
     from evaluate_kimi_audio import MODEL, REVISION, SOURCE_REVISION, TOKENIZER_MODEL, TOKENIZER_REVISION
     from kimi_bbh_layer_diagnostic import PARAMS
     from run_spoken_ifeval import PROMPT
 
+    folder = EXTRA if emotions else OUTPUT
+    styles = ADDED if emotions else pbif.STYLES
     cache = source_cache()
     pbif.sources(cache)
     bank = pbif.question_bank(cache)
     pbif.registry(cache, prepare=True)
     questions = [{"question_id": f"{q}/{order}", "question": item["prompts"][order]}
                  for q, item in bank.items() for order in pbif.ORDERS]
-    inputs = OUTPUT / "questions.jsonl"
+    inputs = folder / "questions.jsonl"
     atomic_text(inputs, "".join(json.dumps(q) + "\n" for q in questions))
-    audio = OUTPUT / "audio"
+    audio = folder / "audio"
     command = [sys.executable, "-u", str(Path(__file__).with_name("cloud_tts_smoke.py")),
                "--provider", "azure", "--input-jsonl", str(inputs), "--num-examples", str(len(questions)),
                "--azure-voice", "en-US-JennyNeural", "--azure-intensity", "1.5", "--azure-rate-offset", "0",
-               "--styles", *pbif.STYLES, "--output", str(audio), "--retry-passes", "5", "--resume"]
+               "--styles", *styles, "--output", str(audio), "--retry-passes", "5", "--resume"]
     subprocess.run(command if synthesize else [*command, "--prepare-only"], check=True)
     if not synthesize:
         return
@@ -60,7 +64,7 @@ def prepare(synthesize):
         records.append(dict(question_id=q, condition=f"{order}/{style}", order=order, style=style,
                             voice=clip["voice"], spoken_prompt=clip["question"], audio_file=str(path.resolve()),
                             audio_sha256=digest(path), seconds=frames / rate))
-    expected = {(r["question_id"], style) for r in questions for style in pbif.STYLES}
+    expected = {(r["question_id"], style) for r in questions for style in styles}
     keys = {(f"{r['question_id']}/{r['order']}", r["style"]) for r in records}
     if keys != expected or len(records) != len(expected):
         raise ValueError("Incomplete spoken PBIF recording pairs")
@@ -68,7 +72,7 @@ def prepare(synthesize):
                 source_revision=SOURCE_REVISION, tokenizer_model=TOKENIZER_MODEL, tokenizer_revision=TOKENIZER_REVISION,
                 seed=42, params=dict(PARAMS, max_new_tokens=1024), data_revision=pbif.HF_REV,
                 scorer_revision=pbif.CODE_REV, prompt=PROMPT, bank=bank, records=records)
-    freeze(OUTPUT / "run_config.json", plan)
+    freeze(folder / "run_config.json", plan)
     lengths = [r["seconds"] for r in records]
     print(f"{len(records)} full recordings, {sum(s > 30 for s in lengths)} over 30 s, longest {max(lengths):.1f} s.")
 
@@ -128,17 +132,53 @@ def long_audio_guard(model, plan):
         yield
 
 
-def summary():
+def emotion_test(folder, bank, styles):
+    from scipy.stats import friedmanchisquare
+    counts = {(r["question_id"], r["order"], r["style"]): sum(r["checks"])
+              for r in read_rows(folder / "pbif-scores.jsonl")}
+    results = {}
+    for order in pbif.ORDERS:
+        requests = [[counts[q, order, s] for s in styles] for q in bank
+                    if all((q, order, s) in counts for s in styles)]
+        if len(requests) < 2:
+            continue
+        if all(len(set(row)) == 1 for row in requests):
+            statistic, p = 0.0, 1.0
+        else:
+            statistic, p = friedmanchisquare(*zip(*requests))
+        results[order] = dict(n=len(requests), styles=styles, statistic=statistic, df=len(styles)-1, asymptotic_p=p)
+        print(f"{order} constraint counts across {'/'.join(styles)} on {len(requests)} matched requests: "
+              f"Friedman statistic={statistic:.2f}, asymptotic p={p:.4g}")
+    atomic_text(folder / "emotion-tests.json", json.dumps(results, indent=2) + "\n")
+
+
+def summary(emotions=False):
     from run_diffa_spoken_prompt import saved
-    config = OUTPUT / "run_config.json"
+    folder = EXTRA if emotions else OUTPUT
+    config = folder / "run_config.json"
     if not config.exists():
-        audio = OUTPUT / "audio"
-        print(f"Kimi spoken PBIF: {sum(1 for _ in audio.glob('*.wav'))}/792 recordings, awaiting generation.")
+        audio = folder / "audio"
+        expected = 1188 if emotions else 792
+        print(f"Kimi spoken PBIF: {sum(1 for _ in audio.glob('*.wav'))}/{expected} recordings, awaiting generation.")
         return
     plan = json.loads(config.read_text())
-    spoken = saved(OUTPUT, plan)
+    spoken = saved(folder, plan)
     verifier = pbif.registry(source_cache())
-    pbif.report(OUTPUT, plan, spoken, verifier)
+    styles = pbif.STYLES
+    if emotions:
+        baseline = json.loads((OUTPUT / "run_config.json").read_text())
+        if {k:v for k,v in baseline.items() if k != "records"} != {k:v for k,v in plan.items() if k != "records"}:
+            raise ValueError("Spoken PBIF baseline and added emotions have incompatible settings.")
+        print(f"New happy/sad/terrified answers: {len(spoken)}/{len(plan['records'])}")
+        original = saved(OUTPUT, baseline)
+        if original.keys() & spoken.keys():
+            raise ValueError("Overlapping spoken PBIF conditions")
+        spoken = original | spoken
+        plan = dict(plan, records=baseline["records"] + plan["records"])
+        styles += ADDED
+    pbif.report(folder, plan, spoken, verifier, styles)
+    if emotions and spoken:
+        emotion_test(folder, plan["bank"], styles[1:])
     base_config = flipped.OUTPUT / "run_config.json"
     if not spoken or not base_config.exists():
         return
@@ -146,23 +186,26 @@ def summary():
     for field in ("bank", "model", "revision", "source_revision", "params", "seed", "data_revision", "scorer_revision"):
         if base[field] != plan[field]:
             raise ValueError(f"Placement comparison has different {field}")
-    pbif.report_placement(OUTPUT, plan, spoken, saved(flipped.OUTPUT, base), verifier)
+    pbif.report_placement(folder, plan, spoken, saved(flipped.OUTPUT, base), verifier, styles=styles)
 
 
 def main():
     from phi4_sweep import job_lock
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("prepare", "synthesize", "generate", "summary"))
-    mode = parser.parse_args().mode
+    parser.add_argument("--emotions", action="store_true", help="Add happy, sad and terrified to spoken PBIF")
+    args = parser.parse_args()
+    mode = args.mode
+    folder = EXTRA if args.emotions else OUTPUT
     if mode == "summary":
-        summary()
+        summary(args.emotions)
         return
-    with job_lock(OUTPUT):
+    with job_lock(folder):
         if mode == "generate":
             from kimi_spoken_ifeval import generate
-            generate(json.loads((OUTPUT / "run_config.json").read_text()), OUTPUT, input_guard=long_audio_guard)
+            generate(json.loads((folder / "run_config.json").read_text()), folder, input_guard=long_audio_guard)
         else:
-            prepare(mode == "synthesize")
+            prepare(mode == "synthesize", args.emotions)
 
 
 if __name__ == "__main__":

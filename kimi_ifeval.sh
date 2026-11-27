@@ -24,6 +24,12 @@ elif [[ ${1:-} == pbif-spoken ]]; then
   shift
   prefix=(pbif-spoken)
   log=outputs/kimi-pbif-spoken-neutral-angry.log
+  if [[ ${1:-} == emotions ]]; then
+    shift
+    prefix+=(emotions)
+    flags=(--emotions)
+    log=outputs/kimi-pbif-spoken-added-emotions.log
+  fi
 elif [[ ${1:-} == pbif ]]; then
   shift
   prefix=(pbif)
@@ -53,13 +59,13 @@ require_python() {
 if [[ ${prefix[0]:-} == pbif-spoken ]]; then
   require_python "$scorer"
   case "$mode" in
-    prepare|summary) exec "$scorer" -u kimi_pbif_spoken.py "$mode" ;;
+    prepare|synthesize|summary) exec "$scorer" -u kimi_pbif_spoken.py "$mode" "${flags[@]}" ;;
     run)
       require_python "$native"
-      "$scorer" -u kimi_pbif_spoken.py synthesize
-      "$native" -u kimi_pbif_spoken.py generate
-      exec "$scorer" -u kimi_pbif_spoken.py summary ;;
-    *) echo 'Usage: bash pbif.sh kimi spoken [prepare|start|run|log|summary]' >&2; exit 2 ;;
+      "$scorer" -u kimi_pbif_spoken.py synthesize "${flags[@]}"
+      "$native" -u kimi_pbif_spoken.py generate "${flags[@]}"
+      exec "$scorer" -u kimi_pbif_spoken.py summary "${flags[@]}" ;;
+    *) echo 'Usage: bash pbif.sh kimi spoken [emotions] [prepare|synthesize|start|run|log|summary]' >&2; exit 2 ;;
   esac
 fi
 if [[ ${prefix[0]:-} == flip ]]; then
