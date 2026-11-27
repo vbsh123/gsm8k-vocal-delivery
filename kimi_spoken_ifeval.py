@@ -174,7 +174,8 @@ def extra_plan(base, source, terrified):
     return plan
 
 
-def generate(plan, folder=OUTPUT):
+def generate(plan, folder=OUTPUT, *, input_guard=None):
+    from contextlib import nullcontext
     from run_diffa_spoken_prompt import saved
     from run_kimi_multiarith import text_tokens
     from evaluate_kimi_audio import messages
@@ -186,7 +187,7 @@ def generate(plan, folder=OUTPUT):
     checksum = digest(folder/'run_config.json')
     with gpu_queue():
         model = kimi.load_model(Path('external/Kimi-Audio'))
-        with torch.inference_mode(), (folder/'deliveries.jsonl').open('a') as stream:
+        with torch.inference_mode(), (input_guard(model, plan) if input_guard else nullcontext()), (folder/'deliveries.jsonl').open('a') as stream:
             for i, r in enumerate(pending, len(done)+1):
                 if digest(r['audio_file']) != r['audio_sha256']:
                     raise ValueError(f"Recording changed: {r['audio_file']}")

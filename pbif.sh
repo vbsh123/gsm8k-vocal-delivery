@@ -4,6 +4,7 @@ cd "$(dirname "$0")"
 unset PYTHONHOME PYTHONPATH TRANSFORMERS_CACHE
 if [[ ${1:-} == kimi ]]; then
   shift
+  if [[ ${1:-} == spoken ]]; then shift; exec bash kimi_ifeval.sh pbif-spoken "$@"; fi
   if [[ ${1:-} == pack ]]; then exec "${DIFFA_PYTHON:-.venv-diffa/bin/python}" -u kimi_pbif.py pack; fi
   exec bash kimi_ifeval.sh pbif "$@"
 fi

@@ -20,6 +20,10 @@ elif [[ ${1:-} == collect ]]; then
   shift
   prefix=(collect)
   log=outputs/kimi-spoken-ifeval-answer-vectors.log
+elif [[ ${1:-} == pbif-spoken ]]; then
+  shift
+  prefix=(pbif-spoken)
+  log=outputs/kimi-pbif-spoken-neutral-angry.log
 elif [[ ${1:-} == pbif ]]; then
   shift
   prefix=(pbif)
@@ -33,7 +37,7 @@ if [[ "$mode" == start && ${prefix[0]:-} != pbif ]]; then
   echo "PID $! · $log"
   exit
 fi
-if [[ "$mode" == log && ( ${prefix[0]:-} == collect || ${prefix[0]:-} == flip ) ]]; then exec tail -n 30 -F "$log"; fi
+if [[ "$mode" == log && ( ${prefix[0]:-} == collect || ${prefix[0]:-} == flip || ${prefix[0]:-} == pbif-spoken ) ]]; then exec tail -n 30 -F "$log"; fi
 if [[ "$mode" == setup ]]; then
   bash setup_kimi_audio.sh
 fi
@@ -46,6 +50,18 @@ if [[ -z "${DIFFA_PYTHON:-}" && ! -x "$scorer" ]]; then scorer="$native"; fi
 require_python() {
   if [[ ! -x "$1" ]]; then echo 'Run bash kimi_ifeval.sh setup on the new machine first.' >&2; exit 1; fi
 }
+if [[ ${prefix[0]:-} == pbif-spoken ]]; then
+  require_python "$scorer"
+  case "$mode" in
+    prepare|summary) exec "$scorer" -u kimi_pbif_spoken.py "$mode" ;;
+    run)
+      require_python "$native"
+      "$scorer" -u kimi_pbif_spoken.py synthesize
+      "$native" -u kimi_pbif_spoken.py generate
+      exec "$scorer" -u kimi_pbif_spoken.py summary ;;
+    *) echo 'Usage: bash pbif.sh kimi spoken [prepare|start|run|log|summary]' >&2; exit 2 ;;
+  esac
+fi
 if [[ ${prefix[0]:-} == flip ]]; then
   require_python "$scorer"
   case "$mode" in
