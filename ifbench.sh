@@ -3,9 +3,10 @@ set -euo pipefail
 cd "$(dirname "$0")"
 model="${1:-}"
 case "$model" in
+  audio) label=kimi-ifbench-recordings; python="${DIFFA_PYTHON:-.venv-diffa/bin/python}" ;;
   diffa) label=diffa-ifbench-flipped; python="${DIFFA_PYTHON:-.venv-diffa/bin/python}" ;;
   kimi) label=kimi-ifbench-spoken; python="${KIMI_PYTHON:-/venv/kimi-audio/bin/python}" ;;
-  *) echo 'Use bash ifbench.sh {diffa|kimi} {start|log|summary}' >&2; exit 2 ;;
+  *) echo 'Use bash ifbench.sh {audio|diffa|kimi} {start|log|summary}' >&2; exit 2 ;;
 esac
 action="${2:-start}"
 log="outputs/$label.log"
@@ -21,7 +22,7 @@ if [[ -n "${HF_HOME:-}" ]]; then export HF_HUB_CACHE="$HF_HOME/hub" HUGGINGFACE_
 if [[ "$model" == kimi && ! -x "$python" && -z "${KIMI_PYTHON:-}" ]]; then
   python="$(conda run -n kimi-audio python -c 'import sys; print(sys.executable)')"
 fi
-if [[ "$action" == run ]] && ! "$python" -c 'import absl, emoji, immutabledict, langdetect, nltk, syllapy' 2>/dev/null; then
+if [[ "$model" != audio && "$action" == run ]] && ! "$python" -c 'import absl, emoji, immutabledict, langdetect, nltk, syllapy' 2>/dev/null; then
   "$python" -m pip install absl-py emoji immutabledict langdetect nltk syllapy
 fi
 exec "$python" -u ifbench_placement.py "$model" "$action"

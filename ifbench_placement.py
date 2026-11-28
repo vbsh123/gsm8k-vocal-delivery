@@ -18,7 +18,8 @@ FOLDERS = {"diffa": Path("outputs/diffa-ifbench-flipped"), "kimi": Path("outputs
 VOICE = "en-US-JennyNeural"
 
 
-def spoken_clips(folder, questions):
+def spoken_clips(folder, bank):
+    questions = {q: dict(question_id=q, question=item["prompt"], answer="") for q, item in bank.items()}
     audio = folder/"audio"
     audio.mkdir(parents=True, exist_ok=True)
     previous = Path(os.environ.get("IFBENCH_AUDIO_DIR", "outputs/azure-spoken-ifbench"))
@@ -57,8 +58,7 @@ def make_plan(model, folder, bank):
     else:
         from evaluate_kimi_audio import MODEL, REVISION, SOURCE_REVISION, TOKENIZER_MODEL, TOKENIZER_REVISION
         from kimi_bbh_layer_diagnostic import PARAMS
-        questions = {q: dict(question_id=q, question=item["prompt"], answer="") for q, item in bank.items()}
-        clips = spoken_clips(folder, questions)
+        clips = spoken_clips(folder, bank)
         plan.update(model=MODEL, revision=REVISION, source_revision=SOURCE_REVISION,
                     tokenizer_model=TOKENIZER_MODEL, tokenizer_revision=TOKENIZER_REVISION,
                     params=dict(PARAMS, max_new_tokens=1024), prompt=benchmark.PROMPT)
@@ -74,10 +74,13 @@ def summarize(folder, plan, evaluator):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("model", choices=FOLDERS)
+    parser.add_argument("model", choices=(*FOLDERS, "audio"))
     parser.add_argument("action", choices=("run", "summary"))
     args = parser.parse_args()
-    folder = FOLDERS[args.model]
+    folder = FOLDERS["kimi" if args.model == "audio" else args.model]
+    if args.model == "audio" and args.action == "summary":
+        print(f"{sum(1 for _ in (folder/'audio').glob('q*-azure-*.wav'))}/600 IFBench recordings saved.")
+        return
     config = folder/"run_config.json"
     if args.action == "summary" and not config.exists():
         print(f"{folder.name}: awaiting preparation (300 prompts, 600 answers planned).")
@@ -88,6 +91,11 @@ def main():
     bank = {f'ifbench_{item["key"]}': item for item in examples}
     if len(bank) != 300 or len(examples) != 300:
         raise ValueError("Expected 300 distinct official IFBench test prompts.")
+    if args.model == "audio":
+        with pilot.job_lock(folder):
+            clips = spoken_clips(folder, bank)
+            print(f"{len(clips)}/600 IFBench recordings ready in {folder/'audio'}", flush=True)
+        return
     evaluator = benchmark.official_scorer()
     if args.action == "summary":
         plan = json.loads(config.read_text())
