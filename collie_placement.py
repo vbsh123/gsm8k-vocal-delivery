@@ -86,27 +86,36 @@ def transfer(folder):
                 prompt=collie.PROMPT, params=dict(PARAMS, max_new_tokens=1024), records=records)
 
 
-def flipped(folder):
+def flipped_carriers(folder):
     from pbif_placement_vectors import CARRIER_HASHES, OUT as vector_dir
     from kimi_pbif import BUNDLE
-    source = collie.OUT
-    path = source/"run_config.json"
-    base = json.loads(path.read_text())
-    selected = collie.select(collie.release(source/"upstream"))
-    validate_spoken(base, selected)
     clips = {}
     for style, checksum in CARRIER_HASHES.items():
-        wav = vector_dir/f"{style}.wav"
-        if not wav.is_file():
+        candidates = [vector_dir/f"{style}.wav", folder/"audio"/f"{style}.wav",
+                      OUTPUT["diffa"]/"audio"/f"{style}.wav",
+                      pbif.OUTPUT/"audio"/"rate+0"/f"q00000-azure-{style}.wav",
+                      pbif.PREVIOUS/"audio"/"rate+0"/f"q00000-azure-{style}.wav"]
+        wav = next((path for path in candidates if path.is_file()), None)
+        if wav is None:
             bundle = next((root/BUNDLE for root in (Path("/workspace"), Path("outputs"), Path(".")) if (root/BUNDLE).is_file()), None)
             if bundle is None:
-                raise FileNotFoundError(f"Expected {wav} or {BUNDLE} on the spoken COLLIE machine")
+                raise FileNotFoundError(f"Expected the saved PBIF {style} carrier or {BUNDLE} in /workspace")
             wav = folder/"audio"/f"{style}.wav"
             with ZipFile(bundle) as z:
                 copy_member(z, f"{style}.wav", wav, checksum)
         if digest(wav) != checksum:
             raise ValueError(f"Changed original PBIF {style} carrier WAV")
         clips[style] = dict(audio_file=str(wav.resolve()), audio_sha256=checksum)
+    return clips
+
+
+def flipped(folder):
+    source = collie.OUT
+    path = source/"run_config.json"
+    base = json.loads(path.read_text())
+    selected = collie.select(collie.release(source/"upstream"))
+    validate_spoken(base, selected)
+    clips = flipped_carriers(folder)
     records = [dict(question_id=qid, family=family, style=style, condition=style, prompt=item["prompt"],
                     spoken_prompt=pbif.PHRASE, voice="en-US-JennyNeural", carrier_rate=0, **clips[style])
                for qid, family, item in selected for style in collie.STYLES]

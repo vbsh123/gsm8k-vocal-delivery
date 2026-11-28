@@ -200,7 +200,8 @@ def generate(plan, folder=OUTPUT, *, input_guard=None):
                 print(f"{i}/{len(plan['records'])} {r['question_id']} {r['condition']} {tokens} tokens", flush=True)
 
 
-def report(plan, evaluator, folder=OUTPUT, base=None, *, styles=STYLES, label="Kimi spoken IFEval"):
+def report(plan, evaluator, folder=OUTPUT, base=None, *, styles=STYLES, label="Kimi spoken IFEval",
+           primary_metric="strict_prompt", scorer_revision=official.REVISION):
     from run_diffa_spoken_prompt import saved
     rows = saved(folder, plan)
     expected = len(plan['records'])
@@ -253,7 +254,7 @@ def report(plan, evaluator, folder=OUTPUT, base=None, *, styles=STYLES, label="K
     atomic_text(folder/'official-scored.jsonl',''.join(json.dumps(dict(rows[q,s],official_scores=v))+'\n'
                                                        for (q,s),v in scored.items()))
     atomic_text(folder/'summary.json',json.dumps(dict(matched=ids,lengths=lengths,comparisons=comparisons,
-                instruction=instruction,primary_metric='strict_prompt',scorer=official.REVISION),indent=2)+'\n')
+                instruction=instruction,primary_metric=primary_metric,scorer=scorer_revision),indent=2)+'\n')
     if base is not None:
         print(header, *full_totals, sep='\n')
     return scored
