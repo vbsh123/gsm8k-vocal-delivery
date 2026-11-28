@@ -50,7 +50,7 @@ def sources(cache):
             raise ValueError(f"Changed PBIF source: {path}")
 
 
-def question_bank(cache):
+def request_groups(cache):
     by_request = defaultdict(list)
     with (cache/"positive.jsonl").open() as pos, (cache/"negative.jsonl").open() as neg:
         for index, lines in enumerate(zip(pos, neg, strict=True)):
@@ -69,8 +69,16 @@ def question_bank(cache):
             by_request[prefixes[0].strip()].append((index, a, b))
     if len(by_request) != 198 or sum(map(len, by_request.values())) != 2000:
         raise ValueError("Unexpected PBIF release size")
+    return by_request
+
+
+def question_bank(cache, *, full=False):
+    by_request = request_groups(cache)
     rng = random.Random(42)
-    cohort = [rng.choice(by_request[q]) for q in sorted(by_request)]
+    if full:
+        cohort = [row for rows in by_request.values() for row in rows]
+    else:
+        cohort = [rng.choice(by_request[q]) for q in sorted(by_request)]
     rng.shuffle(cohort)
     return {f"pbif_{index:04d}": dict(prompts=dict(zip(ORDERS, [a["prompt"], b["prompt"]])),
                 instruction_id_list=a["instruction_id_list"], kwargs=a["kwargs"], constraints=a["constraints"])
