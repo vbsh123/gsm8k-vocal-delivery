@@ -135,11 +135,59 @@ def report(model, folder, plan):
               f"{result['gain_pp']:+.2f} pp, 95% CI {result['ci95_pp']}, p={result['p']}")
 
 
+def snapshot(model):
+    folder = OUTPUT[model]
+    folders = [collie.OUT, folder] if model == "diffa" else [folder]
+    selected = collie.select(collie.release(folders[0]/"upstream"))
+    from collie.constraints import All
+
+    destination = folder.parent/f"collie-{model}-results.zip"
+    with NamedTemporaryFile(dir=destination.parent, delete=False) as temporary:
+        tmp = Path(temporary.name)
+    try:
+        with ZipFile(tmp, "w", ZIP_DEFLATED) as archive:
+            for run in folders:
+                config = run/"run_config.json"
+                rows = pilot.saved(run, json.loads(config.read_text()))
+                scores = []
+                paired_counts = dict.fromkeys(collie.STYLES, 0)
+                paired_total = 0
+                for qid, family, item in selected:
+                    checker, targets = item["constraint"], item["targets"]
+                    paired = all((qid, style) in rows for style in collie.STYLES)
+                    for style in collie.STYLES:
+                        if (qid, style) not in rows:
+                            continue
+                        response = rows[qid, style]["response"]
+                        passed = bool(checker.check(response, targets))
+                        flags = ([bool(f(response, t)) for f, t in zip(checker.callables, targets, strict=True)]
+                                 if isinstance(checker, All) else [passed])
+                        if all(flags) != passed:
+                            raise ValueError(f"Component scores disagree with released scorer for {qid}")
+                        scores.append(dict(question_id=qid, family=family, condition=style, prompt_pass=passed,
+                                           component_pass=flags, targets=targets))
+                        if paired:
+                            paired_counts[style] += sum(flags)
+                            if style == collie.STYLES[0]:
+                                paired_total += len(flags)
+                archive.write(config, f"{run.name}/run_config.json")
+                for filename, items in [("deliveries.jsonl", rows.values()), ("component-scores.jsonl", scores)]:
+                    archive.writestr(f"{run.name}/{filename}", "".join(json.dumps(r)+"\n" for r in items))
+                print(f"{run.name}: {len(rows)} saved answers. Matched component passes: " +
+                      ", ".join(f"{s} {n}/{paired_total}" for s, n in paired_counts.items()))
+        tmp.replace(destination)
+    finally:
+        tmp.unlink(missing_ok=True)
+    print(destination.resolve())
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("model", choices=("diffa", "kimi"))
-    parser.add_argument("mode", choices=("pack", "prepare", "generate", "summary"))
+    parser.add_argument("mode", choices=("pack", "results", "prepare", "generate", "summary"))
     args = parser.parse_args()
+    if args.mode == "results":
+        return snapshot(args.model)
     if args.mode == "pack":
         return pack()
     folder = OUTPUT[args.model]

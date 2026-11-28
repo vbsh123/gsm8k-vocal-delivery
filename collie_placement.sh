@@ -5,14 +5,14 @@ model="${1:-}"
 case "$model" in
   diffa) label=diffa-collie-flipped ;;
   kimi) label=kimi-collie-spoken ;;
-  *) echo 'Usage: bash collie_placement.sh {diffa|kimi} {pack|prepare|start|run|log|summary}' >&2; exit 2 ;;
+  *) echo 'Usage: bash collie_placement.sh {diffa|kimi} {pack|results|prepare|start|run|log|summary}' >&2; exit 2 ;;
 esac
 mode="${2:-start}"
 log="outputs/$label.log"
 case "$mode" in
   start) mkdir -p outputs; nohup bash collie_placement.sh "$model" run >> "$log" 2>&1 </dev/null & echo "PID $! · $log"; exit ;;
   log) exec tail -n 30 -F "$log" ;;
-  pack|prepare|summary|run) ;;
+  pack|results|prepare|summary|run) ;;
   *) echo "Unknown action: $mode" >&2; exit 2 ;;
 esac
 unset PYTHONHOME PYTHONPATH TRANSFORMERS_CACHE
