@@ -87,7 +87,7 @@ def prepare(selected):
     return plan
 
 
-def report(plan, selected, rows):
+def report(plan, selected, rows, folder=OUT):
     from winning_diffa_sweeps import atomic_text
 
     scored = []
@@ -100,7 +100,7 @@ def report(plan, selected, rows):
         scored.append(dict(question_id=qid, family=family, **dict(zip(STYLES, pair))))
         scores.append(pair)
         families[family].append(pair)
-    print(f"Spoken COLLIE: {len(rows)}/{len(plan['records'])} answers, "
+    print(f"{plan['name']}: {len(rows)}/{len(plan['records'])} answers, "
           f"{len(scores)}/{len(selected)} matched problems.")
     if scores:
         for style in STYLES:
@@ -115,8 +115,9 @@ def report(plan, selected, rows):
             n, a = map(sum, zip(*values))
             print(f"{family:12} {len(values):7} {n:14} {a:12}")
         if len(scores) == len(selected):
-            atomic_text(OUT/"scores.jsonl", "".join(json.dumps(r)+"\n" for r in scored))
-            atomic_text(OUT/"summary.json", json.dumps(stats, indent=2)+"\n")
+            atomic_text(folder/"scores.jsonl", "".join(json.dumps(r)+"\n" for r in scored))
+            atomic_text(folder/"summary.json", json.dumps(stats, indent=2)+"\n")
+    return scored
 
 
 def main():
